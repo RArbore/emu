@@ -33,6 +33,8 @@ switchStatement := "switch" "(" expression ")" statement
 caseStatement := "case" expression ":" statement
 returnStatement := "return" expression? ";"
 
+modifier := "pure" | "const" | "inline" | "comptime" | "register" | "restrict"
+
 expression := assignment
 assignment := logicOr ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=" logicOr )*
 logicOr := ( logicAnd "||" )* logicAnd
