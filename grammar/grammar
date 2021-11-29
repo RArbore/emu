@@ -5,7 +5,30 @@ declaration := structDeclaration
              | varDeclaration
              | statement
 
-identifierWithType := modifier? IDENTIFIER ": " TYPE
+decoratedIdentifier := modifier? IDENTIFIER ": " TYPE
 
+structDeclaration := modifier? "struct" IDENTIFIER "{" parameters "};"
 funcDeclaration := modifier? "func" IDENTIFIER "(" parameters? ")" block
-parameters := identifierWithType ( "," identifierWithType )*
+varDeclaration := decoratedIdentifier ( "=" expression )? ";"
+parameters := decoratedIdentifier ( "," decoratedIdentifier )*
+
+arguments := expression ( "," expression )*
+
+statement := exprStatement
+           | ifElseStatement
+           | whileStatement
+           | forStatement
+           | switchStatement
+           | caseStatement
+           | returnStatement
+           | block
+
+block := "{" declaration* "}"
+
+exprStatement := expression ";"
+ifElseStatement := "if" "(" expression ")" statement ("else" statement)?
+whileStatement := "while" "(" expression ")" statement
+forStatement := "for" "(" statement expression ";" expression ")" statement
+switchStatement := "switch" "(" expression ")" statement
+caseStatement := modifier? "case" ":" statement
+returnStatement := "return" expression? ";"
