@@ -12,7 +12,7 @@ funcDeclaration := modifier? "func" IDENTIFIER "(" parameters? ")" block
 varDeclaration := decoratedIdentifier ( "=" expression )? ";"
 parameters := decoratedIdentifier ( "," decoratedIdentifier )*
 
-arguments := expression ( "," expression )*
+arguments := (expression ( "," expression )*)?
 
 statement := exprStatement
            | ifElseStatement
@@ -34,7 +34,7 @@ caseStatement := "case" expression ":" statement
 returnStatement := "return" expression? ";"
 
 expression := assignment
-assignment := logicOr ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=" ) assignment | logicOr
+assignment := logicOr ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=" logicOr )*
 logicOr := ( logicAnd "||" )* logicAnd
 logicAnd := ( bitwiseOr "&&" )* bitwiseOr
 bitwiseOr := ( bitwiseXor "|" )* bitwiseXor
@@ -45,3 +45,12 @@ comparison := ( shift ( ">" | ">=" | "<" | "<=" ) )* shift
 shift := ( term ( "<<" | ">>" ) )* term
 term := ( factor ( "+" | "-" ) )* factor
 factor := ( prefix ( "*" | "/" | "%" ) )* prefix
+prefix := ( "++" | "--" | "+" | "-" | "!" | "~" | "*" | "&" )* postfix
+postfix := primary ( "++" | "--" | "(" arguments ")" | "[" arguments "]" | "." IDENTIFIER | "->" IDENTIFIER )*
+primary := "true" | "false" | "undefined" | NUMBER | STRING | IDENTIFIER | "(" expression ")" | "{" arguments "}"
+
+NUMBER := DIGIT+ ( "." DIGIT+ )?
+STRING := "\"" ANY* "\""
+IDENTIFIER := ALPHA ( ALPHA | DIGIT )*
+ALPHA := "a" ... "z" | "A" ... "Z" | "_"
+DIGIT := "0" ... "9"
