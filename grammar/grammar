@@ -1,0 +1,11 @@
+program := declaration* EOF
+
+declaration := structDeclaration
+             | funcDeclaration
+             | varDeclaration
+             | statement
+
+identifierWithType := modifier? IDENTIFIER ": " TYPE
+
+funcDeclaration := modifier? "func" IDENTIFIER "(" parameters? ")" block
+parameters := identifierWithType ( "," identifierWithType )*
