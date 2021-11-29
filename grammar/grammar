@@ -26,9 +26,22 @@ statement := exprStatement
 block := "{" declaration* "}"
 
 exprStatement := expression ";"
-ifElseStatement := "if" "(" expression ")" statement ("else" statement)?
+ifElseStatement := "if" "(" expression ")" statement ( "else" statement )?
 whileStatement := "while" "(" expression ")" statement
 forStatement := "for" "(" statement expression ";" expression ")" statement
 switchStatement := "switch" "(" expression ")" statement
 caseStatement := "case" expression ":" statement
 returnStatement := "return" expression? ";"
+
+expression := assignment
+assignment := logicOr ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=" ) assignment | logicOr
+logicOr := ( logicAnd "||" )* logicAnd
+logicAnd := ( bitwiseOr "&&" )* bitwiseOr
+bitwiseOr := ( bitwiseXor "|" )* bitwiseXor
+bitwiseXor := ( bitwiseAnd "^" )* bitwiseAnd
+bitwiseAnd := ( equality "&" )* equality
+equality := ( comparison ( "==" | "!=" ) )* comparison
+comparison := ( shift ( ">" | ">=" | "<" | "<=" ) )* shift
+shift := ( term ( "<<" | ">>" ) )* term
+term := ( factor ( "+" | "-" ) )* factor
+factor := ( prefix ( "*" | "/" | "%" ) )* prefix
