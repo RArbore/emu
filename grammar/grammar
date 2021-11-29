@@ -30,5 +30,5 @@ ifElseStatement := "if" "(" expression ")" statement ("else" statement)?
 whileStatement := "while" "(" expression ")" statement
 forStatement := "for" "(" statement expression ";" expression ")" statement
 switchStatement := "switch" "(" expression ")" statement
-caseStatement := modifier? "case" ":" statement
+caseStatement := "case" expression ":" statement
 returnStatement := "return" expression? ";"
