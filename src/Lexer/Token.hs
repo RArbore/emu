@@ -18,23 +18,86 @@ module Lexer.Token
 
   ) where
 
+import qualified Data.Text as T
+
 data Token = Token { tokenType :: TokenType,
                      line :: Int,
                      column :: Int } deriving (Show)
+
 data TokenType = Plus
                | Minus
                | Star
                | Slash
+               | Percent
+               | Excla
                | Hat
                | Bar
                | And
                | DoubleHat
                | DoubleBar
                | DoubleAnd
-               | Equals
                | Greater
                | Lesser
                | DoubleEquals
                | GreaterEquals
                | LesserEquals
-               deriving (Show, Enum)
+               | ExclaEquals
+               | Comma
+               | Semi
+               | Dot
+               | Arrow
+               | LShift
+               | RShift
+               | Equals
+               | PlusPlus
+               | MinusMinus
+               | PlusEquals
+               | MinusEquals
+               | StarEquals
+               | SlashEquals
+               | PercentEquals
+               | LShiftEquals
+               | RShiftEquals
+               | HatEquals
+               | BarEquals
+               | AndEquals
+               | LeftParen
+               | RightParen
+               | LeftBracket
+               | RightBracket
+               | LeftBrace
+               | RightBrace
+               | Func
+               | Struct
+               | Undefined
+               | If
+               | Else
+               | While
+               | For
+               | Switch
+               | Case
+               | Return
+               | Pure
+               | Const
+               | Inline
+               | Comptime
+               | Register
+               | Restrict
+               | Boolean
+               | U8
+               | U16
+               | U32
+               | U64
+               | I8
+               | I16
+               | I32
+               | I64
+               | F16
+               | F32
+               | F64
+               | BooleanLiteral Bool
+               | FixedPointLiteral Integer
+               | FloatingPointLiteral Double
+               | StringLiteral T.Text
+               | Identifier T.Text
+               deriving (Show, Eq)
