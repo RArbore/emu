@@ -9,7 +9,7 @@ decoratedIdentifier := modifier* IDENTIFIER ": " decoratedType
 decoratedType := "*"* TYPE "[" expression "]"*
 
 structDeclaration := modifier* "struct" IDENTIFIER "{" parameters "};"
-funcDeclaration := modifier* "func" IDENTIFIER "(" parameters? ")" block
+funcDeclaration := modifier* "func" IDENTIFIER "(" parameters? ")" ( ": " decoratedType )? block
 varDeclaration := decoratedIdentifier ( "=" expression )? ";"
 parameters := decoratedIdentifier ( "," decoratedIdentifier )*
 
@@ -49,9 +49,9 @@ comparison := ( shift ( ">" | ">=" | "<" | "<=" ) )* shift
 shift := ( term ( "<<" | ">>" ) )* term
 term := ( factor ( "+" | "-" ) )* factor
 factor := ( prefix ( "*" | "/" | "%" ) )* prefix
-prefix := ( "++" | "--" | "+" | "-" | "!" | "~" | "*" | "&" )* postfix
+prefix := ( "++" | "--" | "+" | "-" | "!" | "~" | "*" | "&" | "(" decoratedType ")" )* postfix
 postfix := primary ( "++" | "--" | "(" arguments ")" | "[" arguments "]" | "." IDENTIFIER | "->" IDENTIFIER )*
-primary := "true" | "false" | "undefined" | NUMBER | STRING | IDENTIFIER | "(" expression ")" | "{" arguments "}"
+primary := "true" | "false" | "undefined" | NUMBER | "\'" ANY "\'" | STRING | IDENTIFIER | "(" expression ")" | "{" arguments "}"
 
 NUMBER := DIGIT+ ( "." DIGIT+ )?
 STRING := "\"" ANY* "\""

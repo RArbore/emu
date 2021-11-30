@@ -98,6 +98,7 @@ data TokenType = Plus
                | BooleanLiteral Bool
                | FixedPointLiteral Integer
                | FloatingPointLiteral Double
+               | CharLiteral Char
                | StringLiteral T.Text
                | Identifier T.Text
                deriving (Show, Eq)
