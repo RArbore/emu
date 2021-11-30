@@ -5,11 +5,11 @@ declaration := structDeclaration
              | varDeclaration
              | statement
 
-decoratedIdentifier := modifier? IDENTIFIER ": " decoratedType
+decoratedIdentifier := modifier* IDENTIFIER ": " decoratedType
 decoratedType := "*"* TYPE "[" expression "]"*
 
-structDeclaration := modifier? "struct" IDENTIFIER "{" parameters "};"
-funcDeclaration := modifier? "func" IDENTIFIER "(" parameters? ")" block
+structDeclaration := modifier* "struct" IDENTIFIER "{" parameters "};"
+funcDeclaration := modifier* "func" IDENTIFIER "(" parameters? ")" block
 varDeclaration := decoratedIdentifier ( "=" expression )? ";"
 parameters := decoratedIdentifier ( "," decoratedIdentifier )*
 
@@ -38,7 +38,8 @@ modifier := "pure" | "const" | "inline" | "comptime" | "register" | "restrict"
 
 expression := assignment
 assignment := logicOr ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=" logicOr )*
-logicOr := ( logicAnd "||" )* logicAnd
+logicOr := ( logicXor "||" )* logicXor
+logicXor := ( logicAnd "^^" )* logicAnd
 logicAnd := ( bitwiseOr "&&" )* bitwiseOr
 bitwiseOr := ( bitwiseXor "|" )* bitwiseXor
 bitwiseXor := ( bitwiseAnd "^" )* bitwiseAnd

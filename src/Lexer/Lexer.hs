@@ -10,21 +10,16 @@
     You should have received a copy of the GNU General Public License
     along with rwm. If not, see <https://www.gnu.org/licenses/>.  -}
 
+module Lexer.Lexer
+  (
+
+    Lexer.Lexer.lex
+
+  ) where
+
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 
-import System.Environment
+import Lexer.Token
 
-import Interface.ParseArgs
-
-import qualified Lexer.Lexer as L
-
-main :: IO ()
-main = do
-  args <- getArgs
-  checkedArgs <- checkArgs $ parseFromArgs args
-  if argsInvalidated checkedArgs then print checkedArgs
-  else do
-    filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
-    let lexed = map L.lex filesContents
-    mapM_ TIO.putStrLn filesContents
+lex :: T.Text -> [Token]
+lex = undefined

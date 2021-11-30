@@ -13,7 +13,7 @@ extra-source-files:
 
 executable emu
     main-is:          Main.hs
-    other-modules:    Interface.ParseArgs
+    other-modules:    Interface.ParseArgs, Lexer.Lexer, Lexer.Token
     build-depends:    base, text, directory
     hs-source-dirs:   src
     default-language: Haskell2010

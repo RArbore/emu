@@ -10,21 +10,31 @@
     You should have received a copy of the GNU General Public License
     along with rwm. If not, see <https://www.gnu.org/licenses/>.  -}
 
-import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
+module Lexer.Token
+  (
 
-import System.Environment
+    Token (..),
+    TokenType (..)
 
-import Interface.ParseArgs
+  ) where
 
-import qualified Lexer.Lexer as L
-
-main :: IO ()
-main = do
-  args <- getArgs
-  checkedArgs <- checkArgs $ parseFromArgs args
-  if argsInvalidated checkedArgs then print checkedArgs
-  else do
-    filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
-    let lexed = map L.lex filesContents
-    mapM_ TIO.putStrLn filesContents
+data Token = Token { tokenType :: TokenType,
+                     line :: Int,
+                     column :: Int } deriving (Show)
+data TokenType = Plus
+               | Minus
+               | Star
+               | Slash
+               | Hat
+               | Bar
+               | And
+               | DoubleHat
+               | DoubleBar
+               | DoubleAnd
+               | Equals
+               | Greater
+               | Lesser
+               | DoubleEquals
+               | GreaterEquals
+               | LesserEquals
+               deriving (Show, Enum)
