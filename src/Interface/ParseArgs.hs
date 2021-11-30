@@ -16,7 +16,8 @@ module Interface.ParseArgs
     ParsedArgs (..),
 
     parseFromArgs,
-    checkArgs
+    checkArgs,
+    argsInvalidated
 
   ) where
 
@@ -26,7 +27,11 @@ import qualified Data.Text as T
 
 data ParsedArgs = ParsedArgs { inputFiles :: [T.Text],
                                outputObject :: T.Text }
-                | InvalidArgs { errors :: [T.Text] } deriving (Show)
+                | InvalidArgs { errors :: [T.Text] }
+
+instance Show ParsedArgs where
+  show (ParsedArgs inFiles outObject) = T.unpack $ T.pack "Input files:" `T.append` T.concat (map (T.cons ' ') $ inFiles) `T.append` (T.singleton '\n') `T.append` (T.pack "Output object file: ") `T.append` outObject
+  show (InvalidArgs err) = T.unpack $ T.intercalate (T.singleton '\n') $ map (T.pack "ERROR: " `T.append`) err
 
 addInputFile :: ParsedArgs -> T.Text -> ParsedArgs
 addInputFile inv@(InvalidArgs _)  _ = inv
@@ -56,3 +61,7 @@ checkArgs args@(ParsedArgs _ _) = do
           | b = checkArgsExistChecks (n + 1) bs cargs
           | otherwise = addErrors (checkArgsExistChecks (n + 1) bs cargs) $ T.pack $ "Couldn't find file at " ++ (T.unpack $ inputFiles cargs !! n)
         checkArgsExistChecks _ _ cargs = cargs
+
+argsInvalidated :: ParsedArgs -> Bool
+argsInvalidated (InvalidArgs _) = True
+argsInvalidated (ParsedArgs _ _) = False

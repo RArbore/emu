@@ -18,4 +18,6 @@ main :: IO ()
 main = do
   args <- getArgs
   checkedArgs <- checkArgs $ parseFromArgs args
-  print checkedArgs
+  if argsInvalidated checkedArgs then print checkedArgs
+  else do
+    print checkedArgs
