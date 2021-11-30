@@ -10,8 +10,6 @@
     You should have received a copy of the GNU General Public License
     along with rwm. If not, see <https://www.gnu.org/licenses/>.  -}
 
-import qualified Data.Text as T
-
 import System.Environment
 
 import Interface.ParseArgs
@@ -19,5 +17,4 @@ import Interface.ParseArgs
 main :: IO ()
 main = do
   args <- getArgs
-  let a = parseFromArgs args
-  mapM_ putStrLn args
+  print $ parseFromArgs args

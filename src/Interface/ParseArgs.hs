@@ -16,7 +16,27 @@ module Interface.ParseArgs
     parseFromArgs
   ) where
 
-data ParsedArgs = ParsedArgs { sourceObjectAdjacency :: [(FilePath, FilePath)] }
+import qualified Data.Text as T
+
+data ParsedArgs = ParsedArgs { inputFiles :: [T.Text],
+                               outputObject :: T.Text }
+                  | InvalidArgs { errors :: [T.Text] } deriving (Show)
+
+addInputFile :: ParsedArgs -> T.Text -> ParsedArgs
+addInputFile inv@(InvalidArgs _)  _ = inv
+addInputFile args@(ParsedArgs _ _) file = args {inputFiles = file:(inputFiles args)}
+
+setOutputObject :: ParsedArgs -> T.Text -> ParsedArgs
+setOutputObject inv@(InvalidArgs _) _ = inv
+setOutputObject args@(ParsedArgs _ _) obj = args {outputObject = obj}
+
+addErrors :: ParsedArgs -> T.Text -> ParsedArgs
+addErrors (InvalidArgs existingErrors) newError = InvalidArgs $ newError:existingErrors
+addErrors (ParsedArgs _ _) newError = InvalidArgs [newError]
 
 parseFromArgs :: [String] -> ParsedArgs
-parseFromArgs = undefined
+parseFromArgs (x:xs)
+  | x == "-o" = if null xs then addErrors (parseFromArgs $ xs) $ T.pack $ "-o flag requires an argument (filename to output object file to)" else setOutputObject (parseFromArgs $ tail xs) $ T.pack $ head xs
+  | head x == '-' = addErrors (parseFromArgs $ xs) $ T.pack $ "Invalid argument " ++ x
+  | otherwise = addInputFile (parseFromArgs $ xs) $ T.pack x
+parseFromArgs [] = ParsedArgs [] $ T.empty
