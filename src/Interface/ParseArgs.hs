@@ -12,15 +12,21 @@
 
 module Interface.ParseArgs
   (
+
     ParsedArgs (..),
-    parseFromArgs
+
+    parseFromArgs,
+    checkArgs
+
   ) where
+
+import System.Directory
 
 import qualified Data.Text as T
 
 data ParsedArgs = ParsedArgs { inputFiles :: [T.Text],
                                outputObject :: T.Text }
-                  | InvalidArgs { errors :: [T.Text] } deriving (Show)
+                | InvalidArgs { errors :: [T.Text] } deriving (Show)
 
 addInputFile :: ParsedArgs -> T.Text -> ParsedArgs
 addInputFile inv@(InvalidArgs _)  _ = inv
@@ -36,7 +42,17 @@ addErrors (ParsedArgs _ _) newError = InvalidArgs [newError]
 
 parseFromArgs :: [String] -> ParsedArgs
 parseFromArgs (x:xs)
-  | x == "-o" = if null xs then addErrors (parseFromArgs $ xs) $ T.pack $ "-o flag requires an argument (filename to output object file to)" else setOutputObject (parseFromArgs $ tail xs) $ T.pack $ head xs
+  | x == "-o" = if null xs then addErrors (parseFromArgs $ xs) $ T.pack "-o flag requires an argument (filename to output object file to)" else setOutputObject (parseFromArgs $ tail xs) $ T.pack $ head xs
   | head x == '-' = addErrors (parseFromArgs $ xs) $ T.pack $ "Invalid argument " ++ x
   | otherwise = addInputFile (parseFromArgs $ xs) $ T.pack x
 parseFromArgs [] = ParsedArgs [] $ T.empty
+
+checkArgs :: ParsedArgs -> IO (ParsedArgs)
+checkArgs inv@(InvalidArgs _) = do return inv
+checkArgs args@(ParsedArgs _ _) = do
+  existChecks <- mapM doesFileExist (map T.unpack $ inputFiles args)
+  return $ checkArgsExistChecks 0 existChecks args
+  where checkArgsExistChecks n (b:bs) cargs
+          | b = checkArgsExistChecks (n + 1) bs cargs
+          | otherwise = addErrors (checkArgsExistChecks (n + 1) bs cargs) $ T.pack $ "Couldn't find file at " ++ (T.unpack $ inputFiles cargs !! n)
+        checkArgsExistChecks _ _ cargs = cargs

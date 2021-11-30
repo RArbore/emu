@@ -17,4 +17,5 @@ import Interface.ParseArgs
 main :: IO ()
 main = do
   args <- getArgs
-  print $ parseFromArgs args
+  checkedArgs <- checkArgs $ parseFromArgs args
+  print checkedArgs
