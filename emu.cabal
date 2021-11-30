@@ -1,0 +1,22 @@
+cabal-version:      2.4
+name:               emu
+version:            0.1.0.0
+build-type:         Simple
+
+-- synopsis: Reference compiler for the emu programming language.
+
+-- bug-reports: https://github.com/RArbore/emu/issues
+
+-- license: GPL-3
+author:             Russel Arbore
+maintainer:         russel.jma@gmail.com
+
+extra-source-files:
+    README.md
+
+executable emu
+    main-is:          Main.hs
+    other-modules:    Interface.ParseArgs
+    build-depends:    base, text
+    hs-source-dirs:   Emu
+    default-language: Haskell2010

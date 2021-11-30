@@ -14,7 +14,10 @@ import qualified Data.Text as T
 
 import System.Environment
 
+import Interface.ParseArgs
+
 main :: IO ()
 main = do
   args <- getArgs
+  let a = parseFromArgs args
   mapM_ putStrLn args
