@@ -26,5 +26,5 @@ main = do
   if argsInvalidated checkedArgs then print checkedArgs
   else do
     filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
-    let lexed = map L.lex filesContents
+    let lexed = map (L.lexer 0 1) filesContents
     mapM_ TIO.putStrLn filesContents

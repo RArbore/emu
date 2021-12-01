@@ -21,8 +21,8 @@ module Lexer.Token
 import qualified Data.Text as T
 
 data Token = Token { tokenType :: TokenType,
-                     line :: Int,
-                     column :: Int } deriving (Show)
+                     column :: Int,
+                     line :: Int } deriving (Show)
 
 data TokenType = Plus
                | Minus
@@ -44,6 +44,7 @@ data TokenType = Plus
                | ExclaEquals
                | Comma
                | Semi
+               | Colon
                | Dot
                | Arrow
                | LShift
