@@ -92,7 +92,7 @@ lexer c l text -- (t:tx)
   | p "comptime" = th Comptime 8
   | p "register" = th Register 8
   | p "restrict" = th Restrict 8
-  | p "bool" = th Boolean 7
+  | p "bool" = th Boolean 4
   | p "u8" = th U8 2
   | p "u16" = th U16 3
   | p "u32" = th U32 3
