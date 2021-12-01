@@ -46,6 +46,7 @@ data TokenType = Plus
                | Semi
                | Colon
                | Dot
+               | Tilda
                | Arrow
                | LShift
                | RShift
