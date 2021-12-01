@@ -19,14 +19,15 @@ module Lexer.Lexer
 
 import Data.Char
 import Data.Either
+import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Read as TR
 
 import Lexer.Token
 
-lexer :: Int -> Int -> T.Text -> [Token]
+lexer :: Int -> Int -> T.Text -> Either [T.Text] [Token]
 lexer c l text -- (t:tx)
-  | T.null text = []
+  | T.null text = Right []
   | p "\n" = lexer 0 (l + 1) $ T.tail text
   | isSpace $ T.head text = lexer (c + 1) l $ T.tail text
   | p "++" = th PlusPlus 2
@@ -37,6 +38,7 @@ lexer c l text -- (t:tx)
   | p "-" = th Minus 1
   | p "*=" = th StarEquals 2
   | p "*" = th Star 1
+  | p "//" = lexer (c + numToNextLine) l $ T.drop numToNextLine text
   | p "/=" = th SlashEquals 2
   | p "/" = th Slash 1
   | p "%=" = th PercentEquals 2
@@ -71,8 +73,8 @@ lexer c l text -- (t:tx)
   | p "(" = th LeftParen 1
   | p ")" = th RightParen 1
   | p "[" = th LeftBracket 1
-  | p "]" = th LeftBracket 1
-  | p "{" = th RightBrace 1
+  | p "]" = th RightBracket 1
+  | p "{" = th LeftBrace 1
   | p "}" = th RightBrace 1
   | p "func" = th Func 4
   | p "struct" = th Struct 6
@@ -105,7 +107,49 @@ lexer c l text -- (t:tx)
   | p "true" = th (BooleanLiteral True) 4
   | p "false" = th (BooleanLiteral True) 5
   | isDigit $ T.head text = if T.head (T.dropWhile isDigit text) == '.' then th (FloatingPointLiteral $ fst $ fromRight undefined $ TR.double $ takeDoub text) $ T.length $ takeDoub text else th (FixedPointLiteral $ fst $ fromRight undefined $ TR.decimal $ takeDeci text) $ T.length $ takeDeci text
+  | p "'" = th (toCharLit $ T.unpack $ insideSingleQuotes) $ 2 + (T.length insideSingleQuotes)
+  | p "\"" = th (StringLiteral insideDoubleQuotes) $ 2 + (T.length insideDoubleQuotes)
+  | isAlpha $ T.head text = th (Identifier $ T.takeWhile (\x -> isAlphaNum x) text) $ T.length $ T.takeWhile (\x -> isAlphaNum x) text
+  | otherwise = th (BadToken $ T.pack $ "Unrecognized character " ++ [T.head text] ++ " (occurred at line " ++ (show l) ++ " and column " ++ (show c) ++ ").") 1
     where p s = T.isPrefixOf (T.pack s) text
-          th t n = (Token t c l):(lexer (c + n) l $ T.drop n text)
+          th :: TokenType -> Int -> Either [T.Text] [Token]
+          th t n = (Token t c l) `comp` (lexer (c + n) l $ T.drop n text)
+          comp (Token t _ _) (Left errs)
+            | isBadTokenType t = Left ((textFromBadTokenType t):errs)
+            | otherwise = Left errs
+          comp token@(Token t _ _) (Right tokens)
+            | isBadTokenType t = Left [textFromBadTokenType t]
+            | otherwise = Right (token:tokens)
           takeDeci t = T.takeWhile isDigit t
           takeDoub t = takeDeci t `T.append` T.singleton '.' `T.append` takeDeci t
+          isBadTokenType (BadToken _) = True
+          isBadTokenType _ = False
+          textFromBadTokenType (BadToken x) = x
+          textFromBadTokenType _ = undefined
+          toCharLit "\\'" = CharLiteral '\''
+          toCharLit "\\\"" = CharLiteral '"'
+          toCharLit "\\\\" = CharLiteral '\\'
+          toCharLit "\\n" = CharLiteral '\n'
+          toCharLit "\\r" = CharLiteral '\r'
+          toCharLit "\\t" = CharLiteral '\t'
+          toCharLit "\\b" = CharLiteral '\b'
+          toCharLit "\\f" = CharLiteral '\f'
+          toCharLit "\\v" = CharLiteral '\v'
+          toCharLit "\\0" = CharLiteral '\0'
+          toCharLit [x] = CharLiteral x
+          toCharLit x = BadToken $ T.pack $ x ++ " is not a valid character or character code (occured at line " ++ (show l) ++ " and column " ++ (show c) ++ ")."
+          insideSingleQuotes = T.takeWhile (\x -> x /= '\'') $ T.tail text
+          insideDoubleQuotes = replaceEscapes $ T.takeWhile (\x -> x /= '"') $ T.tail text
+          replaceEscapes = rep "\\'" '\'' .
+                           rep "\\\"" '"' .
+                           rep "\\\\" '\\' .
+                           rep "\\n" '\n' .
+                           rep "\\r" '\r' .
+                           rep "\\t" '\t' .
+                           rep "\\b" '\b' .
+                           rep "\\f" '\f' .
+                           rep "\\v" '\v' .
+                           rep "\\0" '\0'
+          rep s ch = T.replace (T.pack s) (T.singleton ch)
+          numToNextLine = if isJust numToNextLineMaybe then fromJust numToNextLineMaybe + 1else T.length text
+          numToNextLineMaybe = T.findIndex (\x -> x == '\n') text

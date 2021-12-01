@@ -103,4 +103,5 @@ data TokenType = Plus
                | CharLiteral Char
                | StringLiteral T.Text
                | Identifier T.Text
-               deriving (Show, Eq)
+               | BadToken T.Text
+               deriving (Show)

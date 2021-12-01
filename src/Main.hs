@@ -10,6 +10,7 @@
     You should have received a copy of the GNU General Public License
     along with rwm. If not, see <https://www.gnu.org/licenses/>.  -}
 
+import Data.Either
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
@@ -18,6 +19,7 @@ import System.Environment
 import Interface.ParseArgs
 
 import qualified Lexer.Lexer as L
+import qualified Lexer.Token as LT
 
 main :: IO ()
 main = do
@@ -27,4 +29,4 @@ main = do
   else do
     filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
     let lexed = map (L.lexer 0 1) filesContents
-    mapM_ TIO.putStrLn filesContents
+    print $ map LT.tokenType $ fromRight undefined $ lexed !! 0
