@@ -33,12 +33,12 @@ data TokenType = Plus
                | Hat
                | Bar
                | And
-               | DoubleHat
-               | DoubleBar
-               | DoubleAnd
+               | HatHat
+               | BarBar
+               | AndAnd
                | Greater
                | Lesser
-               | DoubleEquals
+               | EqualsEquals
                | GreaterEquals
                | LesserEquals
                | ExclaEquals
