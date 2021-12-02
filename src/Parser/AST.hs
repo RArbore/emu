@@ -17,21 +17,24 @@ module Parser.AST
 
   ) where
 
-import qualified Lexer.Token as LT
+import qualified Data.Text as T
 
-type AST = [Decl]
-data Decl = StructDecl [Modifier] LT.Token Identifier Parameters
-          | FuncDecl [Modifier] LT.Token Identifier Parameters DecoratedType Block
+newtype AST = AST [Decl]
+data Decl = StructDecl [Modifier] Identifier Parameters
+          | FuncDecl [Modifier] Identifier Parameters DecoratedType Statement
           | VarDecl DecoratedIdentifier Expression
           | StatementDecl Statement
+
 data Statement = ExpressionStatement Expression
-               | IfElseStatement LT.Token Expression Statement Statement
-               | WhileStatement LT.Token Expression Statement
-               | ForStatement LT.Token Statement Expression Expression Statement
-               | SwitchStatement LT.Token Expression Statement
-               | CaseStatement LT.Token Expression Statement
-               | ReturnStatement LT.Token Expression
-type Expression = Assignment
+               | IfElseStatement Expression Statement Statement
+               | WhileStatement Expression Statement
+               | ForStatement Statement Expression Expression Statement
+               | SwitchStatement Expression Statement
+               | CaseStatement Expression Statement
+               | ReturnStatement Expression
+               | Block [Statement]
+
+newtype Expression = Expression Assignment
 data Assignment = Assignment LogicOr AssignOp LogicOr
 data LogicOr = LogicOr [LogicXor] LogicXor
 data LogicXor = LogicXor [LogicAnd] LogicAnd
@@ -46,9 +49,28 @@ data Term = Term [(Factor, TermOp)] Factor
 data Factor = Factor [(Prefix, FactorOp)] Prefix
 data Prefix = Prefix [PrefixOp] Postfix
 data Postfix = Postfix Primary [PostfixOp]
+data Primary = BooleanLiteral Bool
+             | FixedPointLiteral Integer
+             | FloatingPointLiteral Double
+             | CharLiteral Char
+             | StringLiteral T.Text
+             | PrimaryIdentifier Identifier
+             | Grouping Expression
+             | ArrayLiteral [Expression]
+newtype Identifier = Identifier T.Text
 
 data DecoratedIdentifier = DecoratedIdentifier Modifier Identifier DecoratedType
 data DecoratedType = DecoratedType Int Type [Int]
-data Parameters = Parameters [DecoratedIdentifier]
-data Arguments = Arguments [Expression]
+newtype Parameters = Parameters [DecoratedIdentifier]
+newtype Arguments = Arguments [Expression]
 data Modifier = Pure | Const | Inline | Comptime | Register | Restrict
+data Type =  U8 | U16 | U32 | U64 | I8 | I16 | I32 | I64 | F16 | F32 | F64
+
+data AssignOp = Equals | PlusEquals | MinusEquals | StarEquals | SlashEquals | PercentEquals | LShiftEquals | RShiftEquals | HatEquals | BarEquals | AndEquals
+data EqualityOp = EqualsEquals | ExclaEquals
+data CompareOp = Greater | Lesser | GreaterEquals | LesserEquals
+data ShiftOp = LShift | RShift
+data TermOp = TermPlus | TermMinus
+data FactorOp = FactorStar | FactorSlash | FactorPercent
+data PrefixOp = PrePlusPlus | PreMinusMinus | Plus | Minus | Excla | Tilda | Star | And | Cast DecoratedType
+data PostfixOp = PostPlusPlus | PostMinusMinus | Call Arguments | Index Arguments | Dot Identifier | Arrow Identifier
