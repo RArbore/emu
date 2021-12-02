@@ -26,7 +26,7 @@ import qualified Data.Text.Read as TR
 import Lexer.Token
 
 lexer :: Int -> Int -> T.Text -> Either [T.Text] [Token]
-lexer c l text -- (t:tx)
+lexer c l text
   | T.null text = Right []
   | p "\n" = lexer 0 (l + 1) $ T.tail text
   | isSpace $ T.head text = lexer (c + 1) l $ T.tail text
@@ -110,15 +110,15 @@ lexer c l text -- (t:tx)
   | p "'" = th (toCharLit $ T.unpack $ insideSingleQuotes) $ 2 + (T.length insideSingleQuotes)
   | p "\"" = th (StringLiteral insideDoubleQuotes) $ 2 + (T.length insideDoubleQuotes)
   | isAlpha $ T.head text = th (Identifier $ T.takeWhile (\x -> isAlphaNum x) text) $ T.length $ T.takeWhile (\x -> isAlphaNum x) text
-  | otherwise = th (BadToken $ T.pack $ "Unrecognized character " ++ [T.head text] ++ " (occurred at line " ++ (show l) ++ " and column " ++ (show c) ++ ").") 1
+  | otherwise = th (BadToken $ T.pack $ "Unrecognized character " ++ [T.head text] ++ " " ++ occurLoc ++ ".") 1
     where p s = T.isPrefixOf (T.pack s) text
           th :: TokenType -> Int -> Either [T.Text] [Token]
           th t n = (Token t c l) `comp` (lexer (c + n) l $ T.drop n text)
           comp (Token t _ _) (Left errs)
             | isBadTokenType t = Left ((textFromBadTokenType t):errs)
             | otherwise = Left errs
-          comp token@(Token t _ _) (Right tokens)
-            | isBadTokenType t = Left [textFromBadTokenType t]
+          comp token (Right tokens)
+            | isBadTokenType $ tokenType token = Left [textFromBadTokenType $ tokenType token]
             | otherwise = Right (token:tokens)
           takeDeci t = T.takeWhile isDigit t
           takeDoub t = takeDeci t `T.append` T.singleton '.' `T.append` takeDeci t
@@ -137,7 +137,7 @@ lexer c l text -- (t:tx)
           toCharLit "\\v" = CharLiteral '\v'
           toCharLit "\\0" = CharLiteral '\0'
           toCharLit [x] = CharLiteral x
-          toCharLit x = BadToken $ T.pack $ x ++ " is not a valid character or character code (occured at line " ++ (show l) ++ " and column " ++ (show c) ++ ")."
+          toCharLit x = BadToken $ T.pack $ x ++ " is not a valid character or character code " ++ occurLoc ++ "."
           insideSingleQuotes = T.takeWhile (\x -> x /= '\'') $ T.tail text
           insideDoubleQuotes = replaceEscapes $ T.takeWhile (\x -> x /= '"') $ T.tail text
           replaceEscapes = rep "\\'" '\'' .
@@ -153,3 +153,4 @@ lexer c l text -- (t:tx)
           rep s ch = T.replace (T.pack s) (T.singleton ch)
           numToNextLine = if isJust numToNextLineMaybe then fromJust numToNextLineMaybe + 1else T.length text
           numToNextLineMaybe = T.findIndex (\x -> x == '\n') text
+          occurLoc = "(occured at line " ++ (show l) ++ " and column " ++ (show c) ++ ")"
