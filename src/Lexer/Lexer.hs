@@ -13,7 +13,8 @@
 module Lexer.Lexer
   (
 
-    lexer
+    lexer,
+    lexerFailed
 
   ) where
 
@@ -153,4 +154,8 @@ lexer c l text
           rep s ch = T.replace (T.pack s) (T.singleton ch)
           numToNextLine = if isJust numToNextLineMaybe then fromJust numToNextLineMaybe + 1else T.length text
           numToNextLineMaybe = T.findIndex (\x -> x == '\n') text
-          occurLoc = "(occured at line " ++ (show l) ++ " and column " ++ (show c) ++ ")"
+          occurLoc = "(occured at line " ++ (show $ l + 1) ++ " and column " ++ (show c) ++ ")"
+
+lexerFailed :: Either [T.Text] [Token] -> Maybe [T.Text]
+lexerFailed (Left t) = Just t
+lexerFailed (Right _) = Nothing

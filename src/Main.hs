@@ -11,6 +11,7 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
 import Data.Either
+import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
@@ -31,5 +32,7 @@ main = do
   else do
     filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
     let lexed = map (L.lexer 0 1) filesContents
-    let parsed = map (P.parser) lexed
-    --print $ map LT.tokenType $ fromRight undefined $ lexed !! 0
+    if any isJust $ map L.lexerFailed lexed then mapM_ (mapM_ putStrLn) $ map (map T.unpack) $ map fromJust $ filter isJust $ map L.lexerFailed lexed
+    else do
+      let parsed = map (P.parser) lexed
+      print $ map LT.tokenType $ fromRight undefined $ lexed !! 0
