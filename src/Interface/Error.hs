@@ -21,31 +21,17 @@ import qualified Data.Text as T
 
 data Error = Error { error :: T.Text,
                      filename :: T.Text,
-                     problematic :: T.Text,
                      line :: Int,
                      startColumn :: Int,
                      endColumn :: Int }
 
 instance Show Error where
-  show (Error e f p l sc ec) = T.unpack f
+  show (Error e f l sc _) = T.unpack f
                                    ++ ":"
-                                   ++ show l
+                                   ++ show (l + 1)
                                    ++ ":"
                                    ++ show sc
                                    ++ ": ERROR:\n"
-                                   ++ take (2 + spacing) (repeat ' ')
                                    ++ T.unpack e
                                    ++ "\n"
-                                   ++ take spacing (repeat ' ')
-                                   ++ " |\n"
-                                   ++ show l
-                                   ++ " |   "
-                                   ++ T.unpack p
-                                   ++ "\n"
-                                   ++ take spacing (repeat ' ')
-                                   ++ " |   "
-                                   ++ take sc (repeat ' ')
-                                   ++ take (ec - sc) (repeat '^')
-                                   ++ "\n"
-    where spacing = length $ show l
   

@@ -24,13 +24,15 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Read as TR
 
+import Interface.Error
+
 import Lexer.Token
 
-lexer :: Int -> Int -> T.Text -> Either [T.Text] [Token]
-lexer c l text
+lexer :: Int -> Int -> T.Text -> T.Text -> Either [Error] [Token]
+lexer c l text file
   | T.null text = Right []
-  | p "\n" = lexer 0 (l + 1) $ T.tail text
-  | isSpace $ T.head text = lexer (c + 1) l $ T.tail text
+  | p "\n" = lexer 0 (l + 1) (T.tail text) file
+  | isSpace $ T.head text = lexer (c + 1) l (T.tail text) file
   | p "++" = th PlusPlus 2
   | p "+=" = th PlusEquals 2
   | p "+" = th Plus 1
@@ -39,7 +41,7 @@ lexer c l text
   | p "-" = th Minus 1
   | p "*=" = th StarEquals 2
   | p "*" = th Star 1
-  | p "//" = lexer (c + numToNextLine) l $ T.drop numToNextLine text
+  | p "//" = lexer (c + numToNextLine) l (T.drop numToNextLine text) file
   | p "/=" = th SlashEquals 2
   | p "/" = th Slash 1
   | p "%=" = th PercentEquals 2
@@ -111,16 +113,17 @@ lexer c l text
   | p "'" = th (toCharLit $ T.unpack $ insideSingleQuotes) $ 2 + (T.length insideSingleQuotes)
   | p "\"" = th (StringLiteral insideDoubleQuotes) $ 2 + (T.length insideDoubleQuotes)
   | isAlpha $ T.head text = th (Identifier $ T.takeWhile (\x -> isAlphaNum x) text) $ T.length $ T.takeWhile (\x -> isAlphaNum x) text
-  | otherwise = th (BadToken $ T.pack $ "Unrecognized character " ++ [T.head text] ++ " " ++ occurLoc ++ ".") 1
+  | otherwise = th (BadToken $ T.pack $ "Unrecognized character " ++ [T.head text] ++ ".") 1
     where p s = T.isPrefixOf (T.pack s) text
-          th :: TokenType -> Int -> Either [T.Text] [Token]
-          th t n = (Token t c l) `comp` (lexer (c + n) l $ T.drop n text)
-          comp (Token t _ _) (Left errs)
-            | isBadTokenType t = Left ((textFromBadTokenType t):errs)
+          th :: TokenType -> Int -> Either [Error] [Token]
+          th t n = (Token t c l) `comp` (lexer (c + n) l (T.drop n text) file)
+          comp :: Token -> Either [Error] [Token] -> Either[Error] [Token]
+          comp (Token t tc tl) (Left errs)
+            | isBadTokenType t = Left ((Error (textFromBadTokenType t) file tl tc (tc + 1)):errs)
             | otherwise = Left errs
-          comp token (Right tokens)
-            | isBadTokenType $ tokenType token = Left [textFromBadTokenType $ tokenType token]
-            | otherwise = Right (token:tokens)
+          comp (Token t tc tl) (Right tokens)
+            | isBadTokenType $ t = Left [Error (textFromBadTokenType $ t) file tl tc (tc + 1)]
+            | otherwise = Right ((Token t tc tl):tokens)
           takeDeci t = T.takeWhile isDigit t
           takeDoub t = takeDeci t `T.append` T.singleton '.' `T.append` takeDeci t
           isBadTokenType (BadToken _) = True
@@ -138,7 +141,7 @@ lexer c l text
           toCharLit "\\v" = CharLiteral '\v'
           toCharLit "\\0" = CharLiteral '\0'
           toCharLit [x] = CharLiteral x
-          toCharLit x = BadToken $ T.pack $ x ++ " is not a valid character or character code " ++ occurLoc ++ "."
+          toCharLit x = BadToken $ T.pack $ x ++ " is not a valid character or character code."
           insideSingleQuotes = T.takeWhile (\x -> x /= '\'') $ T.tail text
           insideDoubleQuotes = replaceEscapes $ T.takeWhile (\x -> x /= '"') $ T.tail text
           replaceEscapes = rep "\\'" '\'' .
@@ -154,8 +157,7 @@ lexer c l text
           rep s ch = T.replace (T.pack s) (T.singleton ch)
           numToNextLine = if isJust numToNextLineMaybe then fromJust numToNextLineMaybe + 1else T.length text
           numToNextLineMaybe = T.findIndex (\x -> x == '\n') text
-          occurLoc = "(occured at line " ++ (show $ l + 1) ++ " and column " ++ (show c) ++ ")"
 
-lexerFailed :: Either [T.Text] [Token] -> Maybe [T.Text]
+lexerFailed :: Either [Error] [Token] -> Maybe [Error]
 lexerFailed (Left t) = Just t
 lexerFailed (Right _) = Nothing

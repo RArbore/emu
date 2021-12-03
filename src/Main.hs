@@ -31,8 +31,8 @@ main = do
   if argsInvalidated checkedArgs then print checkedArgs
   else do
     filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
-    let lexed = map (L.lexer 0 1) filesContents
-    if any isJust $ map L.lexerFailed lexed then mapM_ (mapM_ putStrLn) $ map (map T.unpack) $ map fromJust $ filter isJust $ map L.lexerFailed lexed
+    let lexed = zipWith ($) (map (L.lexer 0 1) filesContents) (inputFiles checkedArgs)
+    if any isJust $ map L.lexerFailed lexed then mapM_ (mapM_ print) $ map fromJust $ filter isJust $ map L.lexerFailed lexed
     else do
       let parsed = map (P.parser) lexed
       print $ map LT.tokenType $ fromRight undefined $ lexed !! 0
