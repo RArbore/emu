@@ -11,12 +11,12 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
 module Lexer.Token
-  (
+    (
 
-    Token (..),
-    TokenType (..)
+     Token (..),
+     TokenType (..)
 
-  ) where
+    ) where
 
 import qualified Data.Text as T
 

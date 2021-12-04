@@ -11,44 +11,44 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
 module Parser.AST
-  (
+    (
 
-    AST (..),
-    Decl  (..),
-    Statement  (..),
-    Expression  (..),
-    Assignment  (..),
-    LogicOr  (..),
-    LogicXor  (..),
-    LogicAnd  (..),
-    BitwiseOr  (..),
-    BitwiseXor  (..),
-    BitwiseAnd  (..),
-    Equality  (..),
-    Comparison  (..),
-    Shift  (..),
-    Term  (..),
-    Factor  (..),
-    Prefix  (..),
-    Postfix  (..),
-    Primary  (..),
-    DecoratedIdentifier  (..),
-    DecoratedType  (..),
-    Identifier  (..),
-    Parameters  (..),
-    Arguments  (..),
-    Modifier  (..),
-    Type  (..),
-    AssignOp  (..),
-    EqualityOp  (..),
-    CompareOp  (..),
-    ShiftOp  (..),
-    TermOp  (..),
-    FactorOp  (..),
-    PrefixOp  (..),
-    PostfixOp  (..)
-
-  ) where
+     AST (..),
+     Decl  (..),
+     Statement  (..),
+     Expression  (..),
+     Assignment  (..),
+     LogicOr  (..),
+     LogicXor  (..),
+     LogicAnd  (..),
+     BitwiseOr  (..),
+     BitwiseXor  (..),
+     BitwiseAnd  (..),
+     Equality  (..),
+     Comparison  (..),
+     Shift  (..),
+     Term  (..),
+     Factor  (..),
+     Prefix  (..),
+     Postfix  (..),
+     Primary  (..),
+     DecoratedIdentifier  (..),
+     DecoratedType  (..),
+     Identifier  (..),
+     Parameters  (..),
+     Arguments  (..),
+     Modifier  (..),
+     Type  (..),
+     AssignOp  (..),
+     EqualityOp  (..),
+     CompareOp  (..),
+     ShiftOp  (..),
+     TermOp  (..),
+     FactorOp  (..),
+     PrefixOp  (..),
+     PostfixOp  (..)
+     
+    ) where
 
 import qualified Data.Text as T
 

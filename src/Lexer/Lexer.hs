@@ -11,12 +11,12 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
 module Lexer.Lexer
-  (
+    (
 
-    lexer,
-    lexerFailed
+     lexer,
+     lexerFailed
 
-  ) where
+    ) where
 
 import Data.Char
 import Data.Either

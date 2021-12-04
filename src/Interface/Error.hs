@@ -11,11 +11,11 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
 module Interface.Error
-  (
+    (
 
-    Error (..),
+     Error (..),
 
-  ) where
+    ) where
 
 import qualified Data.Text as T
 

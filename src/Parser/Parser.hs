@@ -11,13 +11,13 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
 module Parser.Parser
-  (
+    (
 
-    ParserState (..),
+     ParserState (..),
 
-    parser
+     parser
 
-  ) where
+    ) where
 
 import Data.Either
 import qualified Data.Text as T

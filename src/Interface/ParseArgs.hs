@@ -11,15 +11,15 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
 module Interface.ParseArgs
-  (
+    (
 
-    ParsedArgs (..),
+     ParsedArgs (..),
 
-    parseFromArgs,
-    checkArgs,
-    argsInvalidated
+     parseFromArgs,
+     checkArgs,
+     argsInvalidated
 
-  ) where
+    ) where
 
 import System.Directory
 
