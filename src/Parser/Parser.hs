@@ -35,9 +35,8 @@ data ParserState = ParserState { filename :: T.Text,
 parser :: Parser AST
 parser s [] = Right (AST [], [], s)
 parser s x = do
-  (outDecl, tokens, ns) <- decl s x
-  (AST nextDecls, leftovers, nns) <- parser ns tokens
-  return (AST (outDecl:nextDecls), leftovers, nns)
+  (decls, leftovers, ns) <- sequenceParser decl s x
+  return (AST decls, leftovers, ns)
   
 decl :: Parser Decl
 decl s x = undefined
@@ -58,6 +57,13 @@ modifier s x = tokenParser LT.Pure s x
     where l
              | null x = 1
              | otherwise = LT.length $ head x
+
+sequenceParser :: Parser a -> Parser [a]
+sequenceParser _ s [] = Right ([], [], s)
+sequenceParser p s x = do
+  (parsed, tokens, ns) <- p s x
+  (nextParsed, leftovers, nns) <- sequenceParser p ns tokens
+  return (parsed:nextParsed, leftovers, nns)
   
 tokenParser :: LT.TokenType -> Parser LT.Token
 tokenParser tt s [] = Left $ E.Error
