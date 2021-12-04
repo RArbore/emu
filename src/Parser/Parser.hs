@@ -51,7 +51,9 @@ tokenParser tt s [] = Left $ E.Error
                       (column s + 1)
 tokenParser tt (ParserState f l c) (x:xs)
     | tt == (LT.tokenType x) = Right (x, xs, (ParserState nf nl nc))
-    | otherwise = undefined
+    | otherwise = Left $ E.Error
+                  (T.pack $ "Couldn't find token of type " ++ (show tt))
+                  f l c (c + 1)
     where (nf, nl, nc)
               | null xs = (f, l + LT.length x, c)
               | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
