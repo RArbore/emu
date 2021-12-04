@@ -22,7 +22,8 @@ import qualified Data.Text as T
 
 data Token = Token { tokenType :: TokenType,
                      column :: Int,
-                     line :: Int } deriving (Show)
+                     line :: Int,
+                     length :: Int } deriving (Show)
 
 data TokenType = Plus
                | Minus
@@ -104,4 +105,4 @@ data TokenType = Plus
                | StringLiteral T.Text
                | Identifier T.Text
                | BadToken T.Text
-               deriving (Show)
+               deriving (Show, Eq)

@@ -116,14 +116,14 @@ lexer c l text file
   | otherwise = th (BadToken $ T.pack $ "Unrecognized character " ++ [T.head text] ++ ".") 1
     where p s = T.isPrefixOf (T.pack s) text
           th :: TokenType -> Int -> Either [Error] [Token]
-          th t n = (Token t c l) `comp` (lexer (c + n) l (T.drop n text) file)
+          th t n = (Token t c l n) `comp` (lexer (c + n) l (T.drop n text) file)
           comp :: Token -> Either [Error] [Token] -> Either[Error] [Token]
-          comp (Token t tc tl) (Left errs)
+          comp (Token t tc tl _) (Left errs)
             | isBadTokenType t = Left ((Error (textFromBadTokenType t) file tl tc (tc + 1)):errs)
             | otherwise = Left errs
-          comp (Token t tc tl) (Right tokens)
+          comp (Token t tc tl len) (Right tokens)
             | isBadTokenType $ t = Left [Error (textFromBadTokenType $ t) file tl tc (tc + 1)]
-            | otherwise = Right ((Token t tc tl):tokens)
+            | otherwise = Right ((Token t tc tl len):tokens)
           takeDeci t = T.takeWhile isDigit t
           takeDoub t = takeDeci t `T.append` T.singleton '.' `T.append` takeDeci t
           isBadTokenType (BadToken _) = True

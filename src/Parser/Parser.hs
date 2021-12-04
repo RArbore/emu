@@ -13,24 +13,46 @@
 module Parser.Parser
   (
 
+    ParserState (..),
+
     parser
 
   ) where
 
-import Interface.Error
+import qualified Data.Text as T
 
-import Lexer.Token
+import qualified Interface.Error as E
+
+import qualified Lexer.Token as LT
 
 import Parser.AST
 
-type Parser t = [Token] -> Either Error (t, [Token])
+type Parser t = ParserState -> [LT.Token] -> Either E.Error (t, [LT.Token], ParserState)
+data ParserState = ParserState { filename :: T.Text,
+                                 line :: Int,
+                                 column :: Int } deriving (Show)
 
 parser :: Parser AST
-parser [] = Right (AST [], [])
-parser x = do
-  (outDecl, tokens) <- decl x
-  (AST nextDecls, _) <- parser tokens
-  return (AST (outDecl:nextDecls), [])
+parser s [] = Right (AST [], [], s)
+parser s x = do
+  (outDecl, tokens, ns) <- decl s x
+  (AST nextDecls, leftovers, nns) <- parser ns tokens
+  return (AST (outDecl:nextDecls), leftovers, nns)
   
 decl :: Parser Decl
 decl = undefined
+
+tokenParser :: LT.TokenType -> Parser LT.Token
+tokenParser tt s [] = Left $ E.Error
+                      (T.pack $ "Couldn't find token of type " ++ (show tt))
+                      (filename s)
+                      (line s)
+                      (column s)
+                      (column s + 1)
+tokenParser tt (ParserState f l c) (x:xs)
+    | tt == (LT.tokenType x) = Right (x, xs, (ParserState nf nl nc))
+    | otherwise = undefined
+    where (nf, nl, nc)
+              | null xs = (f, l + LT.length x, c)
+              | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
+
