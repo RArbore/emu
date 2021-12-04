@@ -43,13 +43,13 @@ parser s x = do
 decl :: Parser Decl
 decl s x = undefined
 
-modifier :: Parser LT.Token
-modifier s x = tokenParser LT.Pure s x
-               <> tokenParser LT.Const s x
-               <> tokenParser LT.Inline s x
-               <> tokenParser LT.Comptime s x
-               <> tokenParser LT.Register s x
-               <> tokenParser LT.Restrict s x
+modifier :: Parser Modifier
+modifier s x = tokenParser LT.Pure Pure s x
+               <> tokenParser LT.Const Const s x
+               <> tokenParser LT.Inline Inline s x
+               <> tokenParser LT.Comptime Comptime s x
+               <> tokenParser LT.Register Register s x
+               <> tokenParser LT.Restrict Restrict s x
                <> (Left $ E.Error
                       (T.pack $ "Couldn't find modifier token")
                       (filename s)
@@ -68,19 +68,18 @@ sequenceParser p s x
     where (found, nx, ns) = fromRight undefined $ p s x
           (nextFound, nnx, nns) = fromRight undefined $ (sequenceParser p) ns nx
   
-tokenParser :: LT.TokenType -> Parser LT.Token
-tokenParser tt s [] = Left $ E.Error
-                      (T.pack $ "Couldn't find token of type " ++ (show tt))
-                      (filename s)
-                      (line s)
-                      (column s)
-                      (column s + 1)
-tokenParser tt (ParserState f l c) (x:xs)
-    | tt == (LT.tokenType x) = Right (x, xs, (ParserState nf nl nc))
+tokenParser :: LT.TokenType -> a -> Parser a
+tokenParser tt _ s [] = Left $ E.Error
+                        (T.pack $ "Couldn't find token of type " ++ (show tt))
+                        (filename s)
+                        (line s)
+                        (column s)
+                        (column s + 1)
+tokenParser tt val (ParserState f l c) (x:xs)
+    | tt == (LT.tokenType x) = Right (val, xs, (ParserState nf nl nc))
     | otherwise = Left $ E.Error
                   (T.pack $ "Couldn't find token of type " ++ (show tt))
                   f l c (c + LT.length x)
     where (nf, nl, nc)
               | null xs = (f, l + LT.length x, c)
               | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
-
