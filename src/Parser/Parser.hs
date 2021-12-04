@@ -40,34 +40,43 @@ parser s x = do
   (AST nextDecls, nnx, nns) <- parser ns nx
   return (AST (outDecl:nextDecls), nnx, nns)
 
+(<->) :: Parser a -> Parser b -> Parser (b, a)
+(<->) pa pb s x = do
+  (bb, nx, ns) <- pb s x 
+  (aa, nnx, nns) <- pa ns nx
+  return ((bb, aa), nnx, nns)
+
 decl :: Parser Decl
 decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
     where structDecl = do
-            (modifiers, nx, ns) <- sequenceParser modifier s x
-            (_, nnx, nns) <- rTokenParser LT.Struct () ns nx
-            (identifier, nnnx, nnns) <- identifierParser nns nnx
-            (_, nnnnx, nnnns) <- rTokenParser LT.LeftBrace () nnns nnnx
-            (params, nnnnnx, nnnnns) <- parameters nnnns nnnnx
-            (_, nnnnnnx, nnnnnns) <- rTokenParser LT.RightBrace () nnnnns nnnnnx
-            (_, nnnnnnnx, nnnnnnns) <- rTokenParser LT.Semi () nnnnnns nnnnnnx
-            return (StructDecl modifiers identifier params, nnnnnnnx, nnnnnnns)
+            ((_, (_, (params, (_, (identifier, (_, modifiers)))))), nx, ns)
+              <- (sequenceParser modifier
+                 <-> rTokenParser LT.Struct ()
+                 <-> identifierParser
+                 <-> rTokenParser LT.LeftBrace ()
+                 <-> parameters
+                 <-> rTokenParser LT.RightBrace ()
+                 <-> rTokenParser LT.Semi ()) s x
+            return (StructDecl modifiers identifier params, nx, ns)
           funcDecl = do
-            (modifiers, nx, ns) <- sequenceParser modifier s x
-            (_, nnx, nns) <- rTokenParser LT.Func () ns nx
-            (identifier, nnnx, nnns) <- identifierParser nns nnx
-            (_, nnnnx, nnnns) <- rTokenParser LT.LeftParen () nnns nnnx
-            (params, nnnnnx, nnnnns) <- parameters nnnns nnnnx
-            (_, nnnnnnx, nnnnnns) <- rTokenParser LT.RightParen () nnnnns nnnnnx
-            (_, nnnnnnnx, nnnnnnns) <- rTokenParser LT.Colon () nnnnnns nnnnnnx
-            (decType, nnnnnnnnx, nnnnnnnns) <- decoratedType nnnnnnns nnnnnnnx
-            (stmt, nnnnnnnnnx, nnnnnnnnns) <- statement nnnnnnnns nnnnnnnnx
-            return (FuncDecl modifiers identifier params decType stmt, nnnnnnnnnx, nnnnnnnnns)
+            ((stmt, (decType, (_, (_, (params, (_, (identifier, (_, modifiers)))))))), nx, ns)
+              <- (sequenceParser modifier
+                 <-> rTokenParser LT.Func ()
+                 <-> identifierParser
+                 <-> rTokenParser LT.LeftParen ()
+                 <-> parameters
+                 <-> rTokenParser LT.RightParen ()
+                 <-> rTokenParser LT.Colon ()
+                 <-> decoratedType
+                 <-> statement) s x
+            return (FuncDecl modifiers identifier params decType stmt, nx, ns)
           varDecl = do
-            (decIden, nx, ns) <- decoratedIdentifier s x
-            (_, nnx, nns) <- rTokenParser LT.Equals () ns nx
-            (expr, nnnx, nnns) <- expression nns nnx
-            (_, nnnnx, nnnns) <- rTokenParser LT.Semi () nnns nnnx
-            return (VarDecl decIden expr, nnnnx, nnnns)
+            ((_, (expr, (_, (decIden)))), nx, ns)
+              <- (decoratedIdentifier
+                 <-> rTokenParser LT.Equals ()
+                 <-> expression
+                 <-> rTokenParser LT.Semi ()) s x
+            return (VarDecl decIden expr, nx, ns)
           statementDecl = do
             (stmt, nx, ns) <- statement s x
             return (StatementDecl stmt, nx, ns)
