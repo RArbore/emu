@@ -89,6 +89,8 @@ lexer c l text file
   | p "switch" = th Switch 6
   | p "case" = th Case 4
   | p "return" = th Return 6
+  | p "break" = th Return 5
+  | p "continue" = th Return 8
   | p "pure" = th Pure 4
   | p "const" = th Const 5
   | p "inline" = th Inline 6

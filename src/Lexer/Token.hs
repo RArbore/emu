@@ -80,6 +80,8 @@ data TokenType = Plus
                | Switch
                | Case
                | Return
+               | Break
+               | Continue
                | Pure
                | Const
                | Inline

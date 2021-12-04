@@ -45,6 +45,8 @@ forStatement := "for" "(" statement expression ";" expression ")" statement
 switchStatement := "switch" "(" expression ")" statement
 caseStatement := "case" expression ":" statement
 returnStatement := "return" expression? ";"
+breakStatement := "break;"
+continueStatement := "continue;"
 
 modifier := "pure" | "const" | "inline" | "comptime" | "register" | "restrict"
 
