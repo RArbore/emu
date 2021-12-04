@@ -91,7 +91,8 @@ data Primary = BooleanLiteral Bool
              | StringLiteral T.Text
              | PrimaryIdentifier Identifier
              | Grouping Expression
-             | ArrayLiteral [Expression] deriving (Show)
+             | ArrayLiteral [Expression]
+             | Undefined deriving (Show)
  
 data DecoratedIdentifier = DecoratedIdentifier Modifier Identifier DecoratedType deriving (Show)
 data DecoratedType = DecoratedType Int Type [Int] deriving (Show)

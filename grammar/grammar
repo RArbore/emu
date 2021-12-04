@@ -22,7 +22,7 @@ decoratedType := "*"* TYPE "[" expression "]"*
 
 structDeclaration := modifier* "struct" IDENTIFIER "{" parameters "};"
 funcDeclaration := modifier* "func" IDENTIFIER "(" parameters? ")" ( ": " decoratedType )? block
-varDeclaration := decoratedIdentifier ( "=" expression )? ";"
+varDeclaration := decoratedIdentifier "=" expression ";"
 parameters := decoratedIdentifier ( "," decoratedIdentifier )*
 
 arguments := (expression ( "," expression )*)?

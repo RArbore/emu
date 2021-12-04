@@ -39,11 +39,53 @@ parser s x = do
   (outDecl, nx, ns) <- decl s x
   (AST nextDecls, nnx, nns) <- parser ns nx
   return (AST (outDecl:nextDecls), nnx, nns)
+
 decl :: Parser Decl
-decl s x = undefined{-do
-  (modifiers, nx, ns) <- sequenceParser modifier s x
-  (_, nnx, nns) <- tokenParser LT.Struct () ns nx
-  (identifier, nnnx, nnns) <- identifierParser nnx nns-}
+decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
+    where structDecl = do
+            (modifiers, nx, ns) <- sequenceParser modifier s x
+            (_, nnx, nns) <- rTokenParser LT.Struct () ns nx
+            (identifier, nnnx, nnns) <- identifierParser nns nnx
+            (_, nnnnx, nnnns) <- rTokenParser LT.LeftBrace () nnns nnnx
+            (params, nnnnnx, nnnnns) <- parameters nnnns nnnnx
+            (_, nnnnnnx, nnnnnns) <- rTokenParser LT.RightBrace () nnnnns nnnnnx
+            (_, nnnnnnnx, nnnnnnns) <- rTokenParser LT.Semi () nnnnnns nnnnnnx
+            return (StructDecl modifiers identifier params, nnnnnnnx, nnnnnnns)
+          funcDecl = do
+            (modifiers, nx, ns) <- sequenceParser modifier s x
+            (_, nnx, nns) <- rTokenParser LT.Func () ns nx
+            (identifier, nnnx, nnns) <- identifierParser nns nnx
+            (_, nnnnx, nnnns) <- rTokenParser LT.LeftParen () nnns nnnx
+            (params, nnnnnx, nnnnns) <- parameters nnnns nnnnx
+            (_, nnnnnnx, nnnnnns) <- rTokenParser LT.RightParen () nnnnns nnnnnx
+            (_, nnnnnnnx, nnnnnnns) <- rTokenParser LT.Colon () nnnnnns nnnnnnx
+            (decType, nnnnnnnnx, nnnnnnnns) <- decoratedType nnnnnnns nnnnnnnx
+            (stmt, nnnnnnnnnx, nnnnnnnnns) <- statement nnnnnnnns nnnnnnnnx
+            return (FuncDecl modifiers identifier params decType stmt, nnnnnnnnnx, nnnnnnnnns)
+          varDecl = do
+            (decIden, nx, ns) <- decoratedIdentifier s x
+            (_, nnx, nns) <- rTokenParser LT.Equals () ns nx
+            (expr, nnnx, nnns) <- expression nns nnx
+            (_, nnnnx, nnnns) <- rTokenParser LT.Semi () nnns nnnx
+            return (VarDecl decIden expr, nnnnx, nnnns)
+          statementDecl = do
+            (stmt, nx, ns) <- statement s x
+            return (StatementDecl stmt, nx, ns)
+
+statement :: Parser Statement
+statement = undefined
+
+expression :: Parser Expression
+expression = undefined
+
+parameters :: Parser Parameters
+parameters = undefined
+
+decoratedType :: Parser DecoratedType
+decoratedType = undefined
+
+decoratedIdentifier :: Parser DecoratedIdentifier
+decoratedIdentifier = undefined
 
 modifier :: Parser Modifier
 modifier s x = rTokenParser LT.Pure Pure s x
