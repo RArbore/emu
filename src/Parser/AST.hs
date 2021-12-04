@@ -19,11 +19,12 @@ module Parser.AST
 
 import qualified Data.Text as T
 
-newtype AST = AST [Decl]
+newtype AST = AST [Decl] deriving (Show)
+    
 data Decl = StructDecl [Modifier] Identifier Parameters
           | FuncDecl [Modifier] Identifier Parameters DecoratedType Statement
           | VarDecl DecoratedIdentifier Expression
-          | StatementDecl Statement
+          | StatementDecl Statement deriving (Show)
 
 data Statement = ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement
@@ -32,23 +33,24 @@ data Statement = ExpressionStatement Expression
                | SwitchStatement Expression Statement
                | CaseStatement Expression Statement
                | ReturnStatement Expression
-               | Block [Statement]
+               | Block [Statement] deriving (Show)
 
-newtype Expression = Expression Assignment
-data Assignment = Assignment LogicOr AssignOp LogicOr
-data LogicOr = LogicOr [LogicXor] LogicXor
-data LogicXor = LogicXor [LogicAnd] LogicAnd
-data LogicAnd = LogicAnd [BitwiseOr] BitwiseOr
-data BitwiseOr = BitwiseOr [BitwiseXor] BitwiseXor
-data BitwiseXor = BitwiseXor [BitwiseAnd] BitwiseAnd
-data BitwiseAnd = BitwiseAnd [Equality] Equality
-data Equality = Equality [(Comparison, EqualityOp)] Comparison
-data Comparison = Comparison [(Shift, CompareOp)] Shift
-data Shift = Shift [(Term, ShiftOp)] Term
-data Term = Term [(Factor, TermOp)] Factor
-data Factor = Factor [(Prefix, FactorOp)] Prefix
-data Prefix = Prefix [PrefixOp] Postfix
-data Postfix = Postfix Primary [PostfixOp]
+newtype Expression = Expression Assignment deriving (Show)
+data Assignment = Assignment LogicOr AssignOp LogicOr deriving (Show)
+data LogicOr = LogicOr [LogicXor] LogicXor deriving (Show)
+data LogicXor = LogicXor [LogicAnd] LogicAnd deriving (Show)
+data LogicAnd = LogicAnd [BitwiseOr] BitwiseOr deriving (Show)
+data BitwiseOr = BitwiseOr [BitwiseXor] BitwiseXor deriving (Show)
+data BitwiseXor = BitwiseXor [BitwiseAnd] BitwiseAnd deriving (Show)
+data BitwiseAnd = BitwiseAnd [Equality] Equality deriving (Show)
+data Equality = Equality [(Comparison, EqualityOp)] Comparison deriving (Show)
+data Comparison = Comparison [(Shift, CompareOp)] Shift deriving (Show)
+data Shift = Shift [(Term, ShiftOp)] Term deriving (Show)
+data Term = Term [(Factor, TermOp)] Factor deriving (Show)
+data Factor = Factor [(Prefix, FactorOp)] Prefix deriving (Show)
+data Prefix = Prefix [PrefixOp] Postfix deriving (Show)
+data Postfix = Postfix Primary [PostfixOp] deriving (Show)
+             
 data Primary = BooleanLiteral Bool
              | FixedPointLiteral Integer
              | FloatingPointLiteral Double
@@ -56,21 +58,76 @@ data Primary = BooleanLiteral Bool
              | StringLiteral T.Text
              | PrimaryIdentifier Identifier
              | Grouping Expression
-             | ArrayLiteral [Expression]
-newtype Identifier = Identifier T.Text
-
-data DecoratedIdentifier = DecoratedIdentifier Modifier Identifier DecoratedType
-data DecoratedType = DecoratedType Int Type [Int]
-newtype Parameters = Parameters [DecoratedIdentifier]
-newtype Arguments = Arguments [Expression]
-data Modifier = Pure | Const | Inline | Comptime | Register | Restrict
-data Type =  U8 | U16 | U32 | U64 | I8 | I16 | I32 | I64 | F16 | F32 | F64
-
-data AssignOp = Equals | PlusEquals | MinusEquals | StarEquals | SlashEquals | PercentEquals | LShiftEquals | RShiftEquals | HatEquals | BarEquals | AndEquals
-data EqualityOp = EqualsEquals | ExclaEquals
-data CompareOp = Greater | Lesser | GreaterEquals | LesserEquals
-data ShiftOp = LShift | RShift
-data TermOp = TermPlus | TermMinus
-data FactorOp = FactorStar | FactorSlash | FactorPercent
-data PrefixOp = PrePlusPlus | PreMinusMinus | Plus | Minus | Excla | Tilda | Star | And | Cast DecoratedType
-data PostfixOp = PostPlusPlus | PostMinusMinus | Call Arguments | Index Arguments | Dot Identifier | Arrow Identifier
+             | ArrayLiteral [Expression] deriving (Show)
+ 
+data DecoratedIdentifier = DecoratedIdentifier Modifier Identifier DecoratedType deriving (Show)
+data DecoratedType = DecoratedType Int Type [Int] deriving (Show)
+newtype Identifier = Identifier T.Text deriving (Show)
+newtype Parameters = Parameters [DecoratedIdentifier] deriving (Show)
+newtype Arguments = Arguments [Expression] deriving (Show)
+    
+data Modifier = Pure
+              | Const
+              | Inline
+              | Comptime
+              | Register
+              | Restrict deriving (Show)
+                
+data Type =  U8
+          | U16
+          | U32
+          | U64
+          | I8
+          | I16
+          | I32
+          | I64
+          | F16
+          | F32
+          | F64 deriving (Show)
+            
+data AssignOp = Equals
+              | PlusEquals
+              | MinusEquals
+              | StarEquals
+              | SlashEquals
+              | PercentEquals
+              | LShiftEquals
+              | RShiftEquals
+              | HatEquals
+              | BarEquals
+              | AndEquals deriving (Show)
+                
+data EqualityOp = EqualsEquals
+                | ExclaEquals deriving (Show)
+                  
+data CompareOp = Greater
+               | Lesser
+               | GreaterEquals
+               | LesserEquals deriving (Show)
+                 
+data ShiftOp = LShift
+             | RShift deriving (Show)
+               
+data TermOp = TermPlus
+            | TermMinus deriving (Show)
+              
+data FactorOp = FactorStar
+              | FactorSlash
+              | FactorPercent deriving (Show)
+                
+data PrefixOp = PrePlusPlus
+              | PreMinusMinus
+              | Plus
+              | Minus
+              | Excla
+              | Tilda
+              | Star
+              | And
+              | Cast DecoratedType deriving (Show)
+                
+data PostfixOp = PostPlusPlus
+               | PostMinusMinus
+               | Call Arguments
+               | Index Arguments
+               | Dot Identifier
+               | Arrow Identifier deriving (Show)

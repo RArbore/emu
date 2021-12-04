@@ -30,7 +30,8 @@ main = do
   else do
     filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
     let lexed = zipWith ($) (map (L.lexer 0 1) filesContents) (inputFiles checkedArgs)
-    if not $ null $ lefts lexed then mapM_ print $ lefts lexed
+    if not $ null $ lefts lexed then mapM_ (mapM_ print) $ lefts lexed
     else do
       let justTheTokens = rights lexed
-      mapM_ print justTheTokens
+      let parsed = map P.parser justTheTokens
+      print parsed

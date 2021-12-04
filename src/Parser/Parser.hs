@@ -17,4 +17,9 @@ module Parser.Parser
 
   ) where
 
+import qualified Lexer.Token as LT
+
+import qualified Parser.AST as AST
+
+parser :: [LT.Token] -> AST.AST
 parser = undefined
