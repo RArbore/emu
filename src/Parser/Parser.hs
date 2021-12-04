@@ -36,20 +36,22 @@ data ParserState = ParserState { filename :: T.Text,
 parser :: Parser AST
 parser s [] = Right (AST [], [], s)
 parser s x = do
-  (outDecl, tokens, ns) <- decl s x
-  (AST nextDecls, leftovers, nns) <- parser ns tokens
-  return (AST (outDecl:nextDecls), leftovers, nns)
-  
+  (outDecl, nx, ns) <- decl s x
+  (AST nextDecls, nnx, nns) <- parser ns nx
+  return (AST (outDecl:nextDecls), nnx, nns)
 decl :: Parser Decl
-decl s x = undefined
+decl s x = undefined{-do
+  (modifiers, nx, ns) <- sequenceParser modifier s x
+  (_, nnx, nns) <- tokenParser LT.Struct () ns nx
+  (identifier, nnnx, nnns) <- identifierParser nnx nns-}
 
 modifier :: Parser Modifier
-modifier s x = tokenParser LT.Pure Pure s x
-               <> tokenParser LT.Const Const s x
-               <> tokenParser LT.Inline Inline s x
-               <> tokenParser LT.Comptime Comptime s x
-               <> tokenParser LT.Register Register s x
-               <> tokenParser LT.Restrict Restrict s x
+modifier s x = rTokenParser LT.Pure Pure s x
+               <> rTokenParser LT.Const Const s x
+               <> rTokenParser LT.Inline Inline s x
+               <> rTokenParser LT.Comptime Comptime s x
+               <> rTokenParser LT.Register Register s x
+               <> rTokenParser LT.Restrict Restrict s x
                <> (Left $ E.Error
                       (T.pack $ "Couldn't find modifier token")
                       (filename s)
@@ -67,16 +69,36 @@ sequenceParser p s x
     | otherwise = Right (found:nextFound, nnx, nns)
     where (found, nx, ns) = fromRight undefined $ p s x
           (nextFound, nnx, nns) = fromRight undefined $ (sequenceParser p) ns nx
+
+identifierParser :: Parser Identifier
+identifierParser s [] = Left $ E.Error
+                        (T.pack $ "Couldn't find identifier")
+                        (filename s)
+                        (line s)
+                        (column s)
+                        (column s + 1)
+identifierParser (ParserState f l c) ((LT.Token (LT.Identifier t) _ _ len):xs) = Right (Identifier t, xs, (ParserState nf nl nc))
+    where (nf, nl, nc)
+              | null xs = (f, l + len, c)
+              | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
+identifierParser (ParserState f l c) (x:_) = Left $ E.Error
+                        (T.pack $ "Couldn't find identifier")
+                        f l c (c + LT.length x)
+
+rTokenParser :: LT.TokenType -> a -> Parser a
+rTokenParser tt val s x = do
+  (_, xs, ns) <- tokenParser tt s x
+  return (val, xs, ns)
   
-tokenParser :: LT.TokenType -> a -> Parser a
-tokenParser tt _ s [] = Left $ E.Error
+tokenParser :: LT.TokenType -> Parser LT.Token
+tokenParser tt s [] = Left $ E.Error
                         (T.pack $ "Couldn't find token of type " ++ (show tt))
                         (filename s)
                         (line s)
                         (column s)
                         (column s + 1)
-tokenParser tt val (ParserState f l c) (x:xs)
-    | tt == (LT.tokenType x) = Right (val, xs, (ParserState nf nl nc))
+tokenParser tt (ParserState f l c) (x:xs)
+    | tt == (LT.tokenType x) = Right (x, xs, (ParserState nf nl nc))
     | otherwise = Left $ E.Error
                   (T.pack $ "Couldn't find token of type " ++ (show tt))
                   f l c (c + LT.length x)
