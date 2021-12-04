@@ -19,6 +19,7 @@ module Parser.Parser
 
   ) where
 
+import Data.Either
 import qualified Data.Text as T
 
 import qualified Interface.Error as E
@@ -35,8 +36,9 @@ data ParserState = ParserState { filename :: T.Text,
 parser :: Parser AST
 parser s [] = Right (AST [], [], s)
 parser s x = do
-  (decls, leftovers, ns) <- sequenceParser decl s x
-  return (AST decls, leftovers, ns)
+  (outDecl, tokens, ns) <- decl s x
+  (AST nextDecls, leftovers, nns) <- parser ns tokens
+  return (AST (outDecl:nextDecls), leftovers, nns)
   
 decl :: Parser Decl
 decl s x = undefined
@@ -60,10 +62,11 @@ modifier s x = tokenParser LT.Pure s x
 
 sequenceParser :: Parser a -> Parser [a]
 sequenceParser _ s [] = Right ([], [], s)
-sequenceParser p s x = do
-  (parsed, tokens, ns) <- p s x
-  (nextParsed, leftovers, nns) <- sequenceParser p ns tokens
-  return (parsed:nextParsed, leftovers, nns)
+sequenceParser p s x
+    | isLeft $ p s x = Right ([], x, s)
+    | otherwise = Right (found:nextFound, nnx, nns)
+    where (found, nx, ns) = fromRight undefined $ p s x
+          (nextFound, nnx, nns) = fromRight undefined $ (sequenceParser p) ns nx
   
 tokenParser :: LT.TokenType -> Parser LT.Token
 tokenParser tt s [] = Left $ E.Error
