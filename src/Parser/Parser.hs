@@ -17,9 +17,20 @@ module Parser.Parser
 
   ) where
 
-import qualified Lexer.Token as LT
+import Interface.Error
 
-import qualified Parser.AST as AST
+import Lexer.Token
 
-parser :: [LT.Token] -> AST.AST
-parser = undefined
+import Parser.AST
+
+type Parser t = [Token] -> Either Error (t, [Token])
+
+parser :: Parser AST
+parser [] = Right (AST [], [])
+parser x = do
+  (outDecl, tokens) <- decl x
+  (AST nextDecls, _) <- parser tokens
+  return (AST (outDecl:nextDecls), [])
+  
+decl :: Parser Decl
+decl = undefined
