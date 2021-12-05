@@ -66,6 +66,8 @@ data Statement = ExpressionStatement Expression
                | SwitchStatement Expression Statement
                | CaseStatement Expression Statement
                | ReturnStatement Expression
+               | BreakStatement
+               | ContinueStatement
                | Block [Statement] deriving (Show)
 
 newtype Expression = Expression Assignment deriving (Show)

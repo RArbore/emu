@@ -82,7 +82,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
             return (StatementDecl stmt, nx, ns)
 
 statement :: Parser Statement
-statement s x = exprStmt <> ifElseStmt -- <> whileStmt <> forStmt <> switchStmt <> caseStmt <> retStmt <> blockStmt
+statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> caseStmt <> retStmt <> breakStmt <> contStmt <> blockStmt
     where exprStmt = do
             ((_, expr), nx, ns)
               <- (expression
@@ -99,6 +99,62 @@ statement s x = exprStmt <> ifElseStmt -- <> whileStmt <> forStmt <> switchStmt 
             if success then do (stmtElse, nnnx, nnns) <- statement nns nnx
                                return (IfElseStatement expr stmt stmtElse, nnnx, nnns)
             else return (IfElseStatement expr stmt (Block []), nnx, nns)
+          whileStmt = do
+            ((stmt, (_, (expr, (_, _)))), nx, ns)
+              <- (rTokenParser LT.While ()
+                 <-> rTokenParser LT.LeftParen ()
+                 <-> expression
+                 <-> rTokenParser LT.RightParen ()
+                 <-> statement) s x
+            return (WhileStatement expr stmt, nx, ns)
+          forStmt = do
+            ((stmtBody, (_, (exprInc, (_, (exprCond, (stmtInit, (_, _))))))), nx, ns)
+              <- (rTokenParser LT.For ()
+                 <-> rTokenParser LT.LeftParen ()
+                 <-> statement
+                 <-> expression
+                 <-> rTokenParser LT.Semi()
+                 <-> expression
+                 <-> rTokenParser LT.RightParen ()
+                 <-> statement) s x
+            return (ForStatement stmtInit exprCond exprInc stmtBody, nx, ns)
+          switchStmt = do
+            ((stmt, (_, (expr, (_, _)))), nx, ns)
+              <- (rTokenParser LT.Switch ()
+                 <-> rTokenParser LT.LeftParen ()
+                 <-> expression
+                 <-> rTokenParser LT.RightParen ()
+                 <-> statement) s x
+            return (SwitchStatement expr stmt, nx, ns)
+          caseStmt = do
+            ((stmt, (_, (expr, _))), nx, ns)
+              <- (rTokenParser LT.Case ()
+                 <-> expression
+                 <-> rTokenParser LT.Colon ()
+                 <-> statement) s x
+            return (CaseStatement expr stmt, nx, ns)
+          retStmt = do
+            ((_, (expr, _)), nx, ns)
+              <- (rTokenParser LT.Return ()
+                 <-> expression
+                 <-> rTokenParser LT.Semi ()) s x
+            return (ReturnStatement expr, nx ,ns)
+          breakStmt = do
+            ((_, _), nx, ns)
+              <- (rTokenParser LT.Break ()
+                 <-> rTokenParser LT.Semi ()) s x
+            return (BreakStatement, nx ,ns)
+          contStmt = do
+            ((_, _), nx, ns)
+              <- (rTokenParser LT.Continue ()
+                 <-> rTokenParser LT.Semi ()) s x
+            return (ContinueStatement, nx ,ns)
+          blockStmt = do
+            ((_, (stmts, _)), nx, ns)
+              <- (rTokenParser LT.LeftBrace ()
+                 <-> sequenceParser statement
+                 <-> rTokenParser LT.RightBrace()) s x
+            return (Block stmts, nx, ns)
 
 expression :: Parser Expression
 expression = undefined
