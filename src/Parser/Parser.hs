@@ -82,7 +82,23 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
             return (StatementDecl stmt, nx, ns)
 
 statement :: Parser Statement
-statement = undefined
+statement s x = exprStmt <> ifElseStmt -- <> whileStmt <> forStmt <> switchStmt <> caseStmt <> retStmt <> blockStmt
+    where exprStmt = do
+            ((_, expr), nx, ns)
+              <- (expression
+                 <-> rTokenParser LT.Semi ()) s x
+            return (ExpressionStatement expr, nx, ns)
+          ifElseStmt = do
+            ((stmt, (_, (expr, (_, _)))), nx, ns)
+              <- (rTokenParser LT.If ()
+                 <-> rTokenParser LT.LeftParen ()
+                 <-> expression
+                 <-> rTokenParser LT.RightParen ()
+                 <-> statement) s x
+            (success, nnx, nns) <- (tolerate False $ rTokenParser LT.Else True) ns nx
+            if success then do (stmtElse, nnnx, nnns) <- statement nns nnx
+                               return (IfElseStatement expr stmt stmtElse, nnnx, nnns)
+            else return (IfElseStatement expr stmt (Block []), nnx, nns)
 
 expression :: Parser Expression
 expression = undefined
@@ -156,3 +172,8 @@ tokenParser tt (ParserState f l c) (x:xs)
     where (nf, nl, nc)
               | null xs = (f, l + LT.length x, c)
               | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
+
+tolerate :: a -> Parser a -> Parser a
+tolerate e p s x
+    | isRight $ p s x = p s x
+    | otherwise = Right (e, x, s)
