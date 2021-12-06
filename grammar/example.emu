@@ -1,21 +1,26 @@
 // Here is some example code written in Emu. This particular example is mainly used for fleshing out the grammar of the language.
 
-pure inline func fact(n: 32): u32 {
-    register acc: u32 = 1;
-    for (i: u32 = 2; i <= n; i++) {
-        acc *= i;
-    }
-    return acc;
-}
+struct mystruct {
+       const member: u8,
+       inline another: *f64
+};
 
-pure func matmul(comptime const r: u32, comptime const m: u32, comptime const c: u32, const a: f32[r][m], const b: f32[m][c]): f32[r][c] {
-    out: f32[r][c] = 0.;
-    for (i: u32 = 0; i < r; i++) {
-        for (j: u32 = 0; j < c; j++) {
-            for (k: u32 = 0; k < m; k++) {
-                out[i][j] += a[i][k] * b[k][j];
-            }
-        }
-    }
-    return out;
-}
+// pure inline func fact(n: 32): u32 {
+//     register acc: u32 = 1;
+//     for (i: u32 = 2; i <= n; i++) {
+//         acc *= i;
+//     }
+//     return acc;
+// }
+// 
+// pure func matmul(comptime const r: u32, comptime const m: u32, comptime const c: u32, const a: f32[r][m], const b: f32[m][c]): f32[r][c] {
+//     out: f32[r][c] = 0.;
+//     for (i: u32 = 0; i < r; i++) {
+//         for (j: u32 = 0; j < c; j++) {
+//             for (k: u32 = 0; k < m; k++) {
+//                 out[i][j] += a[i][k] * b[k][j];
+//             }
+//         }
+//     }
+//     return out;
+// }

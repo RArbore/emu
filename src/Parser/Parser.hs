@@ -161,7 +161,11 @@ expression :: Parser Expression
 expression = undefined
 
 parameters :: Parser Parameters
-parameters = undefined
+parameters s x = do
+  ((nextParams, firstParam), nx, ns)
+    <- (decoratedIdentifier
+       <-> (sequenceParser $ rTokenParser LT.Comma () <-> decoratedIdentifier)) s x
+  return (Parameters $ firstParam:(map fst nextParams), nx, ns)
 
 decoratedType :: Parser DecoratedType
 decoratedType s x = do
@@ -209,6 +213,7 @@ typeParser s x = rTokenParser LT.U8 U8 s x
                <> rTokenParser LT.F16 F16 s x
                <> rTokenParser LT.F32 F32 s x
                <> rTokenParser LT.F64 F64 s x
+               <> (identifierParser s x >>= (\(xl, yl, zl) -> Right (StructType xl, yl, zl)))
                <> (Left $ E.Error
                       (T.pack $ "Couldn't find type token")
                       (filename s)

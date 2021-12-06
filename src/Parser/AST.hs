@@ -119,7 +119,8 @@ data Type = U8
           | I64
           | F16
           | F32
-          | F64 deriving (Show)
+          | F64
+          | StructType Identifier deriving (Show)
             
 data AssignOp = Equals
               | PlusEquals
