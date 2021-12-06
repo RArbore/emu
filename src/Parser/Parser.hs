@@ -42,14 +42,15 @@ parser s x = do
 
 (<->) :: Parser a -> Parser b -> Parser (b, a)
 (<->) pa pb s x = do
-  (bb, nx, ns) <- pb s x 
-  (aa, nnx, nns) <- pa ns nx
+  (aa, nx, ns) <- pa s x
+  (bb, nnx, nns) <- pb ns nx 
   return ((bb, aa), nnx, nns)
+infixr <->
 
 decl :: Parser Decl
 decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
     where structDecl = do
-            ((_, (_, (params, (_, (identifier, (_, modifiers)))))), nx, ns)
+            (((((((_, _), params), _), identifier), _), modifiers), nx, ns)
               <- (sequenceParser modifier
                  <-> rTokenParser LT.Struct ()
                  <-> identifierParser
@@ -59,7 +60,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
                  <-> rTokenParser LT.Semi ()) s x
             return (StructDecl modifiers identifier params, nx, ns)
           funcDecl = do
-            ((stmt, (decType, (_, (_, (params, (_, (identifier, (_, modifiers)))))))), nx, ns)
+            (((((((((stmt, decType), _), _), params), _), identifier), _), modifiers), nx, ns)
               <- (sequenceParser modifier
                  <-> rTokenParser LT.Func ()
                  <-> identifierParser
@@ -71,7 +72,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
                  <-> statement) s x
             return (FuncDecl modifiers identifier params decType stmt, nx, ns)
           varDecl = do
-            ((_, (expr, (_, (decIden)))), nx, ns)
+            ((((_, expr), _), decIden), nx, ns)
               <- (decoratedIdentifier
                  <-> rTokenParser LT.Equals ()
                  <-> expression
@@ -89,7 +90,7 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
                  <-> rTokenParser LT.Semi ()) s x
             return (ExpressionStatement expr, nx, ns)
           ifElseStmt = do
-            ((stmt, (_, (expr, (_, _)))), nx, ns)
+            (((((stmt, _), expr), _), _), nx, ns)
               <- (rTokenParser LT.If ()
                  <-> rTokenParser LT.LeftParen ()
                  <-> expression
@@ -100,7 +101,7 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
                                return (IfElseStatement expr stmt stmtElse, nnnx, nnns)
             else return (IfElseStatement expr stmt (Block []), nnx, nns)
           whileStmt = do
-            ((stmt, (_, (expr, (_, _)))), nx, ns)
+            (((((stmt, _), expr), _), _), nx, ns)
               <- (rTokenParser LT.While ()
                  <-> rTokenParser LT.LeftParen ()
                  <-> expression
@@ -108,7 +109,7 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
                  <-> statement) s x
             return (WhileStatement expr stmt, nx, ns)
           forStmt = do
-            ((stmtBody, (_, (exprInc, (_, (exprCond, (stmtInit, (_, _))))))), nx, ns)
+            (((((((((stmtBody), _), exprInc), _), exprCond), stmtInit), _), _), nx, ns)
               <- (rTokenParser LT.For ()
                  <-> rTokenParser LT.LeftParen ()
                  <-> statement
@@ -119,7 +120,7 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
                  <-> statement) s x
             return (ForStatement stmtInit exprCond exprInc stmtBody, nx, ns)
           switchStmt = do
-            ((stmt, (_, (expr, (_, _)))), nx, ns)
+            ((((((stmt), _), expr), _), _), nx, ns)
               <- (rTokenParser LT.Switch ()
                  <-> rTokenParser LT.LeftParen ()
                  <-> expression
@@ -127,14 +128,14 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
                  <-> statement) s x
             return (SwitchStatement expr stmt, nx, ns)
           caseStmt = do
-            ((stmt, (_, (expr, _))), nx, ns)
+            (((((stmt), _), expr), _), nx, ns)
               <- (rTokenParser LT.Case ()
                  <-> expression
                  <-> rTokenParser LT.Colon ()
                  <-> statement) s x
             return (CaseStatement expr stmt, nx, ns)
           retStmt = do
-            ((_, (expr, _)), nx, ns)
+            (((_, expr), _), nx, ns)
               <- (rTokenParser LT.Return ()
                  <-> expression
                  <-> rTokenParser LT.Semi ()) s x
@@ -150,7 +151,7 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
                  <-> rTokenParser LT.Semi ()) s x
             return (ContinueStatement, nx ,ns)
           blockStmt = do
-            ((_, (stmts, _)), nx, ns)
+            (((_, stmts), _), nx, ns)
               <- (rTokenParser LT.LeftBrace ()
                  <-> sequenceParser statement
                  <-> rTokenParser LT.RightBrace()) s x
@@ -163,10 +164,21 @@ parameters :: Parser Parameters
 parameters = undefined
 
 decoratedType :: Parser DecoratedType
-decoratedType = undefined
+decoratedType s x = do
+  (((post, t), stars), nx, ns)
+    <- ((sequenceParser $ rTokenParser LT.Star ())
+       <-> typeParser
+       <-> (sequenceParser $ rTokenParser LT.LeftBracket () <-> expression <-> rTokenParser LT.RightBracket ())) s x
+  return (DecoratedType (length stars) t (map snd $ map fst post), nx, ns)
 
 decoratedIdentifier :: Parser DecoratedIdentifier
-decoratedIdentifier = undefined
+decoratedIdentifier s x = do
+  ((((t, _), iden), m), nx, ns)
+    <- (sequenceParser modifier
+       <-> identifierParser
+       <-> rTokenParser LT.Colon()
+       <-> decoratedType) s x
+  return (DecoratedIdentifier m iden t, nx, ns)
 
 modifier :: Parser Modifier
 modifier s x = rTokenParser LT.Pure Pure s x
@@ -177,6 +189,28 @@ modifier s x = rTokenParser LT.Pure Pure s x
                <> rTokenParser LT.Restrict Restrict s x
                <> (Left $ E.Error
                       (T.pack $ "Couldn't find modifier token")
+                      (filename s)
+                      (line s)
+                      (column s)
+                      (column s + l))
+    where l
+             | null x = 1
+             | otherwise = LT.length $ head x
+
+typeParser :: Parser Type
+typeParser s x = rTokenParser LT.U8 U8 s x
+               <> rTokenParser LT.U16 U16 s x
+               <> rTokenParser LT.U32 U32 s x
+               <> rTokenParser LT.U64 U64 s x
+               <> rTokenParser LT.I8 I8 s x
+               <> rTokenParser LT.I16 I16 s x
+               <> rTokenParser LT.I32 I32 s x
+               <> rTokenParser LT.I64 I64 s x
+               <> rTokenParser LT.F16 F16 s x
+               <> rTokenParser LT.F32 F32 s x
+               <> rTokenParser LT.F64 F64 s x
+               <> (Left $ E.Error
+                      (T.pack $ "Couldn't find type token")
                       (filename s)
                       (line s)
                       (column s)

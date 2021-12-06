@@ -96,8 +96,8 @@ data Primary = BooleanLiteral Bool
              | ArrayLiteral [Expression]
              | Undefined deriving (Show)
  
-data DecoratedIdentifier = DecoratedIdentifier Modifier Identifier DecoratedType deriving (Show)
-data DecoratedType = DecoratedType Int Type [Int] deriving (Show)
+data DecoratedIdentifier = DecoratedIdentifier [Modifier] Identifier DecoratedType deriving (Show)
+data DecoratedType = DecoratedType Int Type [Expression] deriving (Show)
 newtype Identifier = Identifier T.Text deriving (Show)
 newtype Parameters = Parameters [DecoratedIdentifier] deriving (Show)
 newtype Arguments = Arguments [Expression] deriving (Show)
@@ -109,7 +109,7 @@ data Modifier = Pure
               | Register
               | Restrict deriving (Show)
                 
-data Type =  U8
+data Type = U8
           | U16
           | U32
           | U64
