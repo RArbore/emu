@@ -161,39 +161,49 @@ expression :: Parser Expression
 expression s x = (assignment s x) >>= (\(xl, yl, zl) -> Right (Expression xl, yl, zl))
 
 assignment :: Parser Assignment
-assignment s x = do
+assignment = do
   ((t, h), nx, ns)
     <- (logicOr
        <-> (sequenceParser $ logicOr <-> assignOp)) s x
   return (Assignment h t, nx, ns)
 
 logicOr :: Parser LogicOr
-logicOr = ltrOpParser logicXor LogicOr LT.BarBar
+logicOr = ltrSingleOpParser logicXor LogicOr LT.BarBar
 
 logicXor :: Parser LogicXor
-logicXor = ltrOpParser logicAnd LogicXor LT.HatHat
+logicXor = ltrSingleOpParser logicAnd LogicXor LT.HatHat
        
 logicAnd :: Parser LogicAnd
-logicAnd = ltrOpParser bitwiseOr LogicAnd LT.AndAnd
+logicAnd = ltrSingleOpParser bitwiseOr LogicAnd LT.AndAnd
 
 bitwiseOr :: Parser BitwiseOr
-bitwiseOr = ltrOpParser bitwiseXor BitwiseOr LT.Bar
+bitwiseOr = ltrSingleOpParser bitwiseXor BitwiseOr LT.Bar
 
 bitwiseXor :: Parser BitwiseXor
-bitwiseXor = ltrOpParser bitwiseAnd BitwiseXor LT.Hat
+bitwiseXor = ltrSingleOpParser bitwiseAnd BitwiseXor LT.Hat
 
 bitwiseAnd :: Parser BitwiseAnd
-bitwiseAnd = ltrOpParser equality BitwiseAnd LT.And
+bitwiseAnd = ltrSingleOpParser equality BitwiseAnd LT.And
 
 equality :: Parser Equality
-equality = undefined
+equality = ltrOpParser comparison Equality equalityOp
 
-ltrOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
-ltrOpParser recur construct op s x = do
+comparison :: Parser Comparison
+comparison = undefined
+
+ltrSingleOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
+ltrSingleOpParser recur construct op s x = do
   ((l, i), nx, ns)
     <- ((sequenceParser $ rTokenParser op () <-> recur)
        <-> recur) s x
   return (construct (map fst i) l, nx, ns)
+
+ltrOpParser :: Parser a -> ([(a, b)] -> a -> c) -> Parser b -> Parser c
+ltrOpParser recur construct op s x = do
+  ((l, i), nx, ns)
+    <- ((sequenceParser $ op <-> recur)
+       <-> recur) s x
+  return (construct i l, nx, ns)
        
 assignOp :: Parser AssignOp
 assignOp s x = rTokenParser LT.Equals Equals s x
@@ -209,6 +219,19 @@ assignOp s x = rTokenParser LT.Equals Equals s x
                <> rTokenParser LT.BarEquals BarEquals s x
                <> (Left $ E.Error
                       (T.pack $ "Couldn't find assign operation token")
+                      (filename s)
+                      (line s)
+                      (column s)
+                      (column s + l))
+    where l
+             | null x = 1
+             | otherwise = LT.length $ head x
+
+equalityOp :: Parser EqualityOp
+equalityOp s x = rTokenParser LT.EqualsEquals EqualsEquals s x
+               <> rTokenParser LT.ExclaEquals ExclaEquals s x
+               <> (Left $ E.Error
+                      (T.pack $ "Couldn't find equality operation token")
                       (filename s)
                       (line s)
                       (column s)
