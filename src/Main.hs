@@ -10,6 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
+import Control.DeepSeq
+
 import Data.Either
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -28,10 +30,10 @@ main = do
   checkedArgs <- checkArgs $ parseFromArgs args
   if argsInvalidated checkedArgs then print checkedArgs
   else do
-    filesContents <- mapM TIO.readFile $ map T.unpack $ inputFiles checkedArgs
-    let lexed = zipWith ($) (map (L.lexer 0 1) filesContents) (inputFiles checkedArgs)
-    if not $ null $ lefts lexed then mapM_ (mapM_ print) $ lefts lexed
+    filesContents <- mapM TIO.readFile $!! map T.unpack $ inputFiles checkedArgs
+    let lexed = zipWith ($!!) (map (L.lexer 0 1) filesContents) (inputFiles checkedArgs)
+    if not $!! null $!! lefts lexed then mapM_ (mapM_ print) $!! lefts lexed
     else do
       let justTheTokens = rights lexed
-      let parsed = zipWith ($) (map P.parser (map (\f -> P.ParserState f 0 0) $ inputFiles checkedArgs)) justTheTokens
+      let parsed = zipWith ($!!) (map P.parser (map (\f -> P.ParserState f 0 0) $!! inputFiles checkedArgs)) justTheTokens
       print parsed
