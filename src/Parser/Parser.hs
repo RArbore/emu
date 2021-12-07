@@ -177,7 +177,16 @@ logicAnd :: Parser LogicAnd
 logicAnd = ltrOpParser bitwiseOr LogicAnd LT.AndAnd
 
 bitwiseOr :: Parser BitwiseOr
-bitwiseOr = undefined
+bitwiseOr = ltrOpParser bitwiseXor BitwiseOr LT.Bar
+
+bitwiseXor :: Parser BitwiseXor
+bitwiseXor = ltrOpParser bitwiseAnd BitwiseXor LT.Hat
+
+bitwiseAnd :: Parser BitwiseAnd
+bitwiseAnd = ltrOpParser equality BitwiseAnd LT.And
+
+equality :: Parser Equality
+equality = undefined
 
 ltrOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
 ltrOpParser recur construct op s x = do
