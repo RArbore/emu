@@ -10,6 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+
 module Parser.Parser
     (
 
@@ -19,12 +21,16 @@ module Parser.Parser
 
     ) where
 
+import Control.DeepSeq
+
 import Data.Either
 import Data.List
 import Data.Maybe
 import qualified Data.Text as T
 
 import Debug.Trace
+
+import GHC.Generics (Generic)
 
 import qualified Interface.Error as E
 
@@ -35,7 +41,7 @@ import Parser.AST
 type Parser t = ParserState -> [LT.Token] -> Either E.Error (t, [LT.Token], ParserState)
 data ParserState = ParserState { filename :: T.Text,
                                  line :: Int,
-                                 column :: Int } deriving (Show)
+                                 column :: Int } deriving (Show, Generic, NFData)
 
 parser :: Parser AST
 parser s [] = Right (AST [], [], s)
@@ -108,7 +114,7 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
                  <-> expression
                  <-> rTokenParser LT.RightParen ()
                  <-> statement) s x
-            (success, nnx, nns) <- (tolerate False $ rTokenParser LT.Else True) ns nx
+            (success, nnx, nns) <- (tolerate False $!! rTokenParser LT.Else True) ns nx
             if success then do (stmtElse, nnnx, nnns) <- statement nns nnx
                                return (IfElseStatement expr stmt stmtElse, nnnx, nnns)
             else return (IfElseStatement expr stmt (Block []), nnx, nns)
@@ -176,7 +182,7 @@ assignment :: Parser Assignment
 assignment s x = do
   ((t, h), nx, ns)
     <- (logicOr
-       <-> (sequenceParser $ assignOp <-> logicOr)) s x
+       <-> (sequenceParser $!! assignOp <-> logicOr)) s x
   return (Assignment h (map invert t), nx, ns)
 
 logicOr :: Parser LogicOr
@@ -259,35 +265,35 @@ primary sp xp = booleanLiteral <> fixedPointLiteral <> floatingPointLiteral <> c
                <-> rTokenParser LT.RightBrace ()) sp xp
           return (ArrayLiteral exprs, nx, ns)
         undefinedParser = rTokenParser LT.Undefined Undefined sp xp
-        literalExtract :: (LT.TokenType -> Maybe b) -> (b -> c) -> Parser c
+        literalExtract :: (NFData b) => (LT.TokenType -> Maybe b) -> (b -> c) -> Parser c
         literalExtract _ _ s [] = Left $ E.Error
-                              (T.pack $ "Parse error")
+                              (T.pack $!! "Parse error")
                               (filename s)
                               (line s)
                               (column s)
                               (column s + 1)
         literalExtract extractVal construct (ParserState f l c) (x:xs)
-          | isJust $ extractVal t = Right (construct $ fromJust $ extractVal t, xs, (ParserState nf nl nc))
+          | isJust $ extractVal t = Right (construct $!! fromJust $!! extractVal t, xs, (ParserState nf nl nc))
           | otherwise = Left $ E.Error
-                        (T.pack $ "Parse error")
+                        (T.pack $!! "Parse error")
                         f l c (c + LT.length x)
           where len = LT.length x
                 t = LT.tokenType x
                 (nf, nl, nc)
                   | null xs = (f, l + len, c)
-                  | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
+                  | otherwise = (f, LT.line $!! head xs, LT.column $!! head xs)
 
-ltrSingleOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
+ltrSingleOpParser :: (NFData a) => Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
 ltrSingleOpParser recur construct op s x = do
   ((l, i), nx, ns)
-    <- ((sequenceParser $ recur <-> rTokenParser op ())
+    <- ((sequenceParser $!! recur <-> rTokenParser op ())
        <-> recur) s x
   return (construct (map snd i) l, nx, ns)
 
-ltrOpParser :: Parser a -> ([(a, b)] -> a -> c) -> Parser b -> Parser c
+ltrOpParser :: (NFData a, NFData b) => Parser a -> ([(a, b)] -> a -> c) -> Parser b -> Parser c
 ltrOpParser recur construct op s x = do
   ((l, i), nx, ns)
-    <- ((sequenceParser $ recur <-> op)
+    <- ((sequenceParser $!! recur <-> op)
        <-> recur) s x
   return (construct (map invert i) l, nx, ns)
        
@@ -396,31 +402,31 @@ anyTokenParser e h t s x = foldl' (<>) (applyToken h s x) ([p s x | p <- (map ap
                                    (column s + l))
     where l
              | null x = 1
-             | otherwise = LT.length $ head x
+             | otherwise = LT.length $!! head x
           applyToken (ta, cons) = rTokenParser ta cons
 
 parameters :: Parser Parameters
 parameters s x = do
   ((nextParams, firstParam), nx, ns)
     <- (decoratedIdentifier
-       <-> (sequenceParser $ rTokenParser LT.Comma () <-> decoratedIdentifier)) s x
-  return (Parameters $ firstParam:(map fst nextParams), nx, ns)
+       <-> (sequenceParser $!! rTokenParser LT.Comma () <-> decoratedIdentifier)) s x
+  return (Parameters $!! firstParam:(map fst nextParams), nx, ns)
 
 arguments :: Parser Arguments
 arguments = tolerate (Arguments []) argsNoTolerate
     where argsNoTolerate s x = do
             ((nextArgs, firstArg), nx, ns)
               <- (expression
-                 <-> (sequenceParser $ rTokenParser LT.Comma () <-> expression)) s x
-            return (Arguments $ firstArg:(map fst nextArgs), nx, ns)
+                 <-> (sequenceParser $!! rTokenParser LT.Comma () <-> expression)) s x
+            return (Arguments $!! firstArg:(map fst nextArgs), nx, ns)
 
 decoratedType :: Parser DecoratedType
 decoratedType s x = do
   (((post, t), stars), nx, ns)
-    <- ((sequenceParser $ rTokenParser LT.Star ())
+    <- ((sequenceParser $!! rTokenParser LT.Star ())
        <-> typeParser
-       <-> (sequenceParser $ rTokenParser LT.LeftBracket () <-> expression <-> rTokenParser LT.RightBracket ())) s x
-  return (DecoratedType (length stars) t (map snd $ map fst post), nx, ns)
+       <-> (sequenceParser $!! rTokenParser LT.LeftBracket () <-> expression <-> rTokenParser LT.RightBracket ())) s x
+  return (DecoratedType (length stars) t (map snd $!! map fst post), nx, ns)
 
 decoratedIdentifier :: Parser DecoratedIdentifier
 decoratedIdentifier s x = do
@@ -439,14 +445,14 @@ modifier s x = rTokenParser LT.Pure Pure s x
                <> rTokenParser LT.Register Register s x
                <> rTokenParser LT.Restrict Restrict s x
                <> (Left $ E.Error
-                      (T.pack $ "Parse error")
+                      (T.pack $!! "Parse error")
                       (filename s)
                       (line s)
                       (column s)
                       (column s + l))
     where l
              | null x = 1
-             | otherwise = LT.length $ head x
+             | otherwise = LT.length $!! head x
 
 typeParser :: Parser Type
 typeParser s x = rTokenParser LT.U8 U8 s x
@@ -462,26 +468,26 @@ typeParser s x = rTokenParser LT.U8 U8 s x
                <> rTokenParser LT.F64 F64 s x
                <> (identifierParser s x >>= (\(xl, yl, zl) -> Right (StructType xl, yl, zl)))
                <> (Left $ E.Error
-                      (T.pack $ "Parse error")
+                      (T.pack $!! "Parse error")
                       (filename s)
                       (line s)
                       (column s)
                       (column s + l))
     where l
              | null x = 1
-             | otherwise = LT.length $ head x
+             | otherwise = LT.length $!! head x
 
-sequenceParser :: Parser a -> Parser [a]
+sequenceParser :: (NFData a) => Parser a -> Parser [a]
 sequenceParser _ s [] = Right ([], [], s)
 sequenceParser p s x
-    | isLeft $ p s x = Right ([], x, s)
+    | isLeft $!! p s x = Right ([], x, s)
     | otherwise = Right (found:nextFound, nnx, nns)
-    where (found, nx, ns) = fromRight undefined $ p s x
-          (nextFound, nnx, nns) = fromRight undefined $ (sequenceParser p) ns nx
+    where (found, nx, ns) = fromRight undefined $!! p s x
+          (nextFound, nnx, nns) = fromRight undefined $!! (sequenceParser p) ns nx
 
 identifierParser :: Parser Identifier
 identifierParser s [] = Left $ E.Error
-                        (T.pack $ "Parse error")
+                        (T.pack $!! "Parse error")
                         (filename s)
                         (line s)
                         (column s)
@@ -489,9 +495,9 @@ identifierParser s [] = Left $ E.Error
 identifierParser (ParserState f l c) ((LT.Token (LT.Identifier t) _ _ len):xs) = Right (Identifier t, xs, (ParserState nf nl nc))
     where (nf, nl, nc)
               | null xs = (f, l + len, c)
-              | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
+              | otherwise = (f, LT.line $!! head xs, LT.column $!! head xs)
 identifierParser (ParserState f l c) (x:_) = Left $ E.Error
-                                             (T.pack $ "Parse error")
+                                             (T.pack $!! "Parse error")
                                              f l c (c + LT.length x)
 
 rTokenParser :: LT.TokenType -> a -> Parser a
@@ -501,7 +507,7 @@ rTokenParser tt val s x = do
   
 tokenParser :: LT.TokenType -> Parser LT.Token
 tokenParser _ s [] = Left $ E.Error
-                        (T.pack $ "Parse error")
+                        (T.pack $!! "Parse error")
                         (filename s)
                         (line s)
                         (column s)
@@ -509,15 +515,15 @@ tokenParser _ s [] = Left $ E.Error
 tokenParser tt (ParserState f l c) (x:xs)
     | tt == (LT.tokenType x) = Right (x, xs, (ParserState nf nl nc))
     | otherwise = Left $ E.Error
-                  (T.pack $ "Parse error")
+                  (T.pack $!! "Parse error")
                   f l c (c + LT.length x)
     where (nf, nl, nc)
               | null xs = (f, l + LT.length x, c)
-              | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
+              | otherwise = (f, LT.line $!! head xs, LT.column $!! head xs)
 
-tolerate :: a -> Parser a -> Parser a
+tolerate :: (NFData a) => a -> Parser a -> Parser a
 tolerate e p s x
-    | isRight $ p s x = p s x
+    | isRight $!! p s x = p s x
     | otherwise = Right (e, x, s)
 
 invert :: (a, b) -> (b, a)

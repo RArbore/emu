@@ -10,6 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+
 module Lexer.Token
     (
 
@@ -18,12 +20,16 @@ module Lexer.Token
 
     ) where
 
+import Control.DeepSeq
+
 import qualified Data.Text as T
+
+import GHC.Generics (Generic)
 
 data Token = Token { tokenType :: TokenType,
                      column :: Int,
                      line :: Int,
-                     length :: Int } deriving (Show)
+                     length :: Int } deriving (Show, Generic, NFData)
 
 data TokenType = Plus
                | Minus
@@ -107,4 +113,4 @@ data TokenType = Plus
                | StringLiteral T.Text
                | Identifier T.Text
                | BadToken T.Text
-               deriving (Show, Eq)
+               deriving (Show, Eq, Generic, NFData)

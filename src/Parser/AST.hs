@@ -10,6 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+
 module Parser.AST
     (
 
@@ -50,14 +52,18 @@ module Parser.AST
      
     ) where
 
+import Control.DeepSeq
+    
 import qualified Data.Text as T
 
-newtype AST = AST [Decl] deriving (Show)
+import GHC.Generics (Generic)
+
+newtype AST = AST [Decl] deriving (Show, Generic, NFData)
     
 data Decl = StructDecl [Modifier] Identifier Parameters
           | FuncDecl [Modifier] Identifier Parameters DecoratedType Statement
           | VarDecl [Modifier] DecoratedIdentifier Expression
-          | StatementDecl Statement deriving (Show)
+          | StatementDecl Statement deriving (Show, Generic, NFData)
 
 data Statement = ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement
@@ -69,23 +75,23 @@ data Statement = ExpressionStatement Expression
                | BreakStatement
                | ContinueStatement
                | Block [Decl]
-               | EmptyStatement deriving (Show)
+               | EmptyStatement deriving (Show, Generic, NFData)
 
-newtype Expression = Expression Assignment deriving (Show)
-data Assignment = Assignment LogicOr [(AssignOp, LogicOr)] deriving (Show)
-data LogicOr = LogicOr [LogicXor] LogicXor deriving (Show)
-data LogicXor = LogicXor [LogicAnd] LogicAnd deriving (Show)
-data LogicAnd = LogicAnd [BitwiseOr] BitwiseOr deriving (Show)
-data BitwiseOr = BitwiseOr [BitwiseXor] BitwiseXor deriving (Show)
-data BitwiseXor = BitwiseXor [BitwiseAnd] BitwiseAnd deriving (Show)
-data BitwiseAnd = BitwiseAnd [Equality] Equality deriving (Show)
-data Equality = Equality [(Comparison, EqualityOp)] Comparison deriving (Show)
-data Comparison = Comparison [(Shift, CompareOp)] Shift deriving (Show)
-data Shift = Shift [(Term, ShiftOp)] Term deriving (Show)
-data Term = Term [(Factor, TermOp)] Factor deriving (Show)
-data Factor = Factor [(Prefix, FactorOp)] Prefix deriving (Show)
-data Prefix = Prefix [PrefixOp] Postfix deriving (Show)
-data Postfix = Postfix Primary [PostfixOp] deriving (Show)
+newtype Expression = Expression Assignment deriving (Show, Generic, NFData)
+data Assignment = Assignment LogicOr [(AssignOp, LogicOr)] deriving (Show, Generic, NFData)
+data LogicOr = LogicOr [LogicXor] LogicXor deriving (Show, Generic, NFData)
+data LogicXor = LogicXor [LogicAnd] LogicAnd deriving (Show, Generic, NFData)
+data LogicAnd = LogicAnd [BitwiseOr] BitwiseOr deriving (Show, Generic, NFData)
+data BitwiseOr = BitwiseOr [BitwiseXor] BitwiseXor deriving (Show, Generic, NFData)
+data BitwiseXor = BitwiseXor [BitwiseAnd] BitwiseAnd deriving (Show, Generic, NFData)
+data BitwiseAnd = BitwiseAnd [Equality] Equality deriving (Show, Generic, NFData)
+data Equality = Equality [(Comparison, EqualityOp)] Comparison deriving (Show, Generic, NFData)
+data Comparison = Comparison [(Shift, CompareOp)] Shift deriving (Show, Generic, NFData)
+data Shift = Shift [(Term, ShiftOp)] Term deriving (Show, Generic, NFData)
+data Term = Term [(Factor, TermOp)] Factor deriving (Show, Generic, NFData)
+data Factor = Factor [(Prefix, FactorOp)] Prefix deriving (Show, Generic, NFData)
+data Prefix = Prefix [PrefixOp] Postfix deriving (Show, Generic, NFData)
+data Postfix = Postfix Primary [PostfixOp] deriving (Show, Generic, NFData)
              
 data Primary = BooleanLiteral Bool
              | FixedPointLiteral Integer
@@ -95,20 +101,20 @@ data Primary = BooleanLiteral Bool
              | PrimaryIdentifier Identifier
              | Grouping Expression
              | ArrayLiteral [Expression]
-             | Undefined deriving (Show)
+             | Undefined deriving (Show, Generic, NFData)
  
-data DecoratedIdentifier = DecoratedIdentifier [Modifier] Identifier DecoratedType deriving (Show)
-data DecoratedType = DecoratedType Int Type [Expression] deriving (Show)
-newtype Identifier = Identifier T.Text deriving (Show)
-newtype Parameters = Parameters [DecoratedIdentifier] deriving (Show)
-newtype Arguments = Arguments [Expression] deriving (Show)
+data DecoratedIdentifier = DecoratedIdentifier [Modifier] Identifier DecoratedType deriving (Show, Generic, NFData)
+data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData)
+newtype Identifier = Identifier T.Text deriving (Show, Generic, NFData)
+newtype Parameters = Parameters [DecoratedIdentifier] deriving (Show, Generic, NFData)
+newtype Arguments = Arguments [Expression] deriving (Show, Generic, NFData)
     
 data Modifier = Pure
               | Const
               | Inline
               | Comptime
               | Register
-              | Restrict deriving (Show)
+              | Restrict deriving (Show, Generic, NFData)
                 
 data Type = U8
           | U16
@@ -121,7 +127,7 @@ data Type = U8
           | F16
           | F32
           | F64
-          | StructType Identifier deriving (Show)
+          | StructType Identifier deriving (Show, Generic, NFData)
             
 data AssignOp = Equals
               | PlusEquals
@@ -133,25 +139,25 @@ data AssignOp = Equals
               | RShiftEquals
               | HatEquals
               | BarEquals
-              | AndEquals deriving (Show)
+              | AndEquals deriving (Show, Generic, NFData)
                 
 data EqualityOp = EqualsEquals
-                | ExclaEquals deriving (Show)
+                | ExclaEquals deriving (Show, Generic, NFData)
                   
 data CompareOp = Greater
                | Lesser
                | GreaterEquals
-               | LesserEquals deriving (Show)
+               | LesserEquals deriving (Show, Generic, NFData)
                  
 data ShiftOp = LShift
-             | RShift deriving (Show)
+             | RShift deriving (Show, Generic, NFData)
                
 data TermOp = TermPlus
-            | TermMinus deriving (Show)
+            | TermMinus deriving (Show, Generic, NFData)
               
 data FactorOp = FactorStar
               | FactorSlash
-              | FactorPercent deriving (Show)
+              | FactorPercent deriving (Show, Generic, NFData)
                 
 data PrefixOp = PrePlusPlus
               | PreMinusMinus
@@ -161,11 +167,11 @@ data PrefixOp = PrePlusPlus
               | Tilda
               | Star
               | And
-              | Cast DecoratedType deriving (Show)
+              | Cast DecoratedType deriving (Show, Generic, NFData)
                 
 data PostfixOp = PostPlusPlus
                | PostMinusMinus
                | Call Arguments
                | Index Arguments
                | Dot Identifier
-               | Arrow Identifier deriving (Show)
+               | Arrow Identifier deriving (Show, Generic, NFData)

@@ -10,6 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+
 module Interface.Error
     (
 
@@ -17,21 +19,25 @@ module Interface.Error
 
     ) where
 
+import Control.DeepSeq
+
 import qualified Data.Text as T
+
+import GHC.Generics (Generic)
 
 data Error = Error { error :: T.Text,
                      filename :: T.Text,
                      line :: Int,
                      startColumn :: Int,
-                     endColumn :: Int }
+                     endColumn :: Int } deriving (Generic, NFData)
 
 instance Show Error where
-  show (Error e f l sc _) = T.unpack f
-                                   ++ ":"
-                                   ++ show (l + 1)
-                                   ++ ":"
-                                   ++ show sc
-                                   ++ ": ERROR:\n"
-                                   ++ T.unpack e
-                                   ++ "\n"
+    show (Error e f l sc _) = T.unpack f
+                              ++ ":"
+                              ++ show (l + 1)
+                              ++ ":"
+                              ++ show sc
+                              ++ ": ERROR:\n"
+                              ++ T.unpack e
+                              ++ "\n"
   
