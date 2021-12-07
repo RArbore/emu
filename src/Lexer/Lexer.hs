@@ -127,7 +127,7 @@ lexer c l text file
             | isBadTokenType $ t = Left [Error (textFromBadTokenType $ t) file tl tc (tc + 1)]
             | otherwise = Right ((Token t tc tl len):tokens)
           takeDeci t = T.takeWhile isDigit t
-          takeDoub t = takeDeci t `T.append` T.singleton '.' `T.append` takeDeci t
+          takeDoub t = takeDeci t `T.append` T.singleton '.' `T.append` (takeDeci $ T.tail $ T.dropWhile (\x -> x /= '.') t)
           isBadTokenType (BadToken _) = True
           isBadTokenType _ = False
           textFromBadTokenType (BadToken x) = x

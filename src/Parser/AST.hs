@@ -68,7 +68,8 @@ data Statement = ExpressionStatement Expression
                | ReturnStatement Expression
                | BreakStatement
                | ContinueStatement
-               | Block [Decl] deriving (Show)
+               | Block [Decl]
+               | EmptyStatement deriving (Show)
 
 newtype Expression = Expression Assignment deriving (Show)
 data Assignment = Assignment LogicOr [(AssignOp, LogicOr)] deriving (Show)

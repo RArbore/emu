@@ -51,6 +51,13 @@ parser s x = do
   return ((bb, aa), nnx, nns)
 infixr <->
 
+(<?>) :: Parser a -> Parser b -> Parser (b, a)
+(<?>) pa pb s x = do
+  (aa, nx, ns) <- pa s x
+  (bb, nnx, nns) <- pb ns nx 
+  return $ traceShow (map LT.tokenType x, map LT.tokenType nx, map LT.tokenType nnx) $ ((bb, aa), nnx, nns)
+infixr <?>
+
 decl :: Parser Decl
 decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
     where structDecl = do
@@ -88,7 +95,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
             return (StatementDecl stmt, nx, ns)
 
 statement :: Parser Statement
-statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> caseStmt <> retStmt <> breakStmt <> contStmt <> blockStmt
+statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> caseStmt <> retStmt <> breakStmt <> contStmt <> blockStmt <> rTokenParser LT.Semi EmptyStatement s x
     where exprStmt = do
             ((_, expr), nx, ns)
               <- (expression
@@ -169,15 +176,15 @@ assignment :: Parser Assignment
 assignment s x = do
   ((t, h), nx, ns)
     <- (logicOr
-       <-> (sequenceParser $ logicOr <-> assignOp)) s x
-  return (Assignment h t, nx, ns)
+       <-> (sequenceParser $ assignOp <-> logicOr)) s x
+  return (Assignment h (map invert t), nx, ns)
 
 logicOr :: Parser LogicOr
 logicOr = ltrSingleOpParser logicXor LogicOr LT.BarBar
 
 logicXor :: Parser LogicXor
 logicXor = ltrSingleOpParser logicAnd LogicXor LT.HatHat
-       
+
 logicAnd :: Parser LogicAnd
 logicAnd = ltrSingleOpParser bitwiseOr LogicAnd LT.AndAnd
 
@@ -273,16 +280,16 @@ primary sp xp = booleanLiteral <> fixedPointLiteral <> floatingPointLiteral <> c
 ltrSingleOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
 ltrSingleOpParser recur construct op s x = do
   ((l, i), nx, ns)
-    <- ((sequenceParser $ rTokenParser op () <-> recur)
+    <- ((sequenceParser $ recur <-> rTokenParser op ())
        <-> recur) s x
-  return (construct (map fst i) l, nx, ns)
+  return (construct (map snd i) l, nx, ns)
 
 ltrOpParser :: Parser a -> ([(a, b)] -> a -> c) -> Parser b -> Parser c
 ltrOpParser recur construct op s x = do
   ((l, i), nx, ns)
-    <- ((sequenceParser $ op <-> recur)
+    <- ((sequenceParser $ recur <-> op)
        <-> recur) s x
-  return (construct i l, nx, ns)
+  return (construct (map invert i) l, nx, ns)
        
 assignOp :: Parser AssignOp
 assignOp = anyTokenParser (T.pack "Parse error")
@@ -512,3 +519,6 @@ tolerate :: a -> Parser a -> Parser a
 tolerate e p s x
     | isRight $ p s x = p s x
     | otherwise = Right (e, x, s)
+
+invert :: (a, b) -> (b, a)
+invert (a, b) = (b, a)

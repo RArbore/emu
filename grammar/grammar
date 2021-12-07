@@ -35,6 +35,7 @@ statement := exprStatement
            | caseStatement
            | returnStatement
            | block
+	   | ";"
 
 block := "{" declaration* "}"
 
