@@ -190,7 +190,19 @@ equality :: Parser Equality
 equality = ltrOpParser comparison Equality equalityOp
 
 comparison :: Parser Comparison
-comparison = undefined
+comparison = ltrOpParser shift Comparison comparisonOp
+
+shift :: Parser Shift
+shift = ltrOpParser term Shift shiftOp
+
+term :: Parser Term
+term = ltrOpParser factor Term termOp
+
+factor :: Parser Factor
+factor = ltrOpParser prefix Factor factorOp
+
+prefix :: Parser Prefix
+prefix = undefined
 
 ltrSingleOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
 ltrSingleOpParser recur construct op s x = do
@@ -226,6 +238,33 @@ equalityOp :: Parser EqualityOp
 equalityOp = anyTokenParser (T.pack "Couldn't find equality operation token")
                  (LT.EqualsEquals, EqualsEquals)
                  [(LT.ExclaEquals, ExclaEquals)]
+
+comparisonOp :: Parser CompareOp
+comparisonOp = anyTokenParser (T.pack "Couldn't find comparison operation token")
+                 (LT.Greater, Greater)
+                 [
+                  (LT.Lesser, Lesser),
+                  (LT.GreaterEquals, GreaterEquals),
+                  (LT.LesserEquals, LesserEquals)
+                 ]
+
+shiftOp :: Parser ShiftOp
+shiftOp = anyTokenParser (T.pack "Couldn't find shift operation token")
+                 (LT.LShift, LShift)
+                 [(LT.RShift, RShift)]
+
+termOp :: Parser TermOp
+termOp = anyTokenParser (T.pack "Couldn't find term operation token")
+                 (LT.Plus, TermPlus)
+                 [(LT.Minus, TermMinus)]
+
+factorOp :: Parser FactorOp
+factorOp = anyTokenParser (T.pack "Couldn't find factor operation token")
+                 (LT.Star, FactorStar)
+                 [
+                  (LT.Slash, FactorSlash),
+                  (LT.Percent, FactorPercent)
+                 ]
 
 anyTokenParser :: T.Text -> (LT.TokenType, a) -> [(LT.TokenType, a)] -> Parser a
 anyTokenParser e h t s x = foldl' (<>) (applyToken h s x) ([p s x | p <- (map applyToken t)])
