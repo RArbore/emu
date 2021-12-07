@@ -168,10 +168,39 @@ assignment s x = do
   return (Assignment h t, nx, ns)
 
 logicOr :: Parser LogicOr
-logicOr = undefined
+logicOr s x = do
+  ((l, i), nx, ns)
+    <- ((sequenceParser $ rTokenParser LT.BarBar () <-> logicXor)
+       <-> logicXor) s x
+  return (LogicOr (map fst i) l, nx, ns)
 
+logicXor :: Parser LogicXor
+logicXor = undefined
+       
+logicAnd :: Parser LogicAnd
+logicAnd = undefined
+       
 assignOp :: Parser AssignOp
-assignOp = undefined
+assignOp s x = rTokenParser LT.Equals Equals s x
+               <> rTokenParser LT.PlusEquals PlusEquals s x
+               <> rTokenParser LT.MinusEquals MinusEquals s x
+               <> rTokenParser LT.StarEquals StarEquals s x
+               <> rTokenParser LT.SlashEquals SlashEquals s x
+               <> rTokenParser LT.PercentEquals PercentEquals s x
+               <> rTokenParser LT.LShiftEquals LShiftEquals s x
+               <> rTokenParser LT.RShiftEquals RShiftEquals s x
+               <> rTokenParser LT.AndEquals AndEquals s x
+               <> rTokenParser LT.HatEquals HatEquals s x
+               <> rTokenParser LT.BarEquals BarEquals s x
+               <> (Left $ E.Error
+                      (T.pack $ "Couldn't find assign operation token")
+                      (filename s)
+                      (line s)
+                      (column s)
+                      (column s + l))
+    where l
+             | null x = 1
+             | otherwise = LT.length $ head x
 
 parameters :: Parser Parameters
 parameters s x = do
