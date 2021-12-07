@@ -71,7 +71,7 @@ data Statement = ExpressionStatement Expression
                | Block [Statement] deriving (Show)
 
 newtype Expression = Expression Assignment deriving (Show)
-data Assignment = Assignment LogicOr AssignOp LogicOr deriving (Show)
+data Assignment = Assignment LogicOr [(AssignOp, LogicOr)] deriving (Show)
 data LogicOr = LogicOr [LogicXor] LogicXor deriving (Show)
 data LogicXor = LogicXor [LogicAnd] LogicAnd deriving (Show)
 data LogicAnd = LogicAnd [BitwiseOr] BitwiseOr deriving (Show)

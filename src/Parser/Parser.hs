@@ -65,7 +65,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
                  <-> rTokenParser LT.Func ()
                  <-> identifierParser
                  <-> rTokenParser LT.LeftParen ()
-                 <-> parameters
+                 <-> (tolerate (Parameters []) parameters)
                  <-> rTokenParser LT.RightParen ()
                  <-> rTokenParser LT.Colon ()
                  <-> decoratedType
@@ -158,7 +158,20 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
             return (Block stmts, nx, ns)
 
 expression :: Parser Expression
-expression = undefined
+expression s x = (assignment s x) >>= (\(xl, yl, zl) -> Right (Expression xl, yl, zl))
+
+assignment :: Parser Assignment
+assignment s x = do
+  ((t, h), nx, ns)
+    <- (logicOr
+       <-> (sequenceParser $ logicOr <-> assignOp)) s x
+  return (Assignment h t, nx, ns)
+
+logicOr :: Parser LogicOr
+logicOr = undefined
+
+assignOp :: Parser AssignOp
+assignOp = undefined
 
 parameters :: Parser Parameters
 parameters s x = do
