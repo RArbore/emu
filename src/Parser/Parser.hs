@@ -20,6 +20,7 @@ module Parser.Parser
     ) where
 
 import Data.Either
+import Data.List
 import qualified Data.Text as T
 
 import qualified Interface.Error as E
@@ -161,7 +162,7 @@ expression :: Parser Expression
 expression s x = (assignment s x) >>= (\(xl, yl, zl) -> Right (Expression xl, yl, zl))
 
 assignment :: Parser Assignment
-assignment = do
+assignment s x = do
   ((t, h), nx, ns)
     <- (logicOr
        <-> (sequenceParser $ logicOr <-> assignOp)) s x
@@ -206,39 +207,38 @@ ltrOpParser recur construct op s x = do
   return (construct i l, nx, ns)
        
 assignOp :: Parser AssignOp
-assignOp s x = rTokenParser LT.Equals Equals s x
-               <> rTokenParser LT.PlusEquals PlusEquals s x
-               <> rTokenParser LT.MinusEquals MinusEquals s x
-               <> rTokenParser LT.StarEquals StarEquals s x
-               <> rTokenParser LT.SlashEquals SlashEquals s x
-               <> rTokenParser LT.PercentEquals PercentEquals s x
-               <> rTokenParser LT.LShiftEquals LShiftEquals s x
-               <> rTokenParser LT.RShiftEquals RShiftEquals s x
-               <> rTokenParser LT.AndEquals AndEquals s x
-               <> rTokenParser LT.HatEquals HatEquals s x
-               <> rTokenParser LT.BarEquals BarEquals s x
-               <> (Left $ E.Error
-                      (T.pack $ "Couldn't find assign operation token")
-                      (filename s)
-                      (line s)
-                      (column s)
-                      (column s + l))
-    where l
-             | null x = 1
-             | otherwise = LT.length $ head x
+assignOp = anyTokenParser (T.pack "Couldn't find assign operation token")
+           (LT.Equals, Equals)
+           [
+            (LT.PlusEquals, PlusEquals),
+            (LT.MinusEquals, MinusEquals),
+            (LT.StarEquals, StarEquals),
+            (LT.SlashEquals, SlashEquals),
+            (LT.PercentEquals, PercentEquals),
+            (LT.LShiftEquals, LShiftEquals),
+            (LT.RShiftEquals, RShiftEquals),
+            (LT.AndEquals, AndEquals),
+            (LT.HatEquals, HatEquals),
+            (LT.BarEquals, BarEquals)
+           ]
 
 equalityOp :: Parser EqualityOp
-equalityOp s x = rTokenParser LT.EqualsEquals EqualsEquals s x
-               <> rTokenParser LT.ExclaEquals ExclaEquals s x
-               <> (Left $ E.Error
-                      (T.pack $ "Couldn't find equality operation token")
-                      (filename s)
-                      (line s)
-                      (column s)
-                      (column s + l))
+equalityOp = anyTokenParser (T.pack "Couldn't find equality operation token")
+                 (LT.EqualsEquals, EqualsEquals)
+                 [(LT.ExclaEquals, ExclaEquals)]
+
+anyTokenParser :: T.Text -> (LT.TokenType, a) -> [(LT.TokenType, a)] -> Parser a
+anyTokenParser e h t s x = foldl' (<>) (applyToken h s x) ([p s x | p <- (map applyToken t)])
+                               <> (Left $ E.Error
+                                   (e)
+                                   (filename s)
+                                   (line s)
+                                   (column s)
+                                   (column s + l))
     where l
              | null x = 1
              | otherwise = LT.length $ head x
+          applyToken (ta, cons) = rTokenParser ta cons
 
 parameters :: Parser Parameters
 parameters s x = do
