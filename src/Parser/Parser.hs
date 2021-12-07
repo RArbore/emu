@@ -21,6 +21,7 @@ module Parser.Parser
 
 import Data.Either
 import Data.List
+import Data.Maybe
 import qualified Data.Text as T
 
 import qualified Interface.Error as E
@@ -216,7 +217,30 @@ postfix s x = do
   return (Postfix prim ops, nx, ns)
 
 primary :: Parser Primary
-primary = undefined
+primary sp xp = booleanLiteral <> fixedPointLiteral -- <> floatingPointLiteral <> charLiteral <> stringLiteral <> primaryIdentifier <> grouping <> arrayLiteral <> undefinedParser
+  where booleanLiteral = literalExtract (\x -> case x of
+                                                 LT.BooleanLiteral b -> Just b
+                                                 _ -> Nothing) BooleanLiteral sp xp
+        fixedPointLiteral = literalExtract (\x -> case x of
+                                                 LT.FixedPointLiteral n -> Just n
+                                                 _ -> Nothing) FixedPointLiteral sp xp
+        literalExtract :: (LT.TokenType -> Maybe b) -> (b -> c) -> Parser c
+        literalExtract _ _ s [] = Left $ E.Error
+                              (T.pack $ "Couldn't find boolean literal")
+                              (filename s)
+                              (line s)
+                              (column s)
+                              (column s + 1)
+        literalExtract extractVal construct (ParserState f l c) (x:xs)
+          | isJust $ extractVal t = Right (construct $ fromJust $ extractVal t, xs, (ParserState nf nl nc))
+          | otherwise = Left $ E.Error
+                        (T.pack $ "Couldn't find boolean literal")
+                        f l c (c + LT.length x)
+          where len = LT.length x
+                t = LT.tokenType x
+                (nf, nl, nc)
+                  | null xs = (f, l + len, c)
+                  | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
 
 ltrSingleOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
 ltrSingleOpParser recur construct op s x = do
@@ -432,8 +456,8 @@ identifierParser (ParserState f l c) ((LT.Token (LT.Identifier t) _ _ len):xs) =
               | null xs = (f, l + len, c)
               | otherwise = (f, LT.line $ head xs, LT.column $ head xs)
 identifierParser (ParserState f l c) (x:_) = Left $ E.Error
-                        (T.pack $ "Couldn't find identifier")
-                        f l c (c + LT.length x)
+                                             (T.pack $ "Couldn't find identifier")
+                                             f l c (c + LT.length x)
 
 rTokenParser :: LT.TokenType -> a -> Parser a
 rTokenParser tt val s x = do
