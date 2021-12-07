@@ -168,17 +168,23 @@ assignment s x = do
   return (Assignment h t, nx, ns)
 
 logicOr :: Parser LogicOr
-logicOr s x = do
-  ((l, i), nx, ns)
-    <- ((sequenceParser $ rTokenParser LT.BarBar () <-> logicXor)
-       <-> logicXor) s x
-  return (LogicOr (map fst i) l, nx, ns)
+logicOr = ltrOpParser logicXor LogicOr LT.BarBar
 
 logicXor :: Parser LogicXor
-logicXor = undefined
+logicXor = ltrOpParser logicAnd LogicXor LT.HatHat
        
 logicAnd :: Parser LogicAnd
-logicAnd = undefined
+logicAnd = ltrOpParser bitwiseOr LogicAnd LT.AndAnd
+
+bitwiseOr :: Parser BitwiseOr
+bitwiseOr = undefined
+
+ltrOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
+ltrOpParser recur construct op s x = do
+  ((l, i), nx, ns)
+    <- ((sequenceParser $ rTokenParser op () <-> recur)
+       <-> recur) s x
+  return (construct (map fst i) l, nx, ns)
        
 assignOp :: Parser AssignOp
 assignOp s x = rTokenParser LT.Equals Equals s x
