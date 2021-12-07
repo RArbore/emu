@@ -85,7 +85,7 @@ lexer c l text file
   | p "if" = th If 2
   | p "else" = th Else 4
   | p "while" = th While 5
-  | p "for" = th While 3
+  | p "for" = th For 3
   | p "switch" = th Switch 6
   | p "case" = th Case 4
   | p "return" = th Return 6
