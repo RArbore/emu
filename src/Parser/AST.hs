@@ -56,19 +56,19 @@ newtype AST = AST [Decl] deriving (Show)
     
 data Decl = StructDecl [Modifier] Identifier Parameters
           | FuncDecl [Modifier] Identifier Parameters DecoratedType Statement
-          | VarDecl DecoratedIdentifier Expression
+          | VarDecl [Modifier] DecoratedIdentifier Expression
           | StatementDecl Statement deriving (Show)
 
 data Statement = ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement
                | WhileStatement Expression Statement
-               | ForStatement Statement Expression Expression Statement
+               | ForStatement Decl Expression Expression Statement
                | SwitchStatement Expression Statement
                | CaseStatement Expression Statement
                | ReturnStatement Expression
                | BreakStatement
                | ContinueStatement
-               | Block [Statement] deriving (Show)
+               | Block [Decl] deriving (Show)
 
 newtype Expression = Expression Assignment deriving (Show)
 data Assignment = Assignment LogicOr [(AssignOp, LogicOr)] deriving (Show)
