@@ -266,6 +266,53 @@ factorOp = anyTokenParser (T.pack "Couldn't find factor operation token")
                   (LT.Percent, FactorPercent)
                  ]
 
+prefixOp :: Parser PrefixOp
+prefixOp s x = castParser <> anyTokenParser (T.pack "Couldn't find prefix operation token")
+                 (LT.PlusPlus, PrePlusPlus)
+                 [
+                  (LT.MinusMinus, PreMinusMinus),
+                  (LT.Plus, Plus),
+                  (LT.Minus, Minus),
+                  (LT.Excla, Excla),
+                  (LT.Tilda, Tilda),
+                  (LT.Star, Star),
+                  (LT.And, And)
+                 ] s x
+    where castParser = do
+            (((_, decType), _), nx, ns)
+              <- (rTokenParser LT.LeftParen ()
+                 <-> decoratedType
+                 <-> rTokenParser LT.RightParen()) s x
+            return (Cast decType, nx, ns)
+
+postfixOp :: Parser PostfixOp
+postfixOp s x = callParser <> indexParser <> dotParser <> arrowParser
+                <> anyTokenParser (T.pack "Couldn't find postifx operation token")
+                       (LT.PlusPlus, PostPlusPlus)
+                       [(LT.MinusMinus, PostMinusMinus)] s x
+    where callParser = do
+            (((_, args), _), nx, ns)
+              <- (rTokenParser LT.LeftParen ()
+                 <-> arguments
+                 <-> rTokenParser LT.RightParen ()) s x
+            return (Call args, nx, ns)
+          indexParser = do
+            (((_, args), _), nx, ns)
+              <- (rTokenParser LT.LeftBracket ()
+                 <-> arguments
+                 <-> rTokenParser LT.RightBracket ()) s x
+            return (Index args, nx, ns)
+          dotParser = do
+            ((iden, _), nx, ns)
+              <- (rTokenParser LT.Dot ()
+                 <-> identifierParser) s x
+            return (Dot iden, nx, ns)
+          arrowParser = do
+            ((iden, _), nx, ns)
+              <- (rTokenParser LT.Arrow ()
+                 <-> identifierParser) s x
+            return (Arrow iden, nx, ns)
+
 anyTokenParser :: T.Text -> (LT.TokenType, a) -> [(LT.TokenType, a)] -> Parser a
 anyTokenParser e h t s x = foldl' (<>) (applyToken h s x) ([p s x | p <- (map applyToken t)])
                                <> (Left $ E.Error
@@ -285,6 +332,14 @@ parameters s x = do
     <- (decoratedIdentifier
        <-> (sequenceParser $ rTokenParser LT.Comma () <-> decoratedIdentifier)) s x
   return (Parameters $ firstParam:(map fst nextParams), nx, ns)
+
+arguments :: Parser Arguments
+arguments = tolerate (Arguments []) argsNoTolerate
+    where argsNoTolerate s x = do
+            ((nextArgs, firstArg), nx, ns)
+              <- (expression
+                 <-> (sequenceParser $ rTokenParser LT.Comma () <-> expression)) s x
+            return (Arguments $ firstArg:(map fst nextArgs), nx, ns)
 
 decoratedType :: Parser DecoratedType
 decoratedType s x = do
