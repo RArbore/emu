@@ -202,7 +202,21 @@ factor :: Parser Factor
 factor = ltrOpParser prefix Factor factorOp
 
 prefix :: Parser Prefix
-prefix = undefined
+prefix s x = do
+  ((post, ops), nx, ns)
+    <- ((sequenceParser prefixOp)
+       <-> postfix) s x
+  return (Prefix ops post, nx, ns)
+
+postfix :: Parser Postfix
+postfix s x = do
+  ((ops, prim), nx, ns)
+    <- (primary
+       <-> (sequenceParser postfixOp)) s x
+  return (Postfix prim ops, nx, ns)
+
+primary :: Parser Primary
+primary = undefined
 
 ltrSingleOpParser :: Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
 ltrSingleOpParser recur construct op s x = do
