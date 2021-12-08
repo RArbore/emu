@@ -189,7 +189,19 @@ assignment s x = do
     <- (logicOr
        <-> (sequenceParser $!! assignOp <-> logicOr)) s x
   return (reverseBinary $ constructTree (reverse t) h, nx, ns)
-    where reverseBinary (Binary expr2 op expr1) = Binary expr1 op expr2 
+    where reverseBinary (Binary expr2 op expr1) = case op of
+                                                    Equals -> Binary expr1 Equals (reverseBinary expr2)
+                                                    PlusEquals -> Binary expr1 PlusEquals (reverseBinary expr2)
+                                                    MinusEquals -> Binary expr1 MinusEquals (reverseBinary expr2)
+                                                    StarEquals -> Binary expr1 StarEquals (reverseBinary expr2)
+                                                    SlashEquals -> Binary expr1 SlashEquals (reverseBinary expr2)
+                                                    PercentEquals -> Binary expr1 PercentEquals (reverseBinary expr2)
+                                                    LShiftEquals -> Binary expr1 LShiftEquals (reverseBinary expr2)
+                                                    RShiftEquals -> Binary expr1 RShiftEquals (reverseBinary expr2)
+                                                    HatEquals -> Binary expr1 HatEquals (reverseBinary expr2)
+                                                    BarEquals -> Binary expr1 BarEquals (reverseBinary expr2)
+                                                    AndEquals -> Binary expr1 AndEquals (reverseBinary expr2)
+                                                    _ -> Binary (reverseBinary expr2) op expr1
           reverseBinary a = a
 
 logicOr :: Parser Expression
