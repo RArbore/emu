@@ -181,7 +181,9 @@ assignment s x = do
   ((t, h), nx, ns)
     <- (logicOr
        <-> (sequenceParser $!! assignOp <-> logicOr)) s x
-  return (constructTree (reverse t) h, nx, ns)
+  return (reverseBinary $ constructTree (reverse t) h, nx, ns)
+    where reverseBinary (Binary expr2 op expr1) = Binary expr1 op expr2 
+          reverseBinary a = a
 
 logicOr :: Parser Expression
 logicOr = ltrSingleOpParser logicXor LogicOr LT.BarBar
