@@ -6,14 +6,14 @@ pure inline func fact(n: u32): u32 {
     return acc;
 }
 
-// pure func matmul(comptime const r: u32, comptime const m: u32, comptime const c: u32, const a: f32[r][m], const b: f32[m][c]): f32[r][c] {
-//     out: f32[r][c] = 0.;
-//     for (i: u32 = 0; i < r; i++) {
-//         for (j: u32 = 0; j < c; j++) {
-//             for (k: u32 = 0; k < m; k++) {
-//                 out[i][j] += a[i][k] * b[k][j];
-//             }
-//         }
-//     }
-//     return out;
-// }
+pure func matmul(comptime const r: u32, comptime const m: u32, comptime const c: u32, const a: f32[r][m], const b: f32[m][c]): f32[r][c] {
+    out: f32[r][c] = 0.;
+    for (i: u32 = 0; i < r; i++) {
+        for (j: u32 = 0; j < c; j++) {
+            for (k: u32 = 0; k < m; k++) {
+                out[i][j] += a[i][k] * b[k][j];
+            }
+        }
+    }
+    return out;
+}

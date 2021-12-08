@@ -64,7 +64,7 @@ infixr <->
   return $ traceShow (map LT.tokenType x, map LT.tokenType nx, map LT.tokenType nnx) $ ((bb, aa), nnx, nns)
 infixr <?>
 
-decl :: Parser Decl
+decl :: Parser Statement
 decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
     where structDecl = do
             (((((((_, _), params), _), identifier), _), modifiers), nx, ns)
@@ -96,9 +96,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
                  <-> expression
                  <-> rTokenParser LT.Semi ()) s x
             return (VarDecl modifiers decIden expr, nx, ns)
-          statementDecl = do
-            (stmt, nx, ns) <- statement s x
-            return (StatementDecl stmt, nx, ns)
+          statementDecl = statement s x
 
 statement :: Parser Statement
 statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> caseStmt <> retStmt <> breakStmt <> contStmt <> blockStmt <> rTokenParser LT.Semi EmptyStatement s x
@@ -176,128 +174,133 @@ statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> 
             return (Block decls, nx, ns)
 
 expression :: Parser Expression
-expression s x = (assignment s x) >>= (\(xl, yl, zl) -> Right (Expression xl, yl, zl))
+expression = assignment
 
-assignment :: Parser Assignment
+assignment :: Parser Expression
 assignment s x = do
   ((t, h), nx, ns)
     <- (logicOr
        <-> (sequenceParser $!! assignOp <-> logicOr)) s x
-  return (Assignment h (map invert t), nx, ns)
+  return (constructTree (reverse t) h, nx, ns)
 
-logicOr :: Parser LogicOr
+logicOr :: Parser Expression
 logicOr = ltrSingleOpParser logicXor LogicOr LT.BarBar
 
-logicXor :: Parser LogicXor
+logicXor :: Parser Expression
 logicXor = ltrSingleOpParser logicAnd LogicXor LT.HatHat
 
-logicAnd :: Parser LogicAnd
+logicAnd :: Parser Expression
 logicAnd = ltrSingleOpParser bitwiseOr LogicAnd LT.AndAnd
 
-bitwiseOr :: Parser BitwiseOr
+bitwiseOr :: Parser Expression
 bitwiseOr = ltrSingleOpParser bitwiseXor BitwiseOr LT.Bar
 
-bitwiseXor :: Parser BitwiseXor
+bitwiseXor :: Parser Expression
 bitwiseXor = ltrSingleOpParser bitwiseAnd BitwiseXor LT.Hat
 
-bitwiseAnd :: Parser BitwiseAnd
+bitwiseAnd :: Parser Expression
 bitwiseAnd = ltrSingleOpParser equality BitwiseAnd LT.And
 
-equality :: Parser Equality
-equality = ltrOpParser comparison Equality equalityOp
+equality :: Parser Expression
+equality = ltrOpParser comparison equalityOp
 
-comparison :: Parser Comparison
-comparison = ltrOpParser shift Comparison comparisonOp
+comparison :: Parser Expression
+comparison = ltrOpParser shift comparisonOp
 
-shift :: Parser Shift
-shift = ltrOpParser term Shift shiftOp
+shift :: Parser Expression
+shift = ltrOpParser term shiftOp
 
-term :: Parser Term
-term = ltrOpParser factor Term termOp
+term :: Parser Expression
+term = ltrOpParser factor termOp
 
-factor :: Parser Factor
-factor = ltrOpParser prefix Factor factorOp
+factor :: Parser Expression
+factor = ltrOpParser prefix factorOp
 
-prefix :: Parser Prefix
+prefix :: Parser Expression
 prefix s x = do
   ((post, ops), nx, ns)
     <- ((sequenceParser prefixOp)
        <-> postfix) s x
-  return (Prefix ops post, nx, ns)
+  return (foldr (\a b -> Unary b a) post ops, nx, ns)
 
-postfix :: Parser Postfix
+postfix :: Parser Expression
 postfix s x = do
   ((ops, prim), nx, ns)
     <- (primary
        <-> (sequenceParser postfixOp)) s x
-  return (Postfix prim ops, nx, ns)
+  return (foldl' Unary prim ops, nx, ns)
 
-primary :: Parser Primary
+primary :: Parser Expression
 primary sp xp = booleanLiteral <> fixedPointLiteral <> floatingPointLiteral <> charLiteral <> stringLiteral <> primaryIdentifier <> grouping <> arrayLiteral <> undefinedParser
-  where booleanLiteral = literalExtract (\x -> case x of
-                                                 LT.BooleanLiteral b -> Just b
-                                                 _ -> Nothing) BooleanLiteral sp xp
-        fixedPointLiteral = literalExtract (\x -> case x of
-                                                 LT.FixedPointLiteral n -> Just n
-                                                 _ -> Nothing) FixedPointLiteral sp xp
-        floatingPointLiteral = literalExtract (\x -> case x of
-                                                 LT.FloatingPointLiteral n -> Just n
-                                                 _ -> Nothing) FloatingPointLiteral sp xp
-        charLiteral = literalExtract (\x -> case x of
-                                                 LT.CharLiteral c -> Just c
-                                                 _ -> Nothing) CharLiteral sp xp
-        stringLiteral = literalExtract (\x -> case x of
-                                                 LT.StringLiteral c -> Just c
-                                                 _ -> Nothing) StringLiteral sp xp
-        primaryIdentifier = do
-          (iden, nx, ns) <- identifierParser sp xp
-          return (PrimaryIdentifier iden, nx, ns)
-        grouping = do
-          (((_, expr), _), nx, ns)
-            <- (rTokenParser LT.LeftParen ()
-               <-> expression
-               <-> rTokenParser LT.RightParen ()) sp xp
-          return (Grouping expr, nx, ns)
-        arrayLiteral = do
-          (((_, Arguments exprs), _), nx, ns)
-            <- (rTokenParser LT.LeftBrace ()
-               <-> arguments
-               <-> rTokenParser LT.RightBrace ()) sp xp
-          return (ArrayLiteral exprs, nx, ns)
-        undefinedParser = rTokenParser LT.Undefined Undefined sp xp
-        literalExtract :: (NFData b) => (LT.TokenType -> Maybe b) -> (b -> c) -> Parser c
-        literalExtract _ _ s [] = Left $ E.Error
-                              (T.pack $!! "Parse error")
-                              (filename s)
-                              (line s)
-                              (column s)
-                              (column s + 1)
-        literalExtract extractVal construct (ParserState f l c) (x:xs)
-          | isJust $ extractVal t = Right (construct $!! fromJust $!! extractVal t, xs, (ParserState nf nl nc))
-          | otherwise = Left $ E.Error
-                        (T.pack $!! "Parse error")
-                        f l c (c + LT.length x)
-          where len = LT.length x
-                t = LT.tokenType x
-                (nf, nl, nc)
-                  | null xs = (f, l + len, c)
-                  | otherwise = (f, LT.line $!! head xs, LT.column $!! head xs)
+    where booleanLiteral = literalExtract (\x -> case x of
+                                                   LT.BooleanLiteral b -> Just b
+                                                   _ -> Nothing) BooleanLiteral sp xp
+          fixedPointLiteral = literalExtract (\x -> case x of
+                                                      LT.FixedPointLiteral n -> Just n
+                                                      _ -> Nothing) FixedPointLiteral sp xp
+          floatingPointLiteral = literalExtract (\x -> case x of
+                                                         LT.FloatingPointLiteral n -> Just n
+                                                         _ -> Nothing) FloatingPointLiteral sp xp
+          charLiteral = literalExtract (\x -> case x of
+                                                LT.CharLiteral c -> Just c
+                                                _ -> Nothing) CharLiteral sp xp
+          stringLiteral = literalExtract (\x -> case x of
+                                                  LT.StringLiteral c -> Just c
+                                                  _ -> Nothing) StringLiteral sp xp
+          primaryIdentifier = do
+            (iden, nx, ns) <- identifierParser sp xp
+            return (PrimaryIdentifier iden, nx, ns)
+          grouping = do
+            (((_, expr), _), nx, ns)
+              <- (rTokenParser LT.LeftParen ()
+                 <-> expression
+                 <-> rTokenParser LT.RightParen ()) sp xp
+            return (expr, nx, ns)
+          arrayLiteral = do
+            (((_, Arguments exprs), _), nx, ns)
+              <- (rTokenParser LT.LeftBrace ()
+                 <-> arguments
+                 <-> rTokenParser LT.RightBrace ()) sp xp
+            return (ArrayLiteral exprs, nx, ns)
+          undefinedParser = rTokenParser LT.Undefined Undefined sp xp
+          literalExtract :: (NFData b) => (LT.TokenType -> Maybe b) -> (b -> c) -> Parser c
+          literalExtract _ _ s [] = Left $ E.Error
+                                    (T.pack $!! "Parse error")
+                                    (filename s)
+                                    (line s)
+                                    (column s)
+                                    (column s + 1)
+          literalExtract extractVal construct (ParserState f l c) (x:xs)
+              | isJust $ extractVal t = Right (construct $!! fromJust $!! extractVal t, xs, (ParserState nf nl nc))
+              | otherwise = Left $ E.Error
+                            (T.pack $!! "Parse error")
+                            f l c (c + LT.length x)
+              where len = LT.length x
+                    t = LT.tokenType x
+                    (nf, nl, nc)
+                        | null xs = (f, l + len, c)
+                        | otherwise = (f, LT.line $!! head xs, LT.column $!! head xs)
 
-ltrSingleOpParser :: (NFData a) => Parser a -> ([a] -> a -> b) -> LT.TokenType -> Parser b
-ltrSingleOpParser recur construct op s x = do
+ltrSingleOpParser :: Parser Expression -> BinaryOp -> LT.TokenType -> Parser Expression
+ltrSingleOpParser recur binop op s x = do
   ((l, i), nx, ns)
-    <- ((sequenceParser $!! recur <-> rTokenParser op ())
+    <- ((sequenceParser $!! recur <-> rTokenParser op binop)
        <-> recur) s x
-  return (construct (map snd i) l, nx, ns)
+  return (constructTree (map invert i) l, nx, ns)
 
-ltrOpParser :: (NFData a, NFData b) => Parser a -> ([(a, b)] -> a -> c) -> Parser b -> Parser c
-ltrOpParser recur construct op s x = do
+ltrOpParser :: Parser Expression -> Parser BinaryOp -> Parser Expression
+ltrOpParser recur binop s x = do
   ((l, i), nx, ns)
-    <- ((sequenceParser $!! recur <-> op)
+    <- ((sequenceParser $!! recur <-> binop)
        <-> recur) s x
-  return (construct (map invert i) l, nx, ns)
+  return (constructTree (map invert i) l, nx, ns)
+
+constructTree :: [(Expression, BinaryOp)] -> Expression -> Expression
+constructTree [] lastT = lastT
+constructTree [(initTE, initTO)] lastT = Binary initTE initTO lastT 
+constructTree ((initTE1, initTO1):(initTE2, initTO2):initTS) lastT = constructTree (((Binary initTE1 initTO1 initTE2), initTO2):initTS) lastT
        
-assignOp :: Parser AssignOp
+assignOp :: Parser BinaryOp
 assignOp = anyTokenParser (T.pack "Parse error")
            (LT.Equals, Equals)
            [
@@ -313,12 +316,12 @@ assignOp = anyTokenParser (T.pack "Parse error")
             (LT.BarEquals, BarEquals)
            ]
 
-equalityOp :: Parser EqualityOp
+equalityOp :: Parser BinaryOp
 equalityOp = anyTokenParser (T.pack "Parse error")
                  (LT.EqualsEquals, EqualsEquals)
                  [(LT.ExclaEquals, ExclaEquals)]
 
-comparisonOp :: Parser CompareOp
+comparisonOp :: Parser BinaryOp
 comparisonOp = anyTokenParser (T.pack "Parse error")
                  (LT.Greater, Greater)
                  [
@@ -327,17 +330,17 @@ comparisonOp = anyTokenParser (T.pack "Parse error")
                   (LT.LesserEquals, LesserEquals)
                  ]
 
-shiftOp :: Parser ShiftOp
+shiftOp :: Parser BinaryOp
 shiftOp = anyTokenParser (T.pack "Parse error")
                  (LT.LShift, LShift)
                  [(LT.RShift, RShift)]
 
-termOp :: Parser TermOp
+termOp :: Parser BinaryOp
 termOp = anyTokenParser (T.pack "Parse error")
                  (LT.Plus, TermPlus)
                  [(LT.Minus, TermMinus)]
 
-factorOp :: Parser FactorOp
+factorOp :: Parser BinaryOp
 factorOp = anyTokenParser (T.pack "Parse error")
                  (LT.Star, FactorStar)
                  [
@@ -345,7 +348,7 @@ factorOp = anyTokenParser (T.pack "Parse error")
                   (LT.Percent, FactorPercent)
                  ]
 
-prefixOp :: Parser PrefixOp
+prefixOp :: Parser UnaryOp
 prefixOp s x = castParser <> anyTokenParser (T.pack "Parse error")
                  (LT.PlusPlus, PrePlusPlus)
                  [
@@ -364,7 +367,7 @@ prefixOp s x = castParser <> anyTokenParser (T.pack "Parse error")
                  <-> rTokenParser LT.RightParen()) s x
             return (Cast decType, nx, ns)
 
-postfixOp :: Parser PostfixOp
+postfixOp :: Parser UnaryOp
 postfixOp s x = callParser <> indexParser <> dotParser <> arrowParser
                 <> anyTokenParser (T.pack "Parse error")
                        (LT.PlusPlus, PostPlusPlus)
