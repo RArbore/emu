@@ -38,6 +38,9 @@ import qualified Lexer.Token as LT
 
 import Parser.AST
 
+parseErrorMessage :: T.Text
+parseErrorMessage = T.pack $!! "Parse error"
+
 type Parser t = ParserState -> [LT.Token] -> Either E.Error (t, [LT.Token], ParserState)
 data ParserState = ParserState { filename :: T.Text,
                                  line :: Int,
@@ -57,6 +60,10 @@ parser s x = do
   return ((bb, aa), nnx, nns)
 infixr <->
 
+(<!>) :: Either a b -> Either a b -> Either a b
+(<!>) (Right x) _ = Right x
+(<!>) _ x = x
+
 (<?>) :: Parser a -> Parser b -> Parser (b, a)
 (<?>) pa pb s x = do
   (aa, nx, ns) <- pa s x
@@ -65,7 +72,7 @@ infixr <->
 infixr <?>
 
 decl :: Parser Statement
-decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
+decl s x = statementDecl <!> structDecl <!> funcDecl <!> varDecl
     where structDecl = do
             (((((((_, _), params), _), identifier), _), modifiers), nx, ns)
               <- (sequenceParser modifier
@@ -82,7 +89,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
                  <-> rTokenParser LT.Func ()
                  <-> identifierParser
                  <-> rTokenParser LT.LeftParen ()
-                 <-> (tolerate (Parameters []) parameters)
+                 <-> (tolerate [] parameters)
                  <-> rTokenParser LT.RightParen ()
                  <-> rTokenParser LT.Colon ()
                  <-> decoratedType
@@ -99,7 +106,7 @@ decl s x = structDecl <> funcDecl <> varDecl <> statementDecl
           statementDecl = statement s x
 
 statement :: Parser Statement
-statement s x = exprStmt <> ifElseStmt <> whileStmt <> forStmt <> switchStmt <> caseStmt <> retStmt <> breakStmt <> contStmt <> blockStmt <> rTokenParser LT.Semi EmptyStatement s x
+statement s x = exprStmt <!> ifElseStmt <!> whileStmt <!> forStmt <!> switchStmt <!> caseStmt <!> retStmt <!> breakStmt <!> contStmt <!> blockStmt <!> rTokenParser LT.Semi EmptyStatement s x
     where exprStmt = do
             ((_, expr), nx, ns)
               <- (expression
@@ -233,7 +240,7 @@ postfix s x = do
   return (foldl' Unary prim ops, nx, ns)
 
 primary :: Parser Expression
-primary sp xp = booleanLiteral <> fixedPointLiteral <> floatingPointLiteral <> charLiteral <> stringLiteral <> primaryIdentifier <> grouping <> arrayLiteral <> undefinedParser
+primary sp xp = booleanLiteral <!> fixedPointLiteral <!> floatingPointLiteral <!> charLiteral <!> stringLiteral <!> primaryIdentifier <!> grouping <!> arrayLiteral <!> undefinedParser
     where booleanLiteral = literalExtract (\x -> case x of
                                                    LT.BooleanLiteral b -> Just b
                                                    _ -> Nothing) BooleanLiteral sp xp
@@ -259,7 +266,7 @@ primary sp xp = booleanLiteral <> fixedPointLiteral <> floatingPointLiteral <> c
                  <-> rTokenParser LT.RightParen ()) sp xp
             return (expr, nx, ns)
           arrayLiteral = do
-            (((_, Arguments exprs), _), nx, ns)
+            (((_, exprs), _), nx, ns)
               <- (rTokenParser LT.LeftBrace ()
                  <-> arguments
                  <-> rTokenParser LT.RightBrace ()) sp xp
@@ -267,7 +274,7 @@ primary sp xp = booleanLiteral <> fixedPointLiteral <> floatingPointLiteral <> c
           undefinedParser = rTokenParser LT.Undefined Undefined sp xp
           literalExtract :: (NFData b) => (LT.TokenType -> Maybe b) -> (b -> c) -> Parser c
           literalExtract _ _ s [] = Left $ E.Error
-                                    (T.pack $!! "Parse error")
+                                    (parseErrorMessage)
                                     (filename s)
                                     (line s)
                                     (column s)
@@ -275,7 +282,7 @@ primary sp xp = booleanLiteral <> fixedPointLiteral <> floatingPointLiteral <> c
           literalExtract extractVal construct (ParserState f l c) (x:xs)
               | isJust $ extractVal t = Right (construct $!! fromJust $!! extractVal t, xs, (ParserState nf nl nc))
               | otherwise = Left $ E.Error
-                            (T.pack $!! "Parse error")
+                            (parseErrorMessage)
                             f l c (c + LT.length x)
               where len = LT.length x
                     t = LT.tokenType x
@@ -304,8 +311,8 @@ constructTree ((initTE1, initTO1):(initTE2, initTO2):initTS) lastT = constructTr
        
 assignOp :: Parser BinaryOp
 assignOp = anyTokenParser (T.pack "Parse error")
-           (LT.Equals, Equals)
            [
+            (LT.Equals, Equals),
             (LT.PlusEquals, PlusEquals),
             (LT.MinusEquals, MinusEquals),
             (LT.StarEquals, StarEquals),
@@ -320,13 +327,15 @@ assignOp = anyTokenParser (T.pack "Parse error")
 
 equalityOp :: Parser BinaryOp
 equalityOp = anyTokenParser (T.pack "Parse error")
-                 (LT.EqualsEquals, EqualsEquals)
-                 [(LT.ExclaEquals, ExclaEquals)]
+                 [
+                  (LT.EqualsEquals, EqualsEquals),
+                  (LT.ExclaEquals, ExclaEquals)
+                 ]
 
 comparisonOp :: Parser BinaryOp
 comparisonOp = anyTokenParser (T.pack "Parse error")
-                 (LT.Greater, Greater)
                  [
+                  (LT.Greater, Greater),
                   (LT.Lesser, Lesser),
                   (LT.GreaterEquals, GreaterEquals),
                   (LT.LesserEquals, LesserEquals)
@@ -334,26 +343,30 @@ comparisonOp = anyTokenParser (T.pack "Parse error")
 
 shiftOp :: Parser BinaryOp
 shiftOp = anyTokenParser (T.pack "Parse error")
-                 (LT.LShift, LShift)
-                 [(LT.RShift, RShift)]
+                 [
+                  (LT.LShift, LShift),
+                  (LT.RShift, RShift)
+                 ]
 
 termOp :: Parser BinaryOp
 termOp = anyTokenParser (T.pack "Parse error")
-                 (LT.Plus, TermPlus)
-                 [(LT.Minus, TermMinus)]
+                 [
+                  (LT.Plus, TermPlus),
+                  (LT.Minus, TermMinus)
+                 ]
 
 factorOp :: Parser BinaryOp
 factorOp = anyTokenParser (T.pack "Parse error")
-                 (LT.Star, FactorStar)
                  [
+                  (LT.Star, FactorStar),
                   (LT.Slash, FactorSlash),
                   (LT.Percent, FactorPercent)
                  ]
 
 prefixOp :: Parser UnaryOp
-prefixOp s x = castParser <> anyTokenParser (T.pack "Parse error")
-                 (LT.PlusPlus, PrePlusPlus)
+prefixOp s x = castParser <!> anyTokenParser (T.pack "Parse error")
                  [
+                  (LT.PlusPlus, PrePlusPlus),
                   (LT.MinusMinus, PreMinusMinus),
                   (LT.Plus, Plus),
                   (LT.Minus, Minus),
@@ -370,10 +383,12 @@ prefixOp s x = castParser <> anyTokenParser (T.pack "Parse error")
             return (Cast decType, nx, ns)
 
 postfixOp :: Parser UnaryOp
-postfixOp s x = callParser <> indexParser <> dotParser <> arrowParser
-                <> anyTokenParser (T.pack "Parse error")
-                       (LT.PlusPlus, PostPlusPlus)
-                       [(LT.MinusMinus, PostMinusMinus)] s x
+postfixOp s x = callParser <!> indexParser <!> dotParser <!> arrowParser
+                <!> anyTokenParser (T.pack "Parse error")
+                       [
+                        (LT.PlusPlus, PostPlusPlus),
+                        (LT.MinusMinus, PostMinusMinus)
+                       ] s x
     where callParser = do
             (((_, args), _), nx, ns)
               <- (rTokenParser LT.LeftParen ()
@@ -397,33 +412,32 @@ postfixOp s x = callParser <> indexParser <> dotParser <> arrowParser
                  <-> identifierParser) s x
             return (Arrow iden, nx, ns)
 
-anyTokenParser :: T.Text -> (LT.TokenType, a) -> [(LT.TokenType, a)] -> Parser a
-anyTokenParser e h t s x = foldl' (<>) (applyToken h s x) ([p s x | p <- (map applyToken t)])
-                               <> (Left $ E.Error
-                                   (e)
-                                   (filename s)
-                                   (line s)
-                                   (column s)
-                                   (column s + l))
+anyTokenParser :: T.Text -> [(LT.TokenType, a)] -> Parser a
+anyTokenParser e [] s x = Left $ E.Error
+                          (e)
+                          (filename s)
+                          (line s)
+                          (column s)
+                          (column s + l)
     where l
-             | null x = 1
-             | otherwise = LT.length $!! head x
-          applyToken (ta, cons) = rTokenParser ta cons
+              | null x = 1
+              | otherwise = LT.length $!! head x
+anyTokenParser e ((t, c):cs) s x = rTokenParser t c s x <!> anyTokenParser e cs s x
 
-parameters :: Parser Parameters
+parameters :: Parser [DecoratedIdentifier]
 parameters s x = do
   ((nextParams, firstParam), nx, ns)
     <- (decoratedIdentifier
        <-> (sequenceParser $!! rTokenParser LT.Comma () <-> decoratedIdentifier)) s x
-  return (Parameters $!! firstParam:(map fst nextParams), nx, ns)
+  return (firstParam:(map fst nextParams), nx, ns)
 
-arguments :: Parser Arguments
-arguments = tolerate (Arguments []) argsNoTolerate
+arguments :: Parser [Expression]
+arguments = tolerate [] argsNoTolerate
     where argsNoTolerate s x = do
             ((nextArgs, firstArg), nx, ns)
               <- (expression
                  <-> (sequenceParser $!! rTokenParser LT.Comma () <-> expression)) s x
-            return (Arguments $!! firstArg:(map fst nextArgs), nx, ns)
+            return (firstArg:(map fst nextArgs), nx, ns)
 
 decoratedType :: Parser DecoratedType
 decoratedType s x = do
@@ -444,13 +458,13 @@ decoratedIdentifier s x = do
 
 modifier :: Parser Modifier
 modifier s x = rTokenParser LT.Pure Pure s x
-               <> rTokenParser LT.Const Const s x
-               <> rTokenParser LT.Inline Inline s x
-               <> rTokenParser LT.Comptime Comptime s x
-               <> rTokenParser LT.Register Register s x
-               <> rTokenParser LT.Restrict Restrict s x
-               <> (Left $ E.Error
-                      (T.pack $!! "Parse error")
+               <!> rTokenParser LT.Const Const s x
+               <!> rTokenParser LT.Inline Inline s x
+               <!> rTokenParser LT.Comptime Comptime s x
+               <!> rTokenParser LT.Register Register s x
+               <!> rTokenParser LT.Restrict Restrict s x
+               <!> (Left $ E.Error
+                      (parseErrorMessage)
                       (filename s)
                       (line s)
                       (column s)
@@ -461,19 +475,19 @@ modifier s x = rTokenParser LT.Pure Pure s x
 
 typeParser :: Parser Type
 typeParser s x = rTokenParser LT.U8 U8 s x
-               <> rTokenParser LT.U16 U16 s x
-               <> rTokenParser LT.U32 U32 s x
-               <> rTokenParser LT.U64 U64 s x
-               <> rTokenParser LT.I8 I8 s x
-               <> rTokenParser LT.I16 I16 s x
-               <> rTokenParser LT.I32 I32 s x
-               <> rTokenParser LT.I64 I64 s x
-               <> rTokenParser LT.F16 F16 s x
-               <> rTokenParser LT.F32 F32 s x
-               <> rTokenParser LT.F64 F64 s x
-               <> (identifierParser s x >>= (\(xl, yl, zl) -> Right (StructType xl, yl, zl)))
-               <> (Left $ E.Error
-                      (T.pack $!! "Parse error")
+               <!> rTokenParser LT.U16 U16 s x
+               <!> rTokenParser LT.U32 U32 s x
+               <!> rTokenParser LT.U64 U64 s x
+               <!> rTokenParser LT.I8 I8 s x
+               <!> rTokenParser LT.I16 I16 s x
+               <!> rTokenParser LT.I32 I32 s x
+               <!> rTokenParser LT.I64 I64 s x
+               <!> rTokenParser LT.F16 F16 s x
+               <!> rTokenParser LT.F32 F32 s x
+               <!> rTokenParser LT.F64 F64 s x
+               <!> (identifierParser s x >>= (\(xl, yl, zl) -> Right (StructType xl, yl, zl)))
+               <!> (Left $ E.Error
+                      (parseErrorMessage)
                       (filename s)
                       (line s)
                       (column s)
@@ -490,19 +504,19 @@ sequenceParser p s x
     where (found, nx, ns) = fromRight undefined $!! p s x
           (nextFound, nnx, nns) = fromRight undefined $!! (sequenceParser p) ns nx
 
-identifierParser :: Parser Identifier
+identifierParser :: Parser T.Text
 identifierParser s [] = Left $ E.Error
-                        (T.pack $!! "Parse error")
+                        (parseErrorMessage)
                         (filename s)
                         (line s)
                         (column s)
                         (column s + 1)
-identifierParser (ParserState f l c) ((LT.Token (LT.Identifier t) _ _ len):xs) = Right (Identifier t, xs, (ParserState nf nl nc))
+identifierParser (ParserState f l c) ((LT.Token (LT.Identifier t) _ _ len):xs) = Right (t, xs, (ParserState nf nl nc))
     where (nf, nl, nc)
               | null xs = (f, l + len, c)
               | otherwise = (f, LT.line $!! head xs, LT.column $!! head xs)
 identifierParser (ParserState f l c) (x:_) = Left $ E.Error
-                                             (T.pack $!! "Parse error")
+                                             (parseErrorMessage)
                                              f l c (c + LT.length x)
 
 rTokenParser :: LT.TokenType -> a -> Parser a
@@ -512,7 +526,7 @@ rTokenParser tt val s x = do
   
 tokenParser :: LT.TokenType -> Parser LT.Token
 tokenParser _ s [] = Left $ E.Error
-                        (T.pack $!! "Parse error")
+                        (parseErrorMessage)
                         (filename s)
                         (line s)
                         (column s)
@@ -520,7 +534,7 @@ tokenParser _ s [] = Left $ E.Error
 tokenParser tt (ParserState f l c) (x:xs)
     | tt == (LT.tokenType x) = Right (x, xs, (ParserState nf nl nc))
     | otherwise = Left $ E.Error
-                  (T.pack $!! "Parse error")
+                  (parseErrorMessage)
                   f l c (c + LT.length x)
     where (nf, nl, nc)
               | null xs = (f, l + LT.length x, c)

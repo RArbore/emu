@@ -20,9 +20,6 @@ module Parser.AST
      Expression  (..),
      DecoratedIdentifier  (..),
      DecoratedType  (..),
-     Identifier  (..),
-     Parameters  (..),
-     Arguments  (..),
      Modifier  (..),
      Type  (..),
      BinaryOp  (..),
@@ -38,8 +35,8 @@ import GHC.Generics (Generic)
 
 newtype AST = AST [Statement] deriving (Show, Generic, NFData)
     
-data Statement = StructDecl [Modifier] Identifier Parameters
-               | FuncDecl [Modifier] Identifier Parameters DecoratedType Statement
+data Statement = StructDecl [Modifier] T.Text [DecoratedIdentifier]
+               | FuncDecl [Modifier] T.Text [DecoratedIdentifier] DecoratedType Statement
                | VarDecl [Modifier] DecoratedIdentifier Expression
                | ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement
@@ -60,15 +57,15 @@ data Expression = Binary Expression BinaryOp Expression
                 | FloatingPointLiteral Double
                 | CharLiteral Char
                 | StringLiteral T.Text
-                | PrimaryIdentifier Identifier
+                | PrimaryIdentifier T.Text
                 | ArrayLiteral [Expression]
                 | Undefined deriving (Show, Generic, NFData)
  
-data DecoratedIdentifier = DecoratedIdentifier [Modifier] Identifier DecoratedType deriving (Show, Generic, NFData)
+data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData)
-newtype Identifier = Identifier T.Text deriving (Show, Generic, NFData)
-newtype Parameters = Parameters [DecoratedIdentifier] deriving (Show, Generic, NFData)
-newtype Arguments = Arguments [Expression] deriving (Show, Generic, NFData)
+--newtype Identifier = Identifier T.Text deriving (Show, Generic, NFData)
+--newtype Parameters = Parameters [DecoratedIdentifier] deriving (Show, Generic, NFData)
+--newtype Arguments = Arguments [Expression] deriving (Show, Generic, NFData)
     
 data Modifier = Pure
               | Const
@@ -88,7 +85,7 @@ data Type = U8
           | F16
           | F32
           | F64
-          | StructType Identifier deriving (Show, Generic, NFData)
+          | StructType T.Text deriving (Show, Generic, NFData)
             
 data BinaryOp = Equals
               | PlusEquals
@@ -132,7 +129,7 @@ data UnaryOp = PrePlusPlus
              | Cast DecoratedType
              | PostPlusPlus
              | PostMinusMinus
-             | Call Arguments
-             | Index Arguments
-             | Dot Identifier
-             | Arrow Identifier deriving (Show, Generic, NFData)
+             | Call [Expression]
+             | Index [Expression]
+             | Dot T.Text
+             | Arrow T.Text deriving (Show, Generic, NFData)
