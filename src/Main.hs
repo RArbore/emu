@@ -35,5 +35,5 @@ main = do
     if not $!! null $!! lefts lexed then mapM_ (mapM_ print) $!! lefts lexed
     else do
       let justTheTokens = rights lexed
-      let parsed = zipWith ($!!) (map P.parser (map (\f -> P.ParserState f 0 0) $!! inputFiles checkedArgs)) justTheTokens
-      print parsed
+      --let parsed = zipWith ($!!) (map P.parser (map (\f -> P.ParserState f 0 0) $!! inputFiles checkedArgs)) justTheTokens
+      print lexed

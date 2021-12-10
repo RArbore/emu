@@ -12,7 +12,7 @@
 
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
-module Parser.AST
+module OldParser.AST
     (
 
      AST (..),
