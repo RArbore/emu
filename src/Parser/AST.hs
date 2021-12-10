@@ -12,7 +12,7 @@
 
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
-module OldParser.AST
+module Parser.AST
     (
 
      AST (..),
@@ -74,7 +74,8 @@ data Modifier = Pure
               | Register
               | Restrict deriving (Show, Generic, NFData)
                 
-data Type = U8
+data Type = Bool
+          | U8
           | U16
           | U32
           | U64

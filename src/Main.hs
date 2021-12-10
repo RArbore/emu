@@ -20,8 +20,6 @@ import System.Environment
 
 import Interface.ParseArgs
 
-import qualified Lexer.Lexer as L
-
 import qualified Parser.Parser as P
 
 main :: IO ()
@@ -31,9 +29,4 @@ main = do
   if argsInvalidated checkedArgs then print checkedArgs
   else do
     filesContents <- mapM TIO.readFile $!! map T.unpack $ inputFiles checkedArgs
-    let lexed = zipWith ($!!) (map (L.lexer 0 1) filesContents) (inputFiles checkedArgs)
-    if not $!! null $!! lefts lexed then mapM_ (mapM_ print) $!! lefts lexed
-    else do
-      let justTheTokens = rights lexed
-      --let parsed = zipWith ($!!) (map P.parser (map (\f -> P.ParserState f 0 0) $!! inputFiles checkedArgs)) justTheTokens
-      print lexed
+    print filesContents

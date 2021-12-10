@@ -25,16 +25,11 @@ import qualified Data.Text as T
 
 import GHC.Generics (Generic)
 
-import qualified Lexer.Token as LT
-
 data Error = Error { error :: T.Text,
                      filename :: T.Text,
                      line :: Int,
                      startColumn :: Int,
-                     endColumn :: Int }
-           | TokenError { error :: T.Text,
-                          filename :: T.Text,
-                          token :: LT.Token } deriving (Generic, NFData)
+                     endColumn :: Int } deriving (Generic, NFData)
 
 instance Show Error where
     show (Error e f l sc _) = T.unpack f
@@ -42,14 +37,6 @@ instance Show Error where
                               ++ show (l + 1)
                               ++ ":"
                               ++ show sc
-                              ++ ": ERROR:\n"
-                              ++ T.unpack e
-                              ++ "\n"
-    show (TokenError e f t) = T.unpack f
-                              ++ ":"
-                              ++ show (LT.line t)
-                              ++ ":"
-                              ++ show (LT.column t)
                               ++ ": ERROR:\n"
                               ++ T.unpack e
                               ++ "\n"

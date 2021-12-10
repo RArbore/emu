@@ -12,7 +12,7 @@
 
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 
-module Lexer.Token
+module OldLexer.Token
     (
 
      Token (..),
@@ -113,4 +113,4 @@ data TokenType = Plus
                | StringLiteral T.Text
                | Identifier T.Text
                | BadToken T.Text
-               deriving (Show, Eq, Generic, NFData)
+               deriving (Show, Eq, Ord, Generic, NFData)

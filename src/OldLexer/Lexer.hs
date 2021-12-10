@@ -10,7 +10,7 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
-module Lexer.Lexer
+module OldLexer.Lexer
     (
 
      lexer,
@@ -26,7 +26,7 @@ import qualified Data.Text.Read as TR
 
 import Interface.Error
 
-import Lexer.Token
+import OldLexer.Token
 
 lexer :: Int -> Int -> T.Text -> T.Text -> Either [Error] [Token]
 lexer c l text file
