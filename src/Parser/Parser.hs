@@ -17,18 +17,92 @@ module Parser.Parser
 
     ) where
 
+import Control.Monad (void)
+
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void
 
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as L
 
 import Parser.AST
     
-type Parser = Parsec Void T.Text
+type Parser = Parsec Void Text
 
-pIdentifier :: Parser T.Text
-pIdentifier = undefined
+rWords :: [Text]
+rWords = ["func",
+          "struct",
+          "undefined",
+          "if",
+          "else",
+          "while",
+          "for",
+          "switch",
+          "case",
+          "return",
+          "break",
+          "continue",
+          "pure",
+          "const",
+          "inline",
+          "comptime",
+          "register",
+          "restrict",
+          "bool",
+          "u8",
+          "u16",
+          "u32",
+          "u64",
+          "i8",
+          "i16",
+          "i32",
+          "i64",
+          "f16",
+          "f32",
+          "f64",
+          "true",
+          "false"]
+
+pWhite :: Parser ()
+pWhite = L.space space1 (L.skipLineComment "//") (L.skipBlockComment "/*" "*/")
+
+pLexeme :: Parser a -> Parser a
+pLexeme = L.lexeme pWhite
+
+pSymbol :: Text -> Parser Text
+pSymbol = L.symbol pWhite
+
+pParens :: Parser a -> Parser a
+pParens = between (pSymbol "(") (pSymbol ")")
+
+pBraces :: Parser a -> Parser a
+pBraces = between (pSymbol "{") (pSymbol "}")
+
+pBrackets :: Parser a -> Parser a
+pBrackets = between (pSymbol "[") (pSymbol "]")
+
+pExpect :: Text -> Parser ()
+pExpect t = void $ pSymbol t
+
+pRWord :: Text -> Parser ()
+pRWord w = (pLexeme . try) (string w *> notFollowedBy alphaNumChar)
+
+pCharLit :: Parser Char
+pCharLit = between (pSymbol "'") (pSymbol "'") L.charLiteral
+
+pStringLit :: Parser Text
+pStringLit = do
+  found <- char '"' *> manyTill L.charLiteral (char '"')
+  return $ T.pack found
+
+pIdentifier :: Parser Text
+pIdentifier = (pLexeme . try) (p >>= check)
+  where p = fmap T.pack $ (:) <$> (letterChar <|> single '_') <*> many (alphaNumChar <|> single '_')
+        check x = if x `elem` rWords
+                  then fail $ "Keyword " ++ show x ++ " can't be an identifier"
+                  else return x
 
 pType :: Parser Type
 pType = do
@@ -46,4 +120,3 @@ pType = do
             <|> F64 <$ string "f32"
             <|> StructType <$> pIdentifier
   return parsed
-  
