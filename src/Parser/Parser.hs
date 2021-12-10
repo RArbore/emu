@@ -121,6 +121,22 @@ pFloat = pLexeme L.float
 pExpr :: Parser Expression
 pExpr = undefined
 
+pPrimary :: Parser Expression
+pPrimary = BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
+           <|> try (FloatingPointLiteral <$> pFloat)
+           <|> FixedPointLiteral <$> pInt
+           <|> CharLiteral <$> pCharLit
+           <|> StringLiteral <$> pStringLit
+           <|> PrimaryIdentifier <$> pIdentifier
+           <|> pArrayLiteral
+           <|> Undefined <$ pRWord "undefined"
+    where pArrayLiteral = do
+            pExpect "{"
+            first <- pExpr
+            rest <- many $ pExpect "," *> pExpr 
+            pExpect "}"
+            return $ ArrayLiteral (first:rest)
+
 pType :: Parser Type
 pType = Bool <$ pRWord "bool"
             <|> U8 <$ pRWord "u8"
