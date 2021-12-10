@@ -104,19 +104,49 @@ pIdentifier = (pLexeme . try) (p >>= check)
                   then fail $ "Keyword " ++ show x ++ " can't be an identifier"
                   else return x
 
+pDecoratedIdentifier :: Parser DecoratedIdentifier
+pDecoratedIdentifier = do
+  mods <- many pModifier
+  iden <- pIdentifier
+  pExpect ":"
+  typeP <- pDecoratedType
+  return $ DecoratedIdentifier mods iden typeP
+
+pInt :: Parser Integer
+pInt = pLexeme L.decimal
+
+pFloat :: Parser Double
+pFloat = pLexeme L.float
+
+pExpr :: Parser Expression
+pExpr = undefined
+
 pType :: Parser Type
-pType = do
-  parsed <- Bool <$ string "bool"
-            <|> U8 <$ string "u8"
-            <|> U16 <$ string "u16"
-            <|> U32 <$ string "u32"
-            <|> U64 <$ string "u64"
-            <|> I8 <$ string "i8"
-            <|> I16 <$ string "i16"
-            <|> I32 <$ string "i32"
-            <|> I64 <$ string "i64"
-            <|> F16 <$ string "f8"
-            <|> F32 <$ string "f16"
-            <|> F64 <$ string "f32"
+pType = Bool <$ pRWord "bool"
+            <|> U8 <$ pRWord "u8"
+            <|> U16 <$ pRWord "u16"
+            <|> U32 <$ pRWord "u32"
+            <|> U64 <$ pRWord "u64"
+            <|> I8 <$ pRWord "i8"
+            <|> I16 <$ pRWord "i16"
+            <|> I32 <$ pRWord "i32"
+            <|> I64 <$ pRWord "i64"
+            <|> F16 <$ pRWord "f8"
+            <|> F32 <$ pRWord "f16"
+            <|> F64 <$ pRWord "f32"
             <|> StructType <$> pIdentifier
-  return parsed
+
+pDecoratedType :: Parser DecoratedType
+pDecoratedType = do
+  stars <- many $ pExpect "*"
+  typeP <- pType
+  exprs <- many $ pExpect "[" *> pExpr <* pExpect "]"
+  return $ DecoratedType (length stars) typeP exprs
+
+pModifier :: Parser Modifier
+pModifier = Pure <$ pRWord "pure"
+            <|> Const <$ pRWord "const"
+            <|> Inline <$ pRWord "inline"
+            <|> Comptime <$ pRWord "comptime"
+            <|> Register <$ pRWord "register"
+            <|> Restrict <$ pRWord "restrict"

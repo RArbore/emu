@@ -63,10 +63,7 @@ data Expression = Binary Expression BinaryOp Expression
  
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData)
---newtype Identifier = Identifier T.Text deriving (Show, Generic, NFData)
---newtype Parameters = Parameters [DecoratedIdentifier] deriving (Show, Generic, NFData)
---newtype Arguments = Arguments [Expression] deriving (Show, Generic, NFData)
-    
+
 data Modifier = Pure
               | Const
               | Inline
