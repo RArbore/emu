@@ -84,9 +84,6 @@ pBraces = between (pSymbol "{") (pSymbol "}")
 pBrackets :: Parser a -> Parser a
 pBrackets = between (pSymbol "[") (pSymbol "]")
 
-pExpect :: Text -> Parser ()
-pExpect t = void $ pSymbol t
-
 pRWord :: Text -> Parser ()
 pRWord w = (pLexeme . try) (string w *> notFollowedBy alphaNumChar)
 
@@ -109,7 +106,7 @@ pDecoratedIdentifier :: Parser DecoratedIdentifier
 pDecoratedIdentifier = do
   mods <- many pModifier
   iden <- pIdentifier
-  pExpect ":"
+  pSymbol ":"
   typeP <- pDecoratedType
   return $ DecoratedIdentifier mods iden typeP
 
@@ -118,6 +115,73 @@ pInt = pLexeme L.decimal
 
 pFloat :: Parser Double
 pFloat = pLexeme L.float
+
+pDeclaration :: Parser Declaration 
+pDeclaration = undefined
+
+pStatement :: Parser Statement
+pStatement = pExprStmt
+             <|> pIfElse
+             <|> pWhile
+             <|> pFor
+             <|> pSwitch
+             <|> pCase
+             <|> pReturn
+             <|> pBreak
+             <|> pContinue
+             <|> pBlock
+             <|> pEmpty
+    where pExprStmt = ExpressionStatement <$> (pExpression <* pSymbol ";")
+          pIfElse = do
+            pRWord "if"
+            pSymbol "("
+            expr <- pExpression
+            pSymbol ")"
+            stmt <- pStatement
+            elseBranch <- option (EmptyStatement) (pRWord "else" *> pStatement)
+            return $ IfElseStatement expr stmt elseBranch
+          pWhile = do
+            pRWord "while"
+            pSymbol "("
+            expr <- pExpression
+            pSymbol ")"
+            stmt <- pStatement
+            return $ WhileStatement expr stmt
+          pFor = do
+            pRWord "for"
+            pSymbol "("
+            decl <- pDeclaration
+            expr1 <- option (BooleanLiteral True) pExpression
+            pSymbol ";"
+            expr2 <- option (Undefined) pExpression
+            pSymbol ")"
+            stmt <- pStatement
+            return $ ForStatement decl expr1 expr2 stmt
+          pSwitch = do
+            pRWord "switch"
+            pSymbol "("
+            expr <- pExpression
+            pSymbol ")"
+            stmt <- pStatement
+            return $ SwitchStatement expr stmt
+          pCase = do
+            pRWord "case"
+            expr <- pExpression
+            pSymbol ":"
+            stmt <- pStatement
+            return $ CaseStatement expr stmt
+          pReturn = ReturnStatement <$> (pRWord "return" *> pExpression <* pSymbol ";")
+          pBreak = BreakStatement <$ (do
+                                       pRWord "break"
+                                       pSymbol ";")
+          pContinue = ContinueStatement <$ (do
+                                             pRWord "continue"
+                                             pSymbol ";")
+          pBlock = Block <$> (pSymbol "{" *> (many pDeclaration) <* pSymbol "}")
+          pEmpty = EmptyStatement <$ pSymbol ";"
+         
+pExpression :: Parser Expression
+pExpression = makeExprParser pPrimary opTable
 
 opTable :: [[Operator Parser Expression]]
 opTable =
@@ -193,20 +257,17 @@ opTable =
             return $ Unary $ Cast typeP
           call = do
             pSymbol "("
-            first <- pExpr
-            rest <- many $ pExpect "," *> pExpr
+            first <- pExpression
+            rest <- many $ pSymbol "," *> pExpression
             pSymbol ")"
             return $ Unary $ Call (first:rest)
           index = do
             pSymbol "["
-            first <- pExpr
-            rest <- many $ pExpect "," *> pExpr
+            first <- pExpression
+            rest <- many $ pSymbol "," *> pExpression
             pSymbol "]"
             return $ Unary $ Index (first:rest)
          
-pExpr :: Parser Expression
-pExpr = makeExprParser pPrimary opTable
-
 pPrimary :: Parser Expression
 pPrimary = BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
            <|> try (FloatingPointLiteral <$> pFloat)
@@ -217,10 +278,10 @@ pPrimary = BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true"
            <|> pArrayLiteral
            <|> Undefined <$ pRWord "undefined"
     where pArrayLiteral = do
-            pExpect "{"
-            first <- pExpr
-            rest <- many $ pExpect "," *> pExpr 
-            pExpect "}"
+            pSymbol "{"
+            first <- pExpression
+            rest <- many $ pSymbol "," *> pExpression 
+            pSymbol "}"
             return $ ArrayLiteral (first:rest)
 
 pType :: Parser Type
@@ -240,9 +301,9 @@ pType = Bool <$ pRWord "bool"
 
 pDecoratedType :: Parser DecoratedType
 pDecoratedType = do
-  stars <- many $ pExpect "*"
+  stars <- many $ pSymbol "*"
   typeP <- pType
-  exprs <- many $ pExpect "[" *> pExpr <* pExpect "]"
+  exprs <- many $ pSymbol "[" *> pExpression <* pSymbol "]"
   return $ DecoratedType (length stars) typeP exprs
 
 pModifier :: Parser Modifier

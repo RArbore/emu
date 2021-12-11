@@ -16,6 +16,7 @@ module Parser.AST
     (
 
      AST (..),
+     Declaration  (..),
      Statement  (..),
      Expression  (..),
      DecoratedIdentifier  (..),
@@ -33,21 +34,23 @@ import qualified Data.Text as T
 
 import GHC.Generics (Generic)
 
-newtype AST = AST [Statement] deriving (Show, Generic, NFData)
+newtype AST = AST [Declaration] deriving (Show, Generic, NFData)
+
+data Declaration = StructDecl [Modifier] T.Text [DecoratedIdentifier]
+                 | FuncDecl [Modifier] T.Text [DecoratedIdentifier] DecoratedType Statement
+                 | VarDecl [Modifier] DecoratedIdentifier Expression
+                 | StatementDecl Statement deriving (Show, Generic, NFData)
     
-data Statement = StructDecl [Modifier] T.Text [DecoratedIdentifier]
-               | FuncDecl [Modifier] T.Text [DecoratedIdentifier] DecoratedType Statement
-               | VarDecl [Modifier] DecoratedIdentifier Expression
-               | ExpressionStatement Expression
+data Statement = ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement
                | WhileStatement Expression Statement
-               | ForStatement Statement Expression Expression Statement
+               | ForStatement Declaration Expression Expression Statement
                | SwitchStatement Expression Statement
                | CaseStatement Expression Statement
                | ReturnStatement Expression
                | BreakStatement
                | ContinueStatement
-               | Block [Statement]
+               | Block [Declaration]
                | EmptyStatement deriving (Show, Generic, NFData)
 
 data Expression = Binary BinaryOp Expression Expression

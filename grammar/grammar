@@ -34,6 +34,8 @@ statement := exprStatement
            | switchStatement
            | caseStatement
            | returnStatement
+           | breakStatement
+           | continueStatement
            | block
 	   | ";"
 
