@@ -18,6 +18,7 @@ module Parser.Parser
     ) where
 
 import Control.Monad (void)
+import Control.Monad.Combinators.Expr
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -118,8 +119,31 @@ pInt = pLexeme L.decimal
 pFloat :: Parser Double
 pFloat = pLexeme L.float
 
+opTable :: [[Operator Parser Expression]]
+opTable =
+    [
+     [
+      InfixL $ Binary LogicOr <$ tryPSymbol "||"
+     ],
+     [
+      InfixR $ Binary Equals <$ tryPSymbol "=",
+      InfixR $ Binary PlusEquals <$ tryPSymbol "+=",
+      InfixR $ Binary MinusEquals <$ tryPSymbol "-=",
+      InfixR $ Binary StarEquals <$ tryPSymbol "*=",
+      InfixR $ Binary SlashEquals <$ tryPSymbol "/=",
+      InfixR $ Binary PercentEquals <$ tryPSymbol "%=",
+      InfixR $ Binary LShiftEquals <$ tryPSymbol "<<=",
+      InfixR $ Binary RShiftEquals <$ tryPSymbol ">>=",
+      InfixR $ Binary HatEquals <$ tryPSymbol "^=",
+      InfixR $ Binary BarEquals <$ tryPSymbol "|=",
+      InfixR $ Binary AndEquals <$ tryPSymbol "&="
+     ]
+    ]
+    where tryPSymbol sym = pLexeme $ try (pSymbol sym <* notFollowedBy opChar)
+          opChar = oneOf ("!#$%&*+./<=>?@\\^|-~" :: String)
+         
 pExpr :: Parser Expression
-pExpr = undefined
+pExpr = makeExprParser pPrimary opTable
 
 pPrimary :: Parser Expression
 pPrimary = BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
@@ -166,3 +190,5 @@ pModifier = Pure <$ pRWord "pure"
             <|> Comptime <$ pRWord "comptime"
             <|> Register <$ pRWord "register"
             <|> Restrict <$ pRWord "restrict"
+
+                

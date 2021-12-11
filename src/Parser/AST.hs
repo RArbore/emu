@@ -50,8 +50,8 @@ data Statement = StructDecl [Modifier] T.Text [DecoratedIdentifier]
                | Block [Statement]
                | EmptyStatement deriving (Show, Generic, NFData)
 
-data Expression = Binary Expression BinaryOp Expression
-                | Unary Expression UnaryOp
+data Expression = Binary BinaryOp Expression Expression
+                | Unary UnaryOp Expression 
                 | BooleanLiteral Bool
                 | FixedPointLiteral Integer
                 | FloatingPointLiteral Double
