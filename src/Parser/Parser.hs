@@ -123,6 +123,17 @@ opTable :: [[Operator Parser Expression]]
 opTable =
     [
      [
+      Prefix $ foldr1 (.) <$> some (Unary PrePlusPlus <$ tryPSymbol "++"),
+      Prefix $ foldr1 (.) <$> some (Unary PreMinusMinus <$ tryPSymbol "--"),
+      Prefix $ foldr1 (.) <$> some (Unary Plus <$ tryPSymbol "+"),
+      Prefix $ foldr1 (.) <$> some (Unary Minus <$ tryPSymbol "-"),
+      Prefix $ foldr1 (.) <$> some (Unary Excla <$ tryPSymbol "!"),
+      Prefix $ foldr1 (.) <$> some (Unary Tilda <$ tryPSymbol "~"),
+      Prefix $ foldr1 (.) <$> some (Unary Star <$ tryPSymbol "*"),
+      Prefix $ foldr1 (.) <$> some (Unary And <$ tryPSymbol "&"),
+      Prefix $ foldr1 (.) <$> some cast
+     ],
+     [
       InfixL $ Binary FactorStar <$ tryPSymbol "*",
       InfixL $ Binary FactorSlash <$ tryPSymbol "/",
       InfixL $ Binary FactorPercent <$ tryPSymbol "%"
@@ -167,6 +178,11 @@ opTable =
     ]
     where tryPSymbol sym = pLexeme $ try (pSymbol sym <* notFollowedBy opChar)
           opChar = oneOf ("!#$%&*+./<=>?@\\^|-~" :: String)
+          cast = do
+            pSymbol "("
+            typeP <- pDecoratedType
+            pSymbol ")"
+            return $ Unary $ Cast typeP
          
 pExpr :: Parser Expression
 pExpr = makeExprParser pPrimary opTable
