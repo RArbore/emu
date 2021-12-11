@@ -15,6 +15,8 @@
 module Parser.Parser
     (
 
+     pProgram
+
     ) where
 
 import Control.Monad (void)
@@ -23,6 +25,8 @@ import Control.Monad.Combinators.Expr
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Void
+
+import Debug.Trace
 
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -117,11 +121,14 @@ pInt = pLexeme L.decimal
 pFloat :: Parser Double
 pFloat = pLexeme L.float
 
+pProgram :: Parser AST
+pProgram = AST <$> (pWhite *> many pDeclaration <* eof)
+
 pDeclaration :: Parser Declaration 
-pDeclaration = pStructDecl
-               <|> pFuncDecl
+pDeclaration = (try pStmtDecl)
+               <|> (try pStructDecl)
+               <|> (try pFuncDecl)
                <|> pVarDecl
-               <|> pStmtDecl
     where pStructDecl = do
             mods <- many pModifier
             pRWord "struct"
@@ -154,8 +161,7 @@ pDeclaration = pStructDecl
           pStmtDecl = StatementDecl <$> pStatement
 
 pStatement :: Parser Statement
-pStatement = pExprStmt
-             <|> pIfElse
+pStatement =  pIfElse
              <|> pWhile
              <|> pFor
              <|> pSwitch
@@ -164,6 +170,7 @@ pStatement = pExprStmt
              <|> pBreak
              <|> pContinue
              <|> pBlock
+             <|> pExprStmt
              <|> pEmpty
     where pExprStmt = ExpressionStatement <$> (pExpression <* pSymbol ";")
           pIfElse = do
@@ -329,9 +336,9 @@ pType = Void <$ pRWord "void"
             <|> I16 <$ pRWord "i16"
             <|> I32 <$ pRWord "i32"
             <|> I64 <$ pRWord "i64"
-            <|> F16 <$ pRWord "f8"
-            <|> F32 <$ pRWord "f16"
-            <|> F64 <$ pRWord "f32"
+            <|> F16 <$ pRWord "f16"
+            <|> F32 <$ pRWord "f32"
+            <|> F64 <$ pRWord "f64"
             <|> StructType <$> pIdentifier
 
 pDecoratedType :: Parser DecoratedType

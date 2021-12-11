@@ -20,6 +20,8 @@ import System.Environment
 
 import Interface.ParseArgs
 
+import Text.Megaparsec
+
 import qualified Parser.Parser as P
 
 main :: IO ()
@@ -29,4 +31,7 @@ main = do
   if argsInvalidated checkedArgs then print checkedArgs
   else do
     filesContents <- mapM TIO.readFile $!! map T.unpack $ inputFiles checkedArgs
-    print filesContents
+    let parsed = zipWith (runParser P.pProgram) (map T.unpack $ inputFiles checkedArgs) filesContents 
+    if not $ null $ lefts parsed then mapM_ putStrLn $ map errorBundlePretty $ lefts parsed
+    else do
+      print parsed
