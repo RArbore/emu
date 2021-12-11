@@ -123,12 +123,20 @@ opTable :: [[Operator Parser Expression]]
 opTable =
     [
      [
+      Postfix $ foldr1 (.) <$> some (Unary PostPlusPlus <$ tryPSymbol "++"),
+      Postfix $ foldr1 (.) <$> some (Unary PostPlusPlus <$ tryPSymbol "--"),
+      Postfix $ foldr1 (.) <$> some call,
+      Postfix $ foldr1 (.) <$> some index,
+      InfixL $ Binary Dot <$ pSymbol ".",
+      InfixL $ Binary Arrow <$ tryPSymbol "->"
+     ],
+     [
       Prefix $ foldr1 (.) <$> some (Unary PrePlusPlus <$ tryPSymbol "++"),
       Prefix $ foldr1 (.) <$> some (Unary PreMinusMinus <$ tryPSymbol "--"),
       Prefix $ foldr1 (.) <$> some (Unary Plus <$ tryPSymbol "+"),
       Prefix $ foldr1 (.) <$> some (Unary Minus <$ tryPSymbol "-"),
       Prefix $ foldr1 (.) <$> some (Unary Excla <$ tryPSymbol "!"),
-      Prefix $ foldr1 (.) <$> some (Unary Tilda <$ tryPSymbol "~"),
+      Prefix $ foldr1 (.) <$> some (Unary Tilda <$ pSymbol "~"),
       Prefix $ foldr1 (.) <$> some (Unary Star <$ tryPSymbol "*"),
       Prefix $ foldr1 (.) <$> some (Unary And <$ tryPSymbol "&"),
       Prefix $ foldr1 (.) <$> some cast
@@ -183,6 +191,18 @@ opTable =
             typeP <- pDecoratedType
             pSymbol ")"
             return $ Unary $ Cast typeP
+          call = do
+            pSymbol "("
+            first <- pExpr
+            rest <- many $ pExpect "," *> pExpr
+            pSymbol ")"
+            return $ Unary $ Call (first:rest)
+          index = do
+            pSymbol "["
+            first <- pExpr
+            rest <- many $ pExpect "," *> pExpr
+            pSymbol "]"
+            return $ Unary $ Index (first:rest)
          
 pExpr :: Parser Expression
 pExpr = makeExprParser pPrimary opTable

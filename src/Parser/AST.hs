@@ -114,7 +114,9 @@ data BinaryOp = Equals
               | TermMinus
               | FactorStar
               | FactorSlash
-              | FactorPercent deriving (Show, Generic, NFData)
+              | FactorPercent
+              | Dot 
+              | Arrow deriving (Show, Generic, NFData)
                 
 data UnaryOp = PrePlusPlus
              | PreMinusMinus
@@ -128,6 +130,4 @@ data UnaryOp = PrePlusPlus
              | PostPlusPlus
              | PostMinusMinus
              | Call [Expression]
-             | Index [Expression]
-             | Dot T.Text
-             | Arrow T.Text deriving (Show, Generic, NFData)
+             | Index [Expression] deriving (Show, Generic, NFData)

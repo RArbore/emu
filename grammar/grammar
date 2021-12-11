@@ -65,7 +65,7 @@ shift := ( term ( "<<" | ">>" ) )* term
 term := ( factor ( "+" | "-" ) )* factor
 factor := ( prefix ( "*" | "/" | "%" ) )* prefix
 prefix := ( "++" | "--" | "+" | "-" | "!" | "~" | "*" | "&" | "(" decoratedType ")" )* postfix
-postfix := primary ( "++" | "--" | "(" arguments ")" | "[" arguments "]" | "." IDENTIFIER | "->" IDENTIFIER )*
+postfix := primary ( "++" | "--" | "(" arguments ")" | "[" arguments "]" | "." postfix | "->" postfix )*
 primary := "true" | "false" | "undefined" | NUMBER | "\'" ANY "\'" | STRING | IDENTIFIER | "(" expression ")" | "{" arguments "}"
 
 NUMBER := DIGIT+ ( "." DIGIT+ )?
