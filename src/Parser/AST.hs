@@ -74,7 +74,8 @@ data Modifier = Pure
               | Register
               | Restrict deriving (Show, Generic, NFData)
                 
-data Type = Bool
+data Type = Void
+          | Bool
           | U8
           | U16
           | U32

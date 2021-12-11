@@ -51,6 +51,7 @@ rWords = ["func",
           "comptime",
           "register",
           "restrict",
+          "void",
           "bool",
           "u8",
           "u16",
@@ -117,7 +118,40 @@ pFloat :: Parser Double
 pFloat = pLexeme L.float
 
 pDeclaration :: Parser Declaration 
-pDeclaration = undefined
+pDeclaration = pStructDecl
+               <|> pFuncDecl
+               <|> pVarDecl
+               <|> pStmtDecl
+    where pStructDecl = do
+            mods <- many pModifier
+            pRWord "struct"
+            iden <- pIdentifier
+            pSymbol "{"
+            first <- pDecoratedIdentifier
+            rest <- many $ pSymbol "," *> pDecoratedIdentifier
+            pSymbol "}"
+            pSymbol ";"
+            return $ StructDecl mods iden (first:rest)
+          pFuncDecl = do
+            mods <- many pModifier
+            pRWord "func"
+            iden <- pIdentifier
+            pSymbol "("
+            parameters <- option [] (do first <- pDecoratedIdentifier
+                                        rest <- many $ pSymbol "," *> pDecoratedIdentifier
+                                        return (first:rest))
+            pSymbol ")"
+            typeP <- option (DecoratedType 0 Void []) (pSymbol ":" *> pDecoratedType)
+            stmt <- pStatement
+            return $ FuncDecl mods iden parameters typeP stmt
+          pVarDecl = do
+            mods <- many pModifier
+            iden <- pDecoratedIdentifier
+            pSymbol "="
+            expr <- pExpression
+            pSymbol ";"
+            return $ VarDecl mods iden expr
+          pStmtDecl = StatementDecl <$> pStatement
 
 pStatement :: Parser Statement
 pStatement = pExprStmt
@@ -285,7 +319,8 @@ pPrimary = BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true"
             return $ ArrayLiteral (first:rest)
 
 pType :: Parser Type
-pType = Bool <$ pRWord "bool"
+pType = Void <$ pRWord "void"
+            <|> Bool <$ pRWord "bool"
             <|> U8 <$ pRWord "u8"
             <|> U16 <$ pRWord "u16"
             <|> U32 <$ pRWord "u32"
