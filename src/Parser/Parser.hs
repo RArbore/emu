@@ -123,8 +123,34 @@ opTable :: [[Operator Parser Expression]]
 opTable =
     [
      [
-      InfixL $ Binary LogicOr <$ tryPSymbol "||"
+      InfixL $ Binary FactorStar <$ tryPSymbol "*",
+      InfixL $ Binary FactorSlash <$ tryPSymbol "/",
+      InfixL $ Binary FactorPercent <$ tryPSymbol "%"
      ],
+     [
+      InfixL $ Binary TermPlus <$ tryPSymbol "+",
+      InfixL $ Binary TermMinus <$ tryPSymbol "-"
+     ],
+     [
+      InfixL $ Binary LShift <$ tryPSymbol "<<",
+      InfixL $ Binary RShift <$ tryPSymbol ">>"
+     ],
+     [
+      InfixL $ Binary Greater <$ tryPSymbol ">",
+      InfixL $ Binary Lesser <$ tryPSymbol "<",
+      InfixL $ Binary GreaterEquals <$ tryPSymbol ">=",
+      InfixL $ Binary LesserEquals <$ tryPSymbol "<="
+     ],
+     [
+      InfixL $ Binary EqualsEquals <$ tryPSymbol "==",
+      InfixL $ Binary ExclaEquals <$ pSymbol "!="
+     ],
+     [InfixL $ Binary BitwiseAnd <$ tryPSymbol "&"],
+     [InfixL $ Binary BitwiseXor <$ tryPSymbol "^"],
+     [InfixL $ Binary BitwiseOr <$ tryPSymbol "|"],
+     [InfixL $ Binary LogicAnd <$ tryPSymbol "&&"],
+     [InfixL $ Binary LogicXor <$ tryPSymbol "^^"],
+     [InfixL $ Binary LogicOr <$ tryPSymbol "||"],
      [
       InfixR $ Binary Equals <$ tryPSymbol "=",
       InfixR $ Binary PlusEquals <$ tryPSymbol "+=",
