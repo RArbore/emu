@@ -160,7 +160,7 @@ pStatement =  pIfElse
              <|> pReturn
              <|> pBreak
              <|> pContinue
-             <|> pBlock
+             <|> try pBlock
              <|> pExprStmt
              <|> pEmpty
     where pExprStmt = ExpressionStatement <$> (pExpression <* pSymbol ";")
@@ -277,10 +277,11 @@ opTable =
             return $ Unary $ Cast typeP
           call = do
             pSymbol "("
-            first <- pExpression
-            rest <- many $ pSymbol "," *> pExpression
+            args <- option [] (do first <- pExpression
+                                  rest <- many $ pSymbol "," *> pExpression
+                                  return (first:rest))
             pSymbol ")"
-            return $ Unary $ Call (first:rest)
+            return $ Unary $ Call args
           index = do
             pSymbol "["
             first <- pExpression
@@ -302,7 +303,7 @@ opTable =
                     <|> index
          
 pPrimary :: Parser Expression
-pPrimary = (pSymbol "(" *> pExpression <* pSymbol ")")
+pPrimary = grouping
            <|> BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
            <|> try (FloatingPointLiteral <$> pFloat)
            <|> FixedPointLiteral <$> pInt
@@ -311,7 +312,12 @@ pPrimary = (pSymbol "(" *> pExpression <* pSymbol ")")
            <|> PrimaryIdentifier <$> pIdentifier
            <|> pArrayLiteral
            <|> Undefined <$ pRWord "undefined"
-    where pArrayLiteral = do
+    where grouping = do
+            pSymbol "("
+            expr <- pExpression
+            pSymbol ")"
+            return expr
+          pArrayLiteral = do
             pSymbol "{"
             first <- pExpression
             rest <- many $ pSymbol "," *> pExpression 
