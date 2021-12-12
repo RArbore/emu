@@ -219,24 +219,11 @@ opTable :: [[Operator Parser Expression]]
 opTable =
     [
      [
-      Postfix $ foldr1 (.) <$> some (Unary PostPlusPlus <$ tryPSymbol "++"),
-      Postfix $ foldr1 (.) <$> some (Unary PostPlusPlus <$ tryPSymbol "--"),
-      Postfix $ foldr1 (.) <$> some call,
-      Postfix $ foldr1 (.) <$> some index,
+      Postfix $ foldr1 (.) . reverse <$> some postfix,
       InfixL $ Binary Dot <$ pSymbol ".",
       InfixL $ Binary Arrow <$ tryPSymbol "->"
      ],
-     [
-      Prefix $ foldr1 (.) <$> some (Unary PrePlusPlus <$ tryPSymbol "++"),
-      Prefix $ foldr1 (.) <$> some (Unary PreMinusMinus <$ tryPSymbol "--"),
-      Prefix $ foldr1 (.) <$> some (Unary Plus <$ tryPSymbol "+"),
-      Prefix $ foldr1 (.) <$> some (Unary Minus <$ tryPSymbol "-"),
-      Prefix $ foldr1 (.) <$> some (Unary Excla <$ tryPSymbol "!"),
-      Prefix $ foldr1 (.) <$> some (Unary Tilda <$ pSymbol "~"),
-      Prefix $ foldr1 (.) <$> some (Unary Star <$ tryPSymbol "*"),
-      Prefix $ foldr1 (.) <$> some (Unary And <$ tryPSymbol "&"),
-      Prefix $ foldr1 (.) <$> some cast
-     ],
+     [Prefix $ foldr1 (.) <$> some prefix],
      [
       InfixL $ Binary FactorStar <$ tryPSymbol "*",
       InfixL $ Binary FactorSlash <$ tryPSymbol "/",
@@ -280,7 +267,8 @@ opTable =
       InfixR $ Binary AndEquals <$ tryPSymbol "&="
      ]
     ]
-    where tryPSymbol sym = pLexeme $ try (pSymbol sym <* notFollowedBy opChar)
+    where wTryPSymbol = pLexeme . try . pSymbol
+          tryPSymbol sym = pLexeme $ try (pSymbol sym <* notFollowedBy opChar)
           opChar = oneOf ("!#$%&*+./<=>?@\\^|-~" :: String)
           cast = do
             pSymbol "("
@@ -299,9 +287,23 @@ opTable =
             rest <- many $ pSymbol "," *> pExpression
             pSymbol "]"
             return $ Unary $ Index (first:rest)
+          prefix = (Unary PrePlusPlus <$ wTryPSymbol "++")
+                   <|> (Unary PreMinusMinus <$ wTryPSymbol "--")
+                   <|> (Unary Plus <$ wTryPSymbol "+")
+                   <|> (Unary Minus <$ wTryPSymbol "-")
+                   <|> (Unary Excla <$ wTryPSymbol "!")
+                   <|> (Unary Tilda <$ pSymbol "~")
+                   <|> (Unary Star <$ wTryPSymbol "*")
+                   <|> (Unary And <$ wTryPSymbol "&")
+                   <|> cast
+          postfix = (Unary PostPlusPlus <$ wTryPSymbol "++")
+                    <|> (Unary PostMinusMinus <$ wTryPSymbol "--")
+                    <|> call
+                    <|> index
          
 pPrimary :: Parser Expression
-pPrimary = BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
+pPrimary = (pSymbol "(" *> pExpression <* pSymbol ")")
+           <|> BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
            <|> try (FloatingPointLiteral <$> pFloat)
            <|> FixedPointLiteral <$> pInt
            <|> CharLiteral <$> pCharLit
