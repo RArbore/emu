@@ -80,15 +80,6 @@ pLexeme = L.lexeme pWhite
 pSymbol :: Text -> Parser Text
 pSymbol = L.symbol pWhite
 
-pParens :: Parser a -> Parser a
-pParens = between (pSymbol "(") (pSymbol ")")
-
-pBraces :: Parser a -> Parser a
-pBraces = between (pSymbol "{") (pSymbol "}")
-
-pBrackets :: Parser a -> Parser a
-pBrackets = between (pSymbol "[") (pSymbol "]")
-
 pRWord :: Text -> Parser ()
 pRWord w = (pLexeme . try) (string w *> notFollowedBy alphaNumChar)
 
