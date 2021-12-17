@@ -177,17 +177,17 @@ pDeclaration = (try pStmtDecl)
             return (loc, StatementDecl stmt)
 
 pStatement :: Parser Statement
-pStatement = locWrap pIfElse
-             <|> locWrap pWhile
-             <|> locWrap pFor
-             <|> locWrap pSwitch
-             <|> locWrap pCase
-             <|> locWrap pReturn
-             <|> locWrap pBreak
-             <|> locWrap pContinue
-             <|> locWrap (try pBlock)
-             <|> locWrap pExprStmt
-             <|> locWrap pEmpty
+pStatement = locWrap $ pIfElse
+             <|> pWhile
+             <|> pFor
+             <|> pSwitch
+             <|> pCase
+             <|> pReturn
+             <|> pBreak
+             <|> pContinue
+             <|> (try pBlock)
+             <|> pExprStmt
+             <|> pEmpty
     where pExprStmt = ExpressionStatement <$> (pExpression <* pSymbol ";")
           pIfElse = do
             pRWord "if"
@@ -313,7 +313,7 @@ opTable =
             rest <- many $ pSymbol "," *> pExpression
             pSymbol "]"
             return $ Unary $ Index (first:rest)
-          prefix = (Unary PrePlusPlus <$ wTryPSymbol "++")
+          prefix = locWrap $ (Unary PrePlusPlus <$ wTryPSymbol "++")
                    <|> (Unary PreMinusMinus <$ wTryPSymbol "--")
                    <|> (Unary Plus <$ wTryPSymbol "+")
                    <|> (Unary Minus <$ wTryPSymbol "-")
@@ -322,13 +322,13 @@ opTable =
                    <|> (Unary Star <$ wTryPSymbol "*")
                    <|> (Unary And <$ wTryPSymbol "&")
                    <|> cast
-          postfix = (Unary PostPlusPlus <$ wTryPSymbol "++")
+          postfix = locWrap $ (Unary PostPlusPlus <$ wTryPSymbol "++")
                     <|> (Unary PostMinusMinus <$ wTryPSymbol "--")
                     <|> call
                     <|> index
          
 pPrimary :: Parser Expression
-pPrimary = grouping
+pPrimary = locWrap $ grouping
            <|> BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
            <|> try (FloatingPointLiteral <$> pFloat)
            <|> FixedPointLiteral <$> pInt
@@ -339,7 +339,7 @@ pPrimary = grouping
            <|> Undefined <$ pRWord "undefined"
     where grouping = do
             pSymbol "("
-            expr <- pExpression
+            (_, expr) <- pExpression
             pSymbol ")"
             return expr
           pArrayLiteral = do
