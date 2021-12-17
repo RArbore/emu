@@ -16,7 +16,8 @@ module Semantics.Error
     (
 
      SemanticsError (..),
-     SemanticsErrorType (..)
+     SemanticsErrorType (..),
+     VarKind (..)
 
     ) where
 
@@ -31,7 +32,8 @@ data SemanticsError = SemanticsError { filename :: Text,
                                        startCol :: Int,
                                        endCol :: Int,
                                        errorType :: SemanticsErrorType }
-data SemanticsErrorType = DuplicateDeclaration Text 
+
+data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | VoidVarDeclaration Text
                         | UndefinedIdentifier Text
                         | TypeError Type Type
@@ -44,6 +46,8 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | LValueAccessError
                         | NameAccessError
                         | DeadCode
+
+data VarKind = Global | Local | Formal | StructField Text
 
 instance Show SemanticsError where
     show (SemanticsError f o l sc ec e)
@@ -63,7 +67,10 @@ instance Show SemanticsError where
                   | otherwise = ec - sc
 
 instance Show SemanticsErrorType where
-    show (DuplicateDeclaration iden) = "cannot redeclare already declared identifier " ++ T.unpack iden
+    show (DuplicateDeclaration iden Global) = "cannot redeclare already declared global identifier " ++ T.unpack iden
+    show (DuplicateDeclaration iden Local) = "cannot redeclare already declared local identifier " ++ T.unpack iden
+    show (DuplicateDeclaration iden Formal) = "cannot redeclare already declared formal identifier " ++ T.unpack iden
+    show (DuplicateDeclaration iden (StructField name)) = "cannot redeclare already declared structure field identifier " ++ T.unpack iden ++ " for structure " ++ T.unpack name
     show (VoidVarDeclaration iden) = "cannot declare variable " ++ T.unpack iden ++ " as type void"
     show (UndefinedIdentifier iden) = "cannot reference the undefined identifier " ++ T.unpack iden
     show (TypeError t1 t2) = "expected type " ++ show' t1 ++ ", got type " ++ show' t2

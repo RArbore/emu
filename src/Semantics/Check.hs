@@ -17,10 +17,26 @@ module Semantics.Check
 
     ) where
 
-import Parser.AST
+import Control.Monad.State
+import Control.Monad.Except
+
+import qualified Data.Map as M
+import Data.Text (Text)
+
+import qualified Parser.AST as A
     
 import Semantics.Error
 import Semantics.SAST
 
-check :: AST -> Either SemanticsError SAST
+type Variables = M.Map (Text, VarKind) VarBinding
+type Functions = M.Map Text Function
+type Structures = M.Map Text Structure
+
+data Environment = Environment { vars :: Variables,
+                                 funcs :: Functions,
+                                 structs :: Structures }
+
+type Semantics = ExceptT SemanticsError (State Environment)
+
+check :: A.AST -> Semantics SAST
 check = undefined

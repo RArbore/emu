@@ -16,6 +16,9 @@ module Semantics.SAST
     (
 
      SAST (..),
+     Structure  (..),
+     Function  (..),
+     VarBinding  (..),
      Declaration  (..),
      Statement  (..),
      Expression  (..),
@@ -30,15 +33,21 @@ module Semantics.SAST
 
 import Control.DeepSeq
     
-import qualified Data.Text as T
+import Data.Text (Text)
 
 import GHC.Generics (Generic)
 
 newtype SAST = SAST [Declaration] deriving (Show, Generic, NFData)
 
-data Declaration = StructDecl [Modifier] T.Text [DecoratedIdentifier]
-                 | FuncDecl [Modifier] T.Text [DecoratedIdentifier] DecoratedType Statement
-                 | VarDecl [Modifier] DecoratedIdentifier Expression
+data Structure = Structure [Modifier] Text [DecoratedIdentifier] deriving (Show, Generic, NFData)
+
+data Function = Function [Modifier] Text [DecoratedIdentifier] DecoratedType Statement deriving (Show, Generic, NFData)
+
+data VarBinding = VarBinding [Modifier] DecoratedIdentifier Expression deriving (Show, Generic, NFData)
+
+data Declaration = StructDecl Structure
+                 | FuncDecl Function
+                 | VarDecl VarBinding
                  | StatementDecl Statement deriving (Show, Generic, NFData)
     
 data Statement = ExpressionStatement Expression
@@ -59,8 +68,8 @@ data Expression' = Binary BinaryOp Expression Expression
                  | FixedPointLiteral Integer
                  | FloatingPointLiteral Double
                  | CharLiteral Char
-                 | StringLiteral T.Text
-                 | PrimaryIdentifier T.Text
+                 | StringLiteral Text
+                 | PrimaryIdentifier Text
                  | ArrayLiteral [Expression]
                  | LValueExpression LValue
                  | Assign AssignOp LValue Expression
@@ -69,9 +78,9 @@ data Expression' = Binary BinaryOp Expression Expression
 
 data LValue = Dereference Expression
             | Access LValue Int
-            | Identifier T.Text deriving (Show, Generic, NFData)
+            | Identifier Text deriving (Show, Generic, NFData)
  
-data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
+data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [Int] deriving (Show, Generic, NFData)
 
 data Modifier = Pure
@@ -94,7 +103,7 @@ data Type = Void
           | F16
           | F32
           | F64
-          | StructType T.Text deriving (Show, Generic, NFData)
+          | StructType Text deriving (Show, Generic, NFData)
             
 data AssignOp = Equals
               | PlusEquals
