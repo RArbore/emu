@@ -15,6 +15,9 @@
 module Semantics.Error
     (
 
+     SemanticsError (..),
+     SemanticsErrorType (..)
+
     ) where
 
 import Data.Text (Text)

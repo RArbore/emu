@@ -13,7 +13,7 @@ extra-source-files:
 
 executable emu
     main-is:          Main.hs
-    other-modules:    Interface.ParseArgs, Parser.Parser, Parser.AST, Semantics.Error
+    other-modules:    Interface.ParseArgs, Parser.Parser, Parser.AST, Semantics.Error, Semantics.SAST, Semantics.Check
     build-depends:    base, text, directory, deepseq, megaparsec, parser-combinators
     hs-source-dirs:   src
     default-language: Haskell2010

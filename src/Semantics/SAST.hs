@@ -66,9 +66,10 @@ data Expression' = Binary BinaryOp Expression Expression
                  | Assign AssignOp LValue Expression
                  | Address LValue
                  | Undefined deriving (Show, Generic, NFData)
+
 data LValue = Dereference Expression
             | Access LValue Int
-            | Identifier T.Text
+            | Identifier T.Text deriving (Show, Generic, NFData)
  
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [Int] deriving (Show, Generic, NFData)
@@ -105,7 +106,7 @@ data AssignOp = Equals
               | RShiftEquals
               | HatEquals
               | BarEquals
-              | AndEquals
+              | AndEquals deriving (Show, Generic, NFData)
             
 data BinaryOp = LogicOr
               | LogicXor
