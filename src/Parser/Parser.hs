@@ -121,18 +121,27 @@ posEx = do
   b <- unPos <$> sourceColumn <$> getSourcePos
   return (a, b)
 
-form :: Int -> Int -> Int -> Int -> (Int, Int, Int)
+form :: Int -> Int -> Int -> Int -> Location
 form sl sc el ec
     | sl == el = (sl, sc, ec)
     | otherwise = (sl, sc, -1)
 
+locWrap :: Parser a -> Parser (Location, a)
+locWrap p = do
+  (sl, sc) <- posEx
+  x <- p
+  (el, ec) <- posEx
+  return (form sl sc el ec, x)
+
+impossible :: a -> (Location, a)
+impossible x = ((-1, -1, -1), x)
+
 pDeclaration :: Parser Declaration 
 pDeclaration = (try pStmtDecl)
-               <|> (try pStructDecl)
-               <|> (try pFuncDecl)
-               <|> pVarDecl
+               <|> locWrap (try pStructDecl)
+               <|> locWrap (try pFuncDecl)
+               <|> locWrap pVarDecl
     where pStructDecl = do
-            (sl, sc) <- posEx
             mods <- many pModifier
             pRWord "struct"
             iden <- pIdentifier
@@ -141,10 +150,8 @@ pDeclaration = (try pStmtDecl)
             rest <- many $ pSymbol "," *> pDecoratedIdentifier
             pSymbol "}"
             pSymbol ";"
-            (el, ec) <- posEx
-            return (form sl sc el ec, StructDecl mods iden (first:rest))
+            return $ StructDecl mods iden (first:rest)
           pFuncDecl = do
-            (sl, sc) <- posEx
             mods <- many pModifier
             pRWord "func"
             iden <- pIdentifier
@@ -155,8 +162,7 @@ pDeclaration = (try pStmtDecl)
             pSymbol ")"
             typeP <- option (DecoratedType 0 Void []) (pSymbol ":" *> pDecoratedType)
             stmt <- pStatement
-            (el, ec) <- posEx
-            return (form sl sc el ec, FuncDecl mods iden parameters typeP stmt)
+            return $ FuncDecl mods iden parameters typeP stmt
           pVarDecl = do
             (sl, sc) <- posEx
             mods <- many pModifier
@@ -165,23 +171,23 @@ pDeclaration = (try pStmtDecl)
             expr <- pExpression
             pSymbol ";"
             (el, ec) <- posEx
-            return (form sl sc el ec, VarDecl mods iden expr)
+            return $ VarDecl mods iden expr
           pStmtDecl = do
             stmt@(loc, _) <- pStatement
             return (loc, StatementDecl stmt)
 
 pStatement :: Parser Statement
-pStatement =  pIfElse
-             <|> pWhile
-             <|> pFor
-             <|> pSwitch
-             <|> pCase
-             <|> pReturn
-             <|> pBreak
-             <|> pContinue
-             <|> try pBlock
-             <|> pExprStmt
-             <|> pEmpty
+pStatement = locWrap pIfElse
+             <|> locWrap pWhile
+             <|> locWrap pFor
+             <|> locWrap pSwitch
+             <|> locWrap pCase
+             <|> locWrap pReturn
+             <|> locWrap pBreak
+             <|> locWrap pContinue
+             <|> locWrap (try pBlock)
+             <|> locWrap pExprStmt
+             <|> locWrap pEmpty
     where pExprStmt = ExpressionStatement <$> (pExpression <* pSymbol ";")
           pIfElse = do
             pRWord "if"
@@ -189,7 +195,7 @@ pStatement =  pIfElse
             expr <- pExpression
             pSymbol ")"
             stmt <- pStatement
-            elseBranch <- option (EmptyStatement) (pRWord "else" *> pStatement)
+            elseBranch <- option (impossible EmptyStatement) (pRWord "else" *> pStatement)
             return $ IfElseStatement expr stmt elseBranch
           pWhile = do
             pRWord "while"
@@ -202,9 +208,9 @@ pStatement =  pIfElse
             pRWord "for"
             pSymbol "("
             decl <- pDeclaration
-            expr1 <- option (BooleanLiteral True) pExpression
+            expr1 <- option (impossible $ BooleanLiteral True) pExpression
             pSymbol ";"
-            expr2 <- option (Undefined) pExpression
+            expr2 <- option (impossible Undefined) pExpression
             pSymbol ")"
             stmt <- pStatement
             return $ ForStatement decl expr1 expr2 stmt

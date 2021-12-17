@@ -15,6 +15,7 @@
 module Parser.AST
     (
 
+     Location,
      AST (..),
      Declaration  (..),
      Statement  (..),
@@ -22,7 +23,6 @@ module Parser.AST
      Declaration'  (..),
      Statement'  (..),
      Expression'  (..),
-     DecoratedIdentifier  (..),
      DecoratedIdentifier  (..),
      DecoratedType  (..),
      Modifier  (..),

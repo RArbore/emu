@@ -46,6 +46,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | DeadCode
 
 instance Show SemanticsError where
+    show (SemanticsError f o -1 -1 -1 e) = "This error should be impossible to encounter. If you've found this organically, please file a bug report!"
     show (SemanticsError f o l sc ec e) = T.unpack f ++ ":"
                                           ++ (show l) ++ ":"
                                           ++ (show sc) ++ ":\n"
