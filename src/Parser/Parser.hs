@@ -245,54 +245,58 @@ opTable =
     [
      [
       Postfix $ foldr1 (.) . reverse <$> some postfix,
-      InfixL $ Binary Dot <$ pSymbol ".",
-      InfixL $ Binary Arrow <$ tryPSymbol "->"
+      InfixL $ (locWrapBin $ Binary Dot) <$ pSymbol ".",
+      InfixL $ (locWrapBin $ Binary Arrow) <$ tryPSymbol "->"
      ],
      [Prefix $ foldr1 (.) <$> some prefix],
      [
-      InfixL $ Binary FactorStar <$ tryPSymbol "*",
-      InfixL $ Binary FactorSlash <$ tryPSymbol "/",
-      InfixL $ Binary FactorPercent <$ tryPSymbol "%"
+      InfixL $ (locWrapBin $ Binary FactorStar) <$ tryPSymbol "*",
+      InfixL $ (locWrapBin $ Binary FactorSlash) <$ tryPSymbol "/",
+      InfixL $ (locWrapBin $ Binary FactorPercent) <$ tryPSymbol "%"
      ],
      [
-      InfixL $ Binary TermPlus <$ tryPSymbol "+",
-      InfixL $ Binary TermMinus <$ tryPSymbol "-"
+      InfixL $ (locWrapBin $ Binary TermPlus) <$ tryPSymbol "+",
+      InfixL $ (locWrapBin $ Binary TermMinus) <$ tryPSymbol "-"
      ],
      [
-      InfixL $ Binary LShift <$ tryPSymbol "<<",
-      InfixL $ Binary RShift <$ tryPSymbol ">>"
+      InfixL $ (locWrapBin $ Binary LShift) <$ tryPSymbol "<<",
+      InfixL $ (locWrapBin $ Binary RShift) <$ tryPSymbol ">>"
      ],
      [
-      InfixL $ Binary Greater <$ tryPSymbol ">",
-      InfixL $ Binary Lesser <$ tryPSymbol "<",
-      InfixL $ Binary GreaterEquals <$ tryPSymbol ">=",
-      InfixL $ Binary LesserEquals <$ tryPSymbol "<="
+      InfixL $ (locWrapBin $ Binary Greater) <$ tryPSymbol ">",
+      InfixL $ (locWrapBin $ Binary Lesser) <$ tryPSymbol "<",
+      InfixL $ (locWrapBin $ Binary GreaterEquals) <$ tryPSymbol ">=",
+      InfixL $ (locWrapBin $ Binary LesserEquals) <$ tryPSymbol "<="
      ],
      [
-      InfixL $ Binary EqualsEquals <$ tryPSymbol "==",
-      InfixL $ Binary ExclaEquals <$ pSymbol "!="
+      InfixL $ (locWrapBin $ Binary EqualsEquals) <$ tryPSymbol "==",
+      InfixL $ (locWrapBin $ Binary ExclaEquals) <$ pSymbol "!="
      ],
-     [InfixL $ Binary BitwiseAnd <$ tryPSymbol "&"],
-     [InfixL $ Binary BitwiseXor <$ tryPSymbol "^"],
-     [InfixL $ Binary BitwiseOr <$ tryPSymbol "|"],
-     [InfixL $ Binary LogicAnd <$ tryPSymbol "&&"],
-     [InfixL $ Binary LogicXor <$ tryPSymbol "^^"],
-     [InfixL $ Binary LogicOr <$ tryPSymbol "||"],
+     [InfixL $ (locWrapBin $ Binary BitwiseAnd) <$ tryPSymbol "&"],
+     [InfixL $ (locWrapBin $ Binary BitwiseXor) <$ tryPSymbol "^"],
+     [InfixL $ (locWrapBin $ Binary BitwiseOr) <$ tryPSymbol "|"],
+     [InfixL $ (locWrapBin $ Binary LogicAnd) <$ tryPSymbol "&&"],
+     [InfixL $ (locWrapBin $ Binary LogicXor) <$ tryPSymbol "^^"],
+     [InfixL $ (locWrapBin $ Binary LogicOr) <$ tryPSymbol "||"],
      [
-      InfixR $ Binary Equals <$ tryPSymbol "=",
-      InfixR $ Binary PlusEquals <$ tryPSymbol "+=",
-      InfixR $ Binary MinusEquals <$ tryPSymbol "-=",
-      InfixR $ Binary StarEquals <$ tryPSymbol "*=",
-      InfixR $ Binary SlashEquals <$ tryPSymbol "/=",
-      InfixR $ Binary PercentEquals <$ tryPSymbol "%=",
-      InfixR $ Binary LShiftEquals <$ tryPSymbol "<<=",
-      InfixR $ Binary RShiftEquals <$ tryPSymbol ">>=",
-      InfixR $ Binary HatEquals <$ tryPSymbol "^=",
-      InfixR $ Binary BarEquals <$ tryPSymbol "|=",
-      InfixR $ Binary AndEquals <$ tryPSymbol "&="
+      InfixR $ (locWrapBin $ Binary Equals) <$ tryPSymbol "=",
+      InfixR $ (locWrapBin $ Binary PlusEquals) <$ tryPSymbol "+=",
+      InfixR $ (locWrapBin $ Binary MinusEquals) <$ tryPSymbol "-=",
+      InfixR $ (locWrapBin $ Binary StarEquals) <$ tryPSymbol "*=",
+      InfixR $ (locWrapBin $ Binary SlashEquals) <$ tryPSymbol "/=",
+      InfixR $ (locWrapBin $ Binary PercentEquals) <$ tryPSymbol "%=",
+      InfixR $ (locWrapBin $ Binary LShiftEquals) <$ tryPSymbol "<<=",
+      InfixR $ (locWrapBin $ Binary RShiftEquals) <$ tryPSymbol ">>=",
+      InfixR $ (locWrapBin $ Binary HatEquals) <$ tryPSymbol "^=",
+      InfixR $ (locWrapBin $ Binary BarEquals) <$ tryPSymbol "|=",
+      InfixR $ (locWrapBin $ Binary AndEquals) <$ tryPSymbol "&="
      ]
     ]
-    where wTryPSymbol = pLexeme . try . pSymbol
+    where locWrapBin b x@((sl, sc, _), _) y@((el, _, ec), _) = (ln, b x y)
+              where ln
+                        | sl == el = (sl, sc, ec)
+                        | otherwise = (sl, sc, -1)
+          wTryPSymbol = pLexeme . try . pSymbol
           tryPSymbol sym = pLexeme $ try (pSymbol sym <* notFollowedBy opChar)
           opChar = oneOf ("!#$%&*+./<=>?@\\^|-~" :: String)
           cast = do
@@ -313,7 +317,7 @@ opTable =
             rest <- many $ pSymbol "," *> pExpression
             pSymbol "]"
             return $ Unary $ Index (first:rest)
-          prefix = locWrap $ (Unary PrePlusPlus <$ wTryPSymbol "++")
+          prefix = (Unary PrePlusPlus <$ wTryPSymbol "++")
                    <|> (Unary PreMinusMinus <$ wTryPSymbol "--")
                    <|> (Unary Plus <$ wTryPSymbol "+")
                    <|> (Unary Minus <$ wTryPSymbol "-")
@@ -322,7 +326,7 @@ opTable =
                    <|> (Unary Star <$ wTryPSymbol "*")
                    <|> (Unary And <$ wTryPSymbol "&")
                    <|> cast
-          postfix = locWrap $ (Unary PostPlusPlus <$ wTryPSymbol "++")
+          postfix = (Unary PostPlusPlus <$ wTryPSymbol "++")
                     <|> (Unary PostMinusMinus <$ wTryPSymbol "--")
                     <|> call
                     <|> index
