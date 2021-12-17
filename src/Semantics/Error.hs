@@ -46,16 +46,17 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | DeadCode
 
 instance Show SemanticsError where
-    show (SemanticsError f o -1 -1 -1 e) = "This error should be impossible to encounter. If you've found this organically, please file a bug report!"
-    show (SemanticsError f o l sc ec e) = T.unpack f ++ ":"
-                                          ++ (show l) ++ ":"
-                                          ++ (show sc) ++ ":\n"
-                                          ++ take offset (repeat ' ') ++ "|\n"
-                                          ++ (show l) ++ " | " ++ T.unpack o
-                                          ++ take offset (repeat ' ') ++ "| "
-                                          ++ take sc (repeat ' ')
-                                          ++ take repeatAmount (repeat '^') ++ "\n"
-                                          ++ show e
+    show (SemanticsError f o l sc ec e)
+        | l == -1 && sc == -1 && ec == -1 = "This error should be impossible to encounter. If you've found this organically, please file a bug report!"
+        | otherwise = T.unpack f ++ ":"
+                      ++ (show l) ++ ":"
+                      ++ (show sc) ++ ":\n"
+                      ++ take offset (repeat ' ') ++ "|\n"
+                      ++ (show l) ++ " | " ++ T.unpack o
+                      ++ take offset (repeat ' ') ++ "| "
+                      ++ take sc (repeat ' ')
+                      ++ take repeatAmount (repeat '^') ++ "\n"
+                      ++ show e
         where offset = 1 + (length $ show l)
               repeatAmount
                   | ec == -1 = T.length o - sc

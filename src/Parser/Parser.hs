@@ -296,6 +296,7 @@ opTable =
               where ln
                         | sl == el = (sl, sc, ec)
                         | otherwise = (sl, sc, -1)
+          locWrapUn u x@((l, sc, ec), _) = ((l, sc, ec), u x)
           wTryPSymbol = pLexeme . try . pSymbol
           tryPSymbol sym = pLexeme $ try (pSymbol sym <* notFollowedBy opChar)
           opChar = oneOf ("!#$%&*+./<=>?@\\^|-~" :: String)
@@ -303,31 +304,31 @@ opTable =
             pSymbol "("
             typeP <- pDecoratedType
             pSymbol ")"
-            return $ Unary $ Cast typeP
+            return $ locWrapUn $ Unary $ Cast typeP
           call = do
             pSymbol "("
             args <- option [] (do first <- pExpression
                                   rest <- many $ pSymbol "," *> pExpression
                                   return (first:rest))
             pSymbol ")"
-            return $ Unary $ Call args
+            return $ locWrapUn $ Unary $ Call args
           index = do
             pSymbol "["
             first <- pExpression
             rest <- many $ pSymbol "," *> pExpression
             pSymbol "]"
-            return $ Unary $ Index (first:rest)
-          prefix = (Unary PrePlusPlus <$ wTryPSymbol "++")
-                   <|> (Unary PreMinusMinus <$ wTryPSymbol "--")
-                   <|> (Unary Plus <$ wTryPSymbol "+")
-                   <|> (Unary Minus <$ wTryPSymbol "-")
-                   <|> (Unary Excla <$ wTryPSymbol "!")
-                   <|> (Unary Tilda <$ pSymbol "~")
-                   <|> (Unary Star <$ wTryPSymbol "*")
-                   <|> (Unary And <$ wTryPSymbol "&")
+            return $ locWrapUn $ Unary $ Index (first:rest)
+          prefix = ((locWrapUn $ Unary PrePlusPlus) <$ wTryPSymbol "++")
+                   <|> ((locWrapUn $ Unary PreMinusMinus) <$ wTryPSymbol "--")
+                   <|> ((locWrapUn $ Unary Plus) <$ wTryPSymbol "+")
+                   <|> ((locWrapUn $ Unary Minus) <$ wTryPSymbol "-")
+                   <|> ((locWrapUn $ Unary Excla) <$ wTryPSymbol "!")
+                   <|> ((locWrapUn $ Unary Tilda) <$ pSymbol "~")
+                   <|> ((locWrapUn $ Unary Star) <$ wTryPSymbol "*")
+                   <|> ((locWrapUn $ Unary And) <$ wTryPSymbol "&")
                    <|> cast
-          postfix = (Unary PostPlusPlus <$ wTryPSymbol "++")
-                    <|> (Unary PostMinusMinus <$ wTryPSymbol "--")
+          postfix = ((locWrapUn $ Unary PostPlusPlus) <$ wTryPSymbol "++")
+                    <|> ((locWrapUn $ Unary PostMinusMinus) <$ wTryPSymbol "--")
                     <|> call
                     <|> index
          
