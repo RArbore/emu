@@ -19,6 +19,10 @@ module Parser.AST
      Declaration  (..),
      Statement  (..),
      Expression  (..),
+     Declaration'  (..),
+     Statement'  (..),
+     Expression'  (..),
+     DecoratedIdentifier  (..),
      DecoratedIdentifier  (..),
      DecoratedType  (..),
      Modifier  (..),
@@ -34,35 +38,39 @@ import qualified Data.Text as T
 
 import GHC.Generics (Generic)
 
+type Location = (Int, Int, Int)
 newtype AST = AST [Declaration] deriving (Show, Generic, NFData)
 
-data Declaration = StructDecl [Modifier] T.Text [DecoratedIdentifier]
-                 | FuncDecl [Modifier] T.Text [DecoratedIdentifier] DecoratedType Statement
-                 | VarDecl [Modifier] DecoratedIdentifier Expression
-                 | StatementDecl Statement deriving (Show, Generic, NFData)
+type Declaration = (Location, Declaration')
+data Declaration' = StructDecl [Modifier] T.Text [DecoratedIdentifier]
+                  | FuncDecl [Modifier] T.Text [DecoratedIdentifier] DecoratedType Statement
+                  | VarDecl [Modifier] DecoratedIdentifier Expression
+                  | StatementDecl Statement deriving (Show, Generic, NFData)
     
-data Statement = ExpressionStatement Expression
-               | IfElseStatement Expression Statement Statement
-               | WhileStatement Expression Statement
-               | ForStatement Declaration Expression Expression Statement
-               | SwitchStatement Expression Statement
-               | CaseStatement Expression Statement
-               | ReturnStatement Expression
-               | BreakStatement
-               | ContinueStatement
-               | Block [Declaration]
-               | EmptyStatement deriving (Show, Generic, NFData)
+type Statement = (Location, Statement')
+data Statement' = ExpressionStatement Expression
+                | IfElseStatement Expression Statement Statement
+                | WhileStatement Expression Statement
+                | ForStatement Declaration Expression Expression Statement
+                | SwitchStatement Expression Statement
+                | CaseStatement Expression Statement
+                | ReturnStatement Expression
+                | BreakStatement
+                | ContinueStatement
+                | Block [Declaration]
+                | EmptyStatement deriving (Show, Generic, NFData)
 
-data Expression = Binary BinaryOp Expression Expression
-                | Unary UnaryOp Expression 
-                | BooleanLiteral Bool
-                | FixedPointLiteral Integer
-                | FloatingPointLiteral Double
-                | CharLiteral Char
-                | StringLiteral T.Text
-                | PrimaryIdentifier T.Text
-                | ArrayLiteral [Expression]
-                | Undefined deriving (Show, Generic, NFData)
+type Expression = (Location, Expression')
+data Expression' = Binary BinaryOp Expression Expression
+                 | Unary UnaryOp Expression 
+                 | BooleanLiteral Bool
+                 | FixedPointLiteral Integer
+                 | FloatingPointLiteral Double
+                 | CharLiteral Char
+                 | StringLiteral T.Text
+                 | PrimaryIdentifier T.Text
+                 | ArrayLiteral [Expression]
+                 | Undefined deriving (Show, Generic, NFData)
  
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData)

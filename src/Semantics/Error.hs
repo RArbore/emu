@@ -53,9 +53,12 @@ instance Show SemanticsError where
                                           ++ (show l) ++ " | " ++ T.unpack o
                                           ++ take offset (repeat ' ') ++ "| "
                                           ++ take sc (repeat ' ')
-                                          ++ take (ec - sc) (repeat '^') ++ "\n"
+                                          ++ take repeatAmount (repeat '^') ++ "\n"
                                           ++ show e
         where offset = 1 + (length $ show l)
+              repeatAmount
+                  | ec == -1 = T.length o - sc
+                  | otherwise = ec - sc
 
 instance Show SemanticsErrorType where
     show (DuplicateDeclaration iden) = "cannot redeclare already declared identifier " ++ T.unpack iden

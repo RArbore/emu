@@ -115,12 +115,24 @@ pFloat = pLexeme L.float
 pProgram :: Parser AST
 pProgram = AST <$> (pWhite *> many pDeclaration <* eof)
 
+posEx :: Parser (Int, Int)
+posEx = do
+  a <- unPos <$> sourceLine <$> getSourcePos
+  b <- unPos <$> sourceColumn <$> getSourcePos
+  return (a, b)
+
+form :: Int -> Int -> Int -> Int -> (Int, Int, Int)
+form sl sc el ec
+    | sl == el = (sl, sc, ec)
+    | otherwise = (sl, sc, -1)
+
 pDeclaration :: Parser Declaration 
 pDeclaration = (try pStmtDecl)
                <|> (try pStructDecl)
                <|> (try pFuncDecl)
                <|> pVarDecl
     where pStructDecl = do
+            (sl, sc) <- posEx
             mods <- many pModifier
             pRWord "struct"
             iden <- pIdentifier
@@ -129,8 +141,10 @@ pDeclaration = (try pStmtDecl)
             rest <- many $ pSymbol "," *> pDecoratedIdentifier
             pSymbol "}"
             pSymbol ";"
-            return $ StructDecl mods iden (first:rest)
+            (el, ec) <- posEx
+            return (form sl sc el ec, StructDecl mods iden (first:rest))
           pFuncDecl = do
+            (sl, sc) <- posEx
             mods <- many pModifier
             pRWord "func"
             iden <- pIdentifier
@@ -141,15 +155,20 @@ pDeclaration = (try pStmtDecl)
             pSymbol ")"
             typeP <- option (DecoratedType 0 Void []) (pSymbol ":" *> pDecoratedType)
             stmt <- pStatement
-            return $ FuncDecl mods iden parameters typeP stmt
+            (el, ec) <- posEx
+            return (form sl sc el ec, FuncDecl mods iden parameters typeP stmt)
           pVarDecl = do
+            (sl, sc) <- posEx
             mods <- many pModifier
             iden <- pDecoratedIdentifier
             pSymbol "="
             expr <- pExpression
             pSymbol ";"
-            return $ VarDecl mods iden expr
-          pStmtDecl = StatementDecl <$> pStatement
+            (el, ec) <- posEx
+            return (form sl sc el ec, VarDecl mods iden expr)
+          pStmtDecl = do
+            stmt@(loc, _) <- pStatement
+            return (loc, StatementDecl stmt)
 
 pStatement :: Parser Statement
 pStatement =  pIfElse
@@ -354,5 +373,3 @@ pModifier = Pure <$ pRWord "pure"
             <|> Comptime <$ pRWord "comptime"
             <|> Register <$ pRWord "register"
             <|> Restrict <$ pRWord "restrict"
-
-                
