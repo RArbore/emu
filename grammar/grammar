@@ -75,4 +75,4 @@ STRING := "\"" ANY* "\""
 IDENTIFIER := ALPHA ( ALPHA | DIGIT )*
 ALPHA := "a" ... "z" | "A" ... "Z" | "_"
 DIGIT := "0" ... "9"
-TYPE := "bool" | "u8" | "u16" | "u32" | "u64" | "i8" | "i16" | "i32" | "i64" | "f16" | "f32" | "f64" | IDENTIFIER
+TYPE := "bool" | "u8" | "u16" | "u32" | "u64" | "i8" | "i16" | "i32" | "i64" | "f32" | "f64" | IDENTIFIER

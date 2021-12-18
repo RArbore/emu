@@ -22,6 +22,7 @@ module Semantics.SAST
      Declaration  (..),
      Statement  (..),
      Expression  (..),
+     Expression'  (..),
      DecoratedIdentifier  (..),
      DecoratedType  (..),
      Modifier  (..),
@@ -33,9 +34,13 @@ module Semantics.SAST
 
 import Control.DeepSeq
     
+import qualified Data.ByteString as B
 import Data.Text (Text)
+import Data.Word
 
 import GHC.Generics (Generic)
+
+import Parser.AST (FixedPointVal, FloatingPointVal)
 
 newtype SAST = SAST [Declaration] deriving (Show, Generic, NFData)
 
@@ -65,10 +70,10 @@ type Expression = (DecoratedType, Expression')
 data Expression' = Binary BinaryOp Expression Expression
                  | Unary UnaryOp Expression 
                  | BooleanLiteral Bool
-                 | FixedPointLiteral Integer
-                 | FloatingPointLiteral Double
-                 | CharLiteral Char
-                 | StringLiteral Text
+                 | FixedPointLiteral FixedPointVal
+                 | FloatingPointLiteral FloatingPointVal
+                 | CharLiteral Word8
+                 | StringLiteral B.ByteString
                  | PrimaryIdentifier Text
                  | ArrayLiteral [Expression]
                  | LValueExpression LValue
@@ -100,7 +105,6 @@ data Type = Void
           | I16
           | I32
           | I64
-          | F16
           | F32
           | F64
           | StructType Text deriving (Show, Generic, NFData)

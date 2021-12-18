@@ -17,24 +17,29 @@ module Parser.AST
 
      Location,
      AST (..),
-     Declaration  (..),
-     Statement  (..),
-     Expression  (..),
-     Declaration'  (..),
-     Statement'  (..),
-     Expression'  (..),
-     DecoratedIdentifier  (..),
-     DecoratedType  (..),
-     Modifier  (..),
-     Type  (..),
-     BinaryOp  (..),
-     UnaryOp  (..)
+     Declaration (..),
+     Statement (..),
+     Expression (..),
+     Declaration' (..),
+     Statement' (..),
+     Expression' (..),
+     FixedPointVal (..),
+     FloatingPointVal (..),
+     DecoratedIdentifier (..),
+     DecoratedType (..),
+     Modifier (..),
+     Type (..),
+     BinaryOp (..),
+     UnaryOp (..)
      
     ) where
 
 import Control.DeepSeq
     
+import qualified Data.ByteString as B
+import Data.Int
 import qualified Data.Text as T
+import Data.Word
 
 import GHC.Generics (Generic)
 
@@ -64,13 +69,25 @@ type Expression = (Location, Expression')
 data Expression' = Binary BinaryOp Expression Expression
                  | Unary UnaryOp Expression 
                  | BooleanLiteral Bool
-                 | FixedPointLiteral Integer
-                 | FloatingPointLiteral Double
-                 | CharLiteral Char
-                 | StringLiteral T.Text
+                 | FixedPointLiteral FixedPointVal
+                 | FloatingPointLiteral FloatingPointVal
+                 | CharLiteral Word8
+                 | StringLiteral B.ByteString
                  | PrimaryIdentifier T.Text
                  | ArrayLiteral [Expression]
                  | Undefined deriving (Show, Generic, NFData)
+
+data FixedPointVal = U8Val Word8
+                   | U16Val Word16
+                   | U32Val Word32
+                   | U64Val Word64
+                   | I8Val Int8
+                   | I16Val Int16
+                   | I32Val Int32
+                   | I64Val Int64 deriving (Show, Generic, NFData)
+
+data FloatingPointVal = F32Val Float
+                      | F64Val Double deriving (Show, Generic, NFData)
  
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData)
@@ -92,7 +109,6 @@ data Type = Void
           | I16
           | I32
           | I64
-          | F16
           | F32
           | F64
           | StructType T.Text deriving (Show, Generic, NFData)

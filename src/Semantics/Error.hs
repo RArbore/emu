@@ -95,7 +95,6 @@ show' I8 = "i8"
 show' I16 = "i16"
 show' I32 = "i32"
 show' I64 = "i64"
-show' F16 = "f16"
 show' F32 = "f32"
 show' F64 = "f64"
 show' (StructType t) = T.unpack t

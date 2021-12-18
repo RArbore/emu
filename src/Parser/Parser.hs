@@ -22,8 +22,11 @@ module Parser.Parser
 import Control.Monad (void)
 import Control.Monad.Combinators.Expr
 
+import Data.Char (ord)
+import Data.Int
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
 import Data.Void
 
 import Debug.Trace
@@ -65,7 +68,6 @@ rWords = ["func",
           "i16",
           "i32",
           "i64",
-          "f16",
           "f32",
           "f64",
           "true",
@@ -335,10 +337,10 @@ opTable =
 pPrimary :: Parser Expression
 pPrimary = locWrap $ grouping
            <|> BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
-           <|> try (FloatingPointLiteral <$> pFloat)
-           <|> FixedPointLiteral <$> pInt
-           <|> CharLiteral <$> pCharLit
-           <|> StringLiteral <$> pStringLit
+           <|> try (FloatingPointLiteral . F64Val <$> pFloat)
+           <|> fixedPoint
+           <|> char
+           <|> StringLiteral . encodeUtf8 <$> pStringLit
            <|> PrimaryIdentifier <$> pIdentifier
            <|> pArrayLiteral
            <|> Undefined <$ pRWord "undefined"
@@ -347,6 +349,13 @@ pPrimary = locWrap $ grouping
             (_, expr) <- pExpression
             pSymbol ")"
             return expr
+          fixedPoint = do
+            int <- pInt
+            if int <= 0 || int == fromIntegral ((fromIntegral int) :: Int64) then return $ FixedPointLiteral $ I64Val $ fromIntegral int else return $ FixedPointLiteral $ U64Val $ fromIntegral int
+          char = do
+            c <- pCharLit
+            let w = ord c
+            if w >= 0 && w < 256 then return $ CharLiteral $ fromIntegral w else fail (c:" isn't an ASCII character, and thus can't be fit into a U8")
           pArrayLiteral = do
             pSymbol "{"
             first <- pExpression
@@ -365,7 +374,6 @@ pType = Void <$ pRWord "void"
             <|> I16 <$ pRWord "i16"
             <|> I32 <$ pRWord "i32"
             <|> I64 <$ pRWord "i64"
-            <|> F16 <$ pRWord "f16"
             <|> F32 <$ pRWord "f32"
             <|> F64 <$ pRWord "f64"
             <|> StructType <$> pIdentifier
