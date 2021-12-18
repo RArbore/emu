@@ -26,9 +26,7 @@ import Data.Text (Text)
 import Parser.AST (Type (..),
                    Modifier (..),
                    FixedPointVal (..),
-                   FloatingPointVal (..),
-                   DecoratedType (..),
-                   DecoratedIdentifier (..))
+                   FloatingPointVal (..))
 import qualified Parser.AST as A
     
 import Semantics.Error
@@ -71,4 +69,9 @@ checkExpr ((l, sc, ec), e) = case e of
                                A.Undefined -> return (DecoratedType 0 Void [], Undefined)
                                A.ArrayLiteral x -> do
                                       exprs <- sequence $ map checkExpr x
-                                      if uniform exprs then let (t, e) = head exprs in return $ (t, ArrayLiteral exprs) else undefined
+                                      if uniform exprs then
+                                          let (DecoratedType p t b, _) = head exprs
+                                          in return $
+                                                 (DecoratedType p t ((DecoratedType 0 U64 [], (FixedPointLiteral $ U64Val $ fromIntegral $ length exprs)):b),
+                                                  ArrayLiteral exprs)
+                                      else undefined

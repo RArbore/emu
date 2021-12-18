@@ -23,6 +23,8 @@ module Semantics.SAST
      Statement  (..),
      Expression  (..),
      Expression'  (..),
+     DecoratedIdentifier (..),
+     DecoratedType (..),
      BinaryOp  (..),
      UnaryOp  (..)
      
@@ -36,7 +38,7 @@ import Data.Word
 
 import GHC.Generics (Generic)
 
-import Parser.AST (Type, Modifier, FixedPointVal, FloatingPointVal, DecoratedType, DecoratedIdentifier)
+import Parser.AST (Type, Modifier, FixedPointVal, FloatingPointVal)
 
 newtype SAST = SAST [Declaration] deriving (Show, Generic, NFData)
 
@@ -80,6 +82,9 @@ data Expression' = Binary BinaryOp Expression Expression
 data LValue = Dereference Expression
             | Access LValue Int
             | Identifier Text deriving (Show, Generic, NFData, Eq)
+
+data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
+data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData, Eq)
  
 data AssignOp = Equals
               | PlusEquals

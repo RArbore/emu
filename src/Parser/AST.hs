@@ -38,7 +38,7 @@ import Control.DeepSeq
     
 import qualified Data.ByteString as B
 import Data.Int
-import qualified Data.Text as T
+import Data.Text (Text)
 import Data.Word
 
 import GHC.Generics (Generic)
@@ -47,8 +47,8 @@ type Location = (Int, Int, Int)
 newtype AST = AST [Declaration] deriving (Show, Generic, NFData)
 
 type Declaration = (Location, Declaration')
-data Declaration' = StructDecl [Modifier] T.Text [DecoratedIdentifier]
-                  | FuncDecl [Modifier] T.Text [DecoratedIdentifier] DecoratedType Statement
+data Declaration' = StructDecl [Modifier] Text [DecoratedIdentifier]
+                  | FuncDecl [Modifier] Text [DecoratedIdentifier] DecoratedType Statement
                   | VarDecl [Modifier] DecoratedIdentifier Expression
                   | StatementDecl Statement deriving (Show, Generic, NFData)
     
@@ -73,7 +73,7 @@ data Expression' = Binary BinaryOp Expression Expression
                  | FloatingPointLiteral FloatingPointVal
                  | CharLiteral Word8
                  | StringLiteral B.ByteString
-                 | PrimaryIdentifier T.Text
+                 | PrimaryIdentifier Text
                  | ArrayLiteral [Expression]
                  | Undefined deriving (Show, Generic, NFData, Eq)
 
@@ -89,7 +89,7 @@ data FixedPointVal = U8Val Word8
 data FloatingPointVal = F32Val Float
                       | F64Val Double deriving (Show, Generic, NFData, Eq)
  
-data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
+data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData, Eq)
 
 data Modifier = Pure
@@ -111,7 +111,7 @@ data Type = Void
           | I64
           | F32
           | F64
-          | StructType T.Text deriving (Show, Generic, NFData, Eq)
+          | StructType Text deriving (Show, Generic, NFData, Eq)
             
 data BinaryOp = Equals
               | PlusEquals
