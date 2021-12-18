@@ -23,10 +23,6 @@ module Semantics.SAST
      Statement  (..),
      Expression  (..),
      Expression'  (..),
-     DecoratedIdentifier  (..),
-     DecoratedType  (..),
-     Modifier  (..),
-     Type  (..),
      BinaryOp  (..),
      UnaryOp  (..)
      
@@ -40,7 +36,7 @@ import Data.Word
 
 import GHC.Generics (Generic)
 
-import Parser.AST (FixedPointVal, FloatingPointVal)
+import Parser.AST (Type, Modifier, FixedPointVal, FloatingPointVal, DecoratedType, DecoratedIdentifier)
 
 newtype SAST = SAST [Declaration] deriving (Show, Generic, NFData)
 
@@ -79,36 +75,12 @@ data Expression' = Binary BinaryOp Expression Expression
                  | LValueExpression LValue
                  | Assign AssignOp LValue Expression
                  | Address LValue
-                 | Undefined deriving (Show, Generic, NFData)
+                 | Undefined deriving (Show, Generic, NFData, Eq)
 
 data LValue = Dereference Expression
             | Access LValue Int
-            | Identifier Text deriving (Show, Generic, NFData)
+            | Identifier Text deriving (Show, Generic, NFData, Eq)
  
-data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
-data DecoratedType = DecoratedType Int Type [Int] deriving (Show, Generic, NFData)
-
-data Modifier = Pure
-              | Const
-              | Inline
-              | Comptime
-              | Register
-              | Restrict deriving (Show, Generic, NFData)
-                
-data Type = Void
-          | Bool
-          | U8
-          | U16
-          | U32
-          | U64
-          | I8
-          | I16
-          | I32
-          | I64
-          | F32
-          | F64
-          | StructType Text deriving (Show, Generic, NFData)
-            
 data AssignOp = Equals
               | PlusEquals
               | MinusEquals
@@ -119,7 +91,7 @@ data AssignOp = Equals
               | RShiftEquals
               | HatEquals
               | BarEquals
-              | AndEquals deriving (Show, Generic, NFData)
+              | AndEquals deriving (Show, Generic, NFData, Eq)
             
 data BinaryOp = LogicOr
               | LogicXor
@@ -141,7 +113,7 @@ data BinaryOp = LogicOr
               | FactorSlash
               | FactorPercent
               | Dot 
-              | Arrow deriving (Show, Generic, NFData)
+              | Arrow deriving (Show, Generic, NFData, Eq)
                 
 data UnaryOp = PrePlusPlus
              | PreMinusMinus
@@ -153,4 +125,4 @@ data UnaryOp = PrePlusPlus
              | PostPlusPlus
              | PostMinusMinus
              | Call [Expression]
-             | Index [Expression] deriving (Show, Generic, NFData)
+             | Index [Expression] deriving (Show, Generic, NFData, Eq)

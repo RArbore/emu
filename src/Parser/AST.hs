@@ -75,7 +75,7 @@ data Expression' = Binary BinaryOp Expression Expression
                  | StringLiteral B.ByteString
                  | PrimaryIdentifier T.Text
                  | ArrayLiteral [Expression]
-                 | Undefined deriving (Show, Generic, NFData)
+                 | Undefined deriving (Show, Generic, NFData, Eq)
 
 data FixedPointVal = U8Val Word8
                    | U16Val Word16
@@ -84,20 +84,20 @@ data FixedPointVal = U8Val Word8
                    | I8Val Int8
                    | I16Val Int16
                    | I32Val Int32
-                   | I64Val Int64 deriving (Show, Generic, NFData)
+                   | I64Val Int64 deriving (Show, Generic, NFData, Eq)
 
 data FloatingPointVal = F32Val Float
-                      | F64Val Double deriving (Show, Generic, NFData)
+                      | F64Val Double deriving (Show, Generic, NFData, Eq)
  
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] T.Text DecoratedType deriving (Show, Generic, NFData)
-data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData)
+data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData, Eq)
 
 data Modifier = Pure
               | Const
               | Inline
               | Comptime
               | Register
-              | Restrict deriving (Show, Generic, NFData)
+              | Restrict deriving (Show, Generic, NFData, Eq)
                 
 data Type = Void
           | Bool
@@ -111,7 +111,7 @@ data Type = Void
           | I64
           | F32
           | F64
-          | StructType T.Text deriving (Show, Generic, NFData)
+          | StructType T.Text deriving (Show, Generic, NFData, Eq)
             
 data BinaryOp = Equals
               | PlusEquals
@@ -144,7 +144,7 @@ data BinaryOp = Equals
               | FactorSlash
               | FactorPercent
               | Dot 
-              | Arrow deriving (Show, Generic, NFData)
+              | Arrow deriving (Show, Generic, NFData, Eq)
                 
 data UnaryOp = PrePlusPlus
              | PreMinusMinus
@@ -158,4 +158,4 @@ data UnaryOp = PrePlusPlus
              | PostPlusPlus
              | PostMinusMinus
              | Call [Expression]
-             | Index [Expression] deriving (Show, Generic, NFData)
+             | Index [Expression] deriving (Show, Generic, NFData, Eq)

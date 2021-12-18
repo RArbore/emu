@@ -17,7 +17,9 @@ module Semantics.Error
 
      SemanticsError (..),
      SemanticsErrorType (..),
-     VarKind (..)
+     VarKind (..),
+
+     showSError
 
     ) where
 
@@ -26,9 +28,7 @@ import qualified Data.Text as T
 
 import Parser.AST
      
-data SemanticsError = SemanticsError { filename :: Text,
-                                       offendingLine :: Text,
-                                       line :: Int,
+data SemanticsError = SemanticsError { line :: Int,
                                        startCol :: Int,
                                        endCol :: Int,
                                        errorType :: SemanticsErrorType }
@@ -49,22 +49,22 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
 
 data VarKind = Global | Local | Formal | StructField Text
 
-instance Show SemanticsError where
-    show (SemanticsError f o l sc ec e)
-        | l == -1 && sc == -1 && ec == -1 = "This error should be impossible to encounter. If you've found this organically, please file a bug report!"
-        | otherwise = T.unpack f ++ ":"
-                      ++ (show l) ++ ":"
-                      ++ (show sc) ++ ":\n"
-                      ++ take offset (repeat ' ') ++ "|\n"
-                      ++ (show l) ++ " | " ++ T.unpack o
-                      ++ take offset (repeat ' ') ++ "| "
-                      ++ take sc (repeat ' ')
-                      ++ take repeatAmount (repeat '^') ++ "\n"
-                      ++ show e
-        where offset = 1 + (length $ show l)
-              repeatAmount
-                  | ec == -1 = T.length o - sc
-                  | otherwise = ec - sc
+showSError :: SemanticsError -> Text -> Text -> String
+showSError (SemanticsError l sc ec e) f o
+    | l == -1 && sc == -1 && ec == -1 = "This error should be impossible to encounter. If you've found this organically, please file a bug report!"
+    | otherwise = T.unpack f ++ ":"
+                  ++ (show l) ++ ":"
+                  ++ (show sc) ++ ":\n"
+                  ++ take offset (repeat ' ') ++ "|\n"
+                  ++ (show l) ++ " | " ++ ((lines $ T.unpack o) !! l)
+                  ++ take offset (repeat ' ') ++ "| "
+                  ++ take sc (repeat ' ')
+                  ++ take repeatAmount (repeat '^') ++ "\n"
+                  ++ show e
+    where offset = 1 + (length $ show l)
+          repeatAmount
+              | ec == -1 = T.length o - sc
+              | otherwise = ec - sc
 
 instance Show SemanticsErrorType where
     show (DuplicateDeclaration iden Global) = "cannot redeclare already declared global identifier " ++ T.unpack iden
