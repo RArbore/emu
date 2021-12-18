@@ -23,6 +23,8 @@ module Semantics.SAST
      Statement  (..),
      Expression  (..),
      Expression'  (..),
+     LValue  (..),
+     ComptimeValue  (..),
      DecoratedIdentifier (..),
      DecoratedType (..),
      BinaryOp  (..),
@@ -67,11 +69,7 @@ data Statement = ExpressionStatement Expression
 type Expression = (DecoratedType, Expression')
 data Expression' = Binary BinaryOp Expression Expression
                  | Unary UnaryOp Expression 
-                 | BooleanLiteral Bool
-                 | FixedPointLiteral FixedPointVal
-                 | FloatingPointLiteral FloatingPointVal
-                 | CharLiteral Word8
-                 | StringLiteral B.ByteString
+                 | Literal ComptimeValue
                  | PrimaryIdentifier Text
                  | ArrayLiteral [Expression]
                  | Call Text [Expression]
@@ -84,8 +82,12 @@ data LValue = Dereference Expression
             | Access LValue Int
             | Identifier Text deriving (Show, Generic, NFData, Eq)
 
+data ComptimeValue = BooleanLiteral Bool
+                   | FixedPointLiteral FixedPointVal
+                   | FloatingPointLiteral FloatingPointVal deriving (Show, Generic, NFData, Eq)
+
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
-data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData, Eq)
+data DecoratedType = DecoratedType Int Type [ComptimeValue] deriving (Show, Generic, NFData, Eq)
  
 data AssignOp = Equals
               | PlusEquals
