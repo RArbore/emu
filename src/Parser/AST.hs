@@ -74,6 +74,7 @@ data Expression' = Binary BinaryOp Expression Expression
                  | CharLiteral Word8
                  | StringLiteral B.ByteString
                  | PrimaryIdentifier Text
+                 | Call Text [Expression]
                  | ArrayLiteral [Expression]
                  | Undefined deriving (Show, Generic, NFData, Eq)
 
@@ -157,5 +158,4 @@ data UnaryOp = PrePlusPlus
              | Cast DecoratedType
              | PostPlusPlus
              | PostMinusMinus
-             | Call [Expression]
              | Index [Expression] deriving (Show, Generic, NFData, Eq)

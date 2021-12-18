@@ -307,13 +307,6 @@ opTable =
             typeP <- pDecoratedType
             pSymbol ")"
             return $ locWrapUn $ Unary $ Cast typeP
-          call = do
-            pSymbol "("
-            args <- option [] (do first <- pExpression
-                                  rest <- many $ pSymbol "," *> pExpression
-                                  return (first:rest))
-            pSymbol ")"
-            return $ locWrapUn $ Unary $ Call args
           index = do
             pSymbol "["
             first <- pExpression
@@ -331,7 +324,6 @@ opTable =
                    <|> cast
           postfix = ((locWrapUn $ Unary PostPlusPlus) <$ wTryPSymbol "++")
                     <|> ((locWrapUn $ Unary PostMinusMinus) <$ wTryPSymbol "--")
-                    <|> call
                     <|> index
          
 pPrimary :: Parser Expression
@@ -341,6 +333,7 @@ pPrimary = locWrap $ grouping
            <|> fixedPoint
            <|> char
            <|> StringLiteral . encodeUtf8 <$> pStringLit
+           <|> try call
            <|> PrimaryIdentifier <$> pIdentifier
            <|> pArrayLiteral
            <|> Undefined <$ pRWord "undefined"
@@ -362,6 +355,14 @@ pPrimary = locWrap $ grouping
             rest <- many $ pSymbol "," *> pExpression 
             pSymbol "}"
             return $ ArrayLiteral (first:rest)
+          call = do
+            iden <- pIdentifier
+            pSymbol "("
+            args <- option [] (do first <- pExpression
+                                  rest <- many $ pSymbol "," *> pExpression
+                                  return (first:rest))
+            pSymbol ")"
+            return $ Call iden args
 
 pType :: Parser Type
 pType = Void <$ pRWord "void"

@@ -74,6 +74,7 @@ data Expression' = Binary BinaryOp Expression Expression
                  | StringLiteral B.ByteString
                  | PrimaryIdentifier Text
                  | ArrayLiteral [Expression]
+                 | Call Text [Expression]
                  | LValueExpression LValue
                  | Assign AssignOp LValue Expression
                  | Address LValue
@@ -129,5 +130,4 @@ data UnaryOp = PrePlusPlus
              | Cast DecoratedType
              | PostPlusPlus
              | PostMinusMinus
-             | Call [Expression]
              | Index [Expression] deriving (Show, Generic, NFData, Eq)
