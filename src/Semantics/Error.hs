@@ -45,6 +45,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | FieldAccessError Text Text
                         | LValueAccessError
                         | NameAccessError
+                        | HeterogenousArray
                         | DeadCode
 
 data VarKind = Global | Local | Formal | StructField Text
@@ -82,6 +83,7 @@ instance Show SemanticsErrorType where
     show (FieldAccessError iden1 iden2) = "struct type " ++ T.unpack iden1 ++ " doesn't contain a field named " ++ T.unpack iden2
     show LValueAccessError = "cannot access a field of a non-lvalue"
     show NameAccessError = "cannot access a field with an expression"
+    show HeterogenousArray = "expressions in array literal don't have the same type"
     show DeadCode = "code is never reached"
 
 show' :: Type -> String

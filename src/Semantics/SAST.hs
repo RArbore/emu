@@ -22,13 +22,14 @@ module Semantics.SAST
      Declaration  (..),
      Statement  (..),
      Expression  (..),
-     Expression'  (..),
      LValue  (..),
      ComptimeValue  (..),
      DecoratedIdentifier (..),
      DecoratedType (..),
      BinaryOp  (..),
-     UnaryOp  (..)
+     UnaryOp  (..),
+
+     typeOf
      
     ) where
 
@@ -40,7 +41,7 @@ import Data.Word
 
 import GHC.Generics (Generic)
 
-import Parser.AST (Type, Modifier, FixedPointVal, FloatingPointVal)
+import Parser.AST (Type (..), Modifier (..), FixedPointVal (..), FloatingPointVal (..))
 
 newtype SAST = SAST [Declaration] deriving (Show, Generic, NFData)
 
@@ -66,25 +67,47 @@ data Statement = ExpressionStatement Expression
                | Block [Declaration]
                | EmptyStatement deriving (Show, Generic, NFData)
 
-type Expression = (DecoratedType, Expression')
-data Expression' = Binary BinaryOp Expression Expression
-                 | Unary UnaryOp Expression 
-                 | Literal ComptimeValue
-                 | PrimaryIdentifier Text
-                 | ArrayLiteral [Expression]
-                 | Call Text [Expression]
-                 | LValueExpression LValue
-                 | Assign AssignOp LValue Expression
-                 | Address LValue
-                 | Undefined deriving (Show, Generic, NFData, Eq)
+data Expression = Binary BinaryOp Expression Expression DecoratedType
+                | Unary UnaryOp Expression DecoratedType
+                | Literal ComptimeValue
+                | ArrayLiteral [Expression]
+                | Call Text [Expression] DecoratedType
+                | LValueExpression LValue
+                | Assign AssignOp LValue Expression
+                | Address LValue
+                | Undefined deriving (Show, Generic, NFData, Eq)
 
 data LValue = Dereference Expression
-            | Access LValue Int
-            | Identifier Text deriving (Show, Generic, NFData, Eq)
+            | Access LValue Int DecoratedType
+            | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq)
 
 data ComptimeValue = BooleanLiteral Bool
                    | FixedPointLiteral FixedPointVal
                    | FloatingPointLiteral FloatingPointVal deriving (Show, Generic, NFData, Eq)
+
+typeOf :: Expression -> DecoratedType
+typeOf (Binary _ _ _ t) = t
+typeOf (Unary _ _ t) = t
+typeOf (Literal (BooleanLiteral _)) = DecoratedType 0 Bool []
+typeOf (Literal (FixedPointLiteral f)) = case f of
+                                           U8Val _ -> DecoratedType 0 U8 []
+                                           U16Val _ -> DecoratedType 0 U16 []
+                                           U32Val _ -> DecoratedType 0 U32 []
+                                           U64Val _ -> DecoratedType 0 U64 []
+                                           I8Val _ -> DecoratedType 0 I8 []
+                                           I16Val _ -> DecoratedType 0 I16 []
+                                           I32Val _ -> DecoratedType 0 I32 []
+                                           I64Val _ -> DecoratedType 0 I64 []
+typeOf (Literal (FloatingPointLiteral f)) = case f of
+                                           F32Val _ -> DecoratedType 0 F32 []
+                                           F64Val _ -> DecoratedType 0 F64 []
+typeOf (ArrayLiteral x) = typeOf $ head x
+typeOf (Call _ _ t) = t
+typeOf (LValueExpression (Dereference e)) = let (DecoratedType d t a) = typeOf e in DecoratedType (d + 1) t a
+typeOf (LValueExpression (Access _ _ t)) = t
+typeOf (LValueExpression (Identifier _ t)) = t
+typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
+typeOf Undefined = DecoratedType 0 Void []
 
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = DecoratedType Int Type [ComptimeValue] deriving (Show, Generic, NFData, Eq)
