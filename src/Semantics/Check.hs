@@ -26,6 +26,7 @@ import Data.Either
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
+import Data.Word
 
 import Parser.AST (Type (..),
                    Modifier (..),
@@ -110,6 +111,9 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ BooleanError $ typeOf sexpr
                                A.Tilda -> if notPointer $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ PointerTypeError
                                A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
+                               A.And -> case sexpr of
+                                          LValueExpression lval -> return $ Address lval
+                                          _ -> throwError $ SemanticsError l sc ec $ AddressError
                           where canIncDec (ArrayType t _) = canIncDec t
                                 canIncDec (PureType Void) = False
                                 canIncDec (PureType Bool) = False
@@ -127,3 +131,34 @@ checkExpr ((l, sc, ec), e) = checked
                                 notPointer _ = True
                                 canDeref (DerefType _) = True
                                 canDeref _ = False
+
+checkDecoratedType :: A.DecoratedType -> Semantics DecoratedType
+checkDecoratedType ((l, sc, ec), A.PureType t) = return $ PureType t
+checkDecoratedType ((l, sc, ec), A.DerefType t) = DerefType <$> checkDecoratedType t
+checkDecoratedType ((l, sc, ec), A.ArrayType t e) = do
+  sexpr <- checkExpr e
+  case sexpr of
+    Literal c -> case c of
+                   FixedPointLiteral v -> case extractWord64 v of
+                                            Just w64 -> (\x -> ArrayType x w64) <$> checkDecoratedType t
+                                            _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+                   _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+    _ -> throwError $ SemanticsError l sc ec $ NonComptimeError
+
+extractWord64 :: FixedPointVal -> Maybe Word64
+extractWord64 (U8Val x) = Just $ fromIntegral x
+extractWord64 (U16Val x) = Just $ fromIntegral x
+extractWord64 (U32Val x) = Just $ fromIntegral x
+extractWord64 (U64Val x) = Just $ fromIntegral x
+extractWord64 (I8Val x)
+    | x >= 0 = Just $ fromIntegral x
+    | otherwise = Nothing
+extractWord64 (I16Val x)
+    | x >= 0 = Just $ fromIntegral x
+    | otherwise = Nothing
+extractWord64 (I32Val x)
+    | x >= 0 = Just $ fromIntegral x
+    | otherwise = Nothing
+extractWord64 (I64Val x)
+    | x >= 0 = Just $ fromIntegral x
+    | otherwise = Nothing

@@ -162,7 +162,8 @@ pDeclaration = (try pStmtDecl)
                                         rest <- many $ pSymbol "," *> pDecoratedIdentifier
                                         return (first:rest))
             pSymbol ")"
-            typeP <- option (PureType Void) (pSymbol ":" *> pDecoratedType)
+            (sl, sc) <- posEx
+            typeP <- option ((sl, sc, sc), PureType Void) (pSymbol ":" *> pDecoratedType)
             stmt <- pStatement
             return $ FuncDecl mods iden parameters typeP stmt
           pVarDecl = do
@@ -382,12 +383,18 @@ pType = Void <$ pRWord "void"
 pDecoratedType :: Parser DecoratedType
 pDecoratedType = try arrayType <|> grouping <|> pureType <|> derefType 
     where grouping = pSymbol "(" *> pDecoratedType <* pSymbol ")"
-          pureType = PureType <$> pType
-          derefType = DerefType <$> (pSymbol "*" *> pDecoratedType)
+          pureType :: Parser DecoratedType
+          pureType = locWrap (PureType <$> pType)
+          derefType :: Parser DecoratedType
+          derefType = locWrap (DerefType <$> (pSymbol "*" *> pDecoratedType))
+          arrayType :: Parser DecoratedType
           arrayType = do
             t <- grouping <|> pureType <|> derefType 
             exprs <- many $ pSymbol "[" *> pExpression <* pSymbol "]"
-            return $ foldl ArrayType t (reverse exprs)
+            return $ formArrayType t $ reverse exprs
+                where formArrayType it [] = it
+                      formArrayType it@((l, sc, ec), t) xs = ((l, sc, endCol (last xs)), ArrayType (formArrayType it $ init xs) (last xs))
+                      endCol ((_, _, ec), _) = ec
             
 pModifier :: Parser Modifier
 pModifier = Pure <$ pRWord "pure"

@@ -46,6 +46,8 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | BooleanError DecoratedType
                         | PointerTypeError
                         | DerefNonPointerError DecoratedType
+                        | InvalidArraySizeError
+                        | NonComptimeError
                         | CallError Text Int Int
                         | AddressError
                         | AssignError
@@ -83,12 +85,14 @@ instance Show SemanticsErrorType where
     show (VoidVarDeclaration iden) = "cannot declare variable " ++ T.unpack iden ++ " as type void"
     show (UndefinedIdentifier iden) = "cannot reference the undefined identifier " ++ T.unpack iden
     show (TypeError t1 t2) = "expected type " ++ show' t1 ++ ", got type " ++ show' t2
-    show (CastError t1 t2) = "couldn't case type " ++ show' t1 ++ " to type " ++ show' t2
+    show (CastError t1 t2) = "couldn't cast type " ++ show' t1 ++ " to type " ++ show' t2
     show (IncDecError t) = "can't increment or decrement value of type " ++ show' t
     show (NumericError t) = show' t ++ " isn't a numeric type"
     show (BooleanError t) = show' t ++ " isn't a logical type"
     show PointerTypeError = "can't perform operation on pointer type"
     show (DerefNonPointerError t) = "can't derefence non-pointer type " ++ show' t
+    show InvalidArraySizeError = "invalid size for array"
+    show NonComptimeError = "array size isn't known at compile-time"
     show (CallError iden n1 n2) = "function " ++ T.unpack iden ++ " expected " ++ show n1 ++ " arguments, got " ++ show n2
     show AddressError = "can't take address of non-lvalue"
     show AssignError = "can't assign to a non-lvalue"

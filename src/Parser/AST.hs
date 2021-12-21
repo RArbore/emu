@@ -27,6 +27,7 @@ module Parser.AST
      FloatingPointVal (..),
      DecoratedIdentifier (..),
      DecoratedType (..),
+     DecoratedType' (..),
      Modifier (..),
      Type (..),
      BinaryOp (..),
@@ -91,9 +92,10 @@ data FloatingPointVal = F32Val Float
                       | F64Val Double deriving (Show, Generic, NFData, Eq)
  
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
-data DecoratedType = PureType Type
-                   | DerefType DecoratedType
-                   | ArrayType DecoratedType Expression deriving (Show, Generic, NFData, Eq)
+type DecoratedType = (Location, DecoratedType')
+data DecoratedType' = PureType Type
+                    | DerefType DecoratedType
+                    | ArrayType DecoratedType Expression deriving (Show, Generic, NFData, Eq)
 
 data Modifier = Pure
               | Const

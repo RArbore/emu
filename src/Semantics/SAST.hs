@@ -154,7 +154,7 @@ data UnaryOp = PrePlusPlus
              | Minus
              | Excla
              | Tilda
-             | Cast DecoratedType
+             | Cast 
              | PostPlusPlus
              | PostMinusMinus
              | Index [Expression] deriving (Show, Generic, NFData, Eq)
