@@ -104,4 +104,14 @@ checkExpr ((l, sc, ec), e) = checked
                                                       findMismatches f (x:xs) (y:ys)
                                                           | f x y = findMismatches f xs ys
                                                           | otherwise = (x, y):(findMismatches f xs ys)
-                             
+                      A.Unary op expr -> do
+                             sexpr <- checkExpr expr
+                             case op of
+                               A.PrePlusPlus -> if canIncDec $ typeOf sexpr then return $ Unary PrePlusPlus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.PreMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PreMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.PostPlusPlus -> if canIncDec $ typeOf sexpr then return $ Unary PostPlusPlus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.PostMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PostMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                          where canIncDec (ArrayType t _) = canIncDec t
+                                canIncDec (PureType Void) = False
+                                canIncDec (PureType Bool) = False
+                                canIncDec _ = True
