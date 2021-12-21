@@ -91,7 +91,9 @@ data FloatingPointVal = F32Val Float
                       | F64Val Double deriving (Show, Generic, NFData, Eq)
  
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
-data DecoratedType = DecoratedType Int Type [Expression] deriving (Show, Generic, NFData, Eq)
+data DecoratedType = PureType Type
+                   | DerefType DecoratedType
+                   | ArrayType DecoratedType Expression deriving (Show, Generic, NFData, Eq)
 
 data Modifier = Pure
               | Const

@@ -162,7 +162,7 @@ pDeclaration = (try pStmtDecl)
                                         rest <- many $ pSymbol "," *> pDecoratedIdentifier
                                         return (first:rest))
             pSymbol ")"
-            typeP <- option (DecoratedType 0 Void []) (pSymbol ":" *> pDecoratedType)
+            typeP <- option (PureType Void) (pSymbol ":" *> pDecoratedType)
             stmt <- pStatement
             return $ FuncDecl mods iden parameters typeP stmt
           pVarDecl = do
@@ -380,12 +380,15 @@ pType = Void <$ pRWord "void"
             <|> StructType <$> pIdentifier
 
 pDecoratedType :: Parser DecoratedType
-pDecoratedType = do
-  stars <- many $ pSymbol "*"
-  typeP <- pType
-  exprs <- many $ pSymbol "[" *> pExpression <* pSymbol "]"
-  return $ DecoratedType (length stars) typeP exprs
-
+pDecoratedType = try arrayType <|> grouping <|> pureType <|> derefType 
+    where grouping = pSymbol "(" *> pDecoratedType <* pSymbol ")"
+          pureType = PureType <$> pType
+          derefType = DerefType <$> (pSymbol "*" *> pDecoratedType)
+          arrayType = do
+            t <- grouping <|> pureType <|> derefType 
+            exprs <- many $ pSymbol "[" *> pExpression <* pSymbol "]"
+            return $ foldl ArrayType t (reverse exprs)
+            
 pModifier :: Parser Modifier
 pModifier = Pure <$ pRWord "pure"
             <|> Const <$ pRWord "const"

@@ -89,17 +89,22 @@ instance Show SemanticsErrorType where
     show HeterogenousArray = "expressions in array literal don't have the same type"
     show DeadCode = "code is never reached"
 
+show'' :: Type -> String
+show'' Void = "void"
+show'' Bool = "bool"
+show'' U8 = "u8"
+show'' U16 = "u16"
+show'' U32 = "u32"
+show'' U64 = "u64"
+show'' I8 = "i8"
+show'' I16 = "i16"
+show'' I32 = "i32"
+show'' I64 = "i64"
+show'' F32 = "f32"
+show'' F64 = "f64"
+show'' (StructType t) = T.unpack t
+
 show' :: DecoratedType -> String
-show' (DecoratedType p Void ss) = (replicate p '*') ++ "void" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p Bool ss) = (replicate p '*') ++ "bool" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p U8 ss) = (replicate p '*') ++ "u8" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p U16 ss) = (replicate p '*') ++ "u16" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p U32 ss) = (replicate p '*') ++ "u32" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p U64 ss) = (replicate p '*') ++ "u64" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p I8 ss) = (replicate p '*') ++ "i8" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p I16 ss) = (replicate p '*') ++ "i16" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p I32 ss) = (replicate p '*') ++ "i32" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p I64 ss) = (replicate p '*') ++ "i64" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p F32 ss) = (replicate p '*') ++ "f32" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p F64 ss) = (replicate p '*') ++ "f64" ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
-show' (DecoratedType p (StructType t) ss) = (replicate p '*') ++ T.unpack t ++ (concat $ map (\w -> "[" ++ show w ++ "]") ss)
+show' (PureType t) = show t
+show' (DerefType t) = '*':(show t)
+show' (ArrayType t w) = (show t) ++ "[" ++ show w ++ "]"
