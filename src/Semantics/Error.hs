@@ -48,7 +48,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | HeterogenousArray
                         | DeadCode
 
-data VarKind = Global | Local | Formal | StructField Text
+data VarKind = Global | Local | Formal | StructField Text deriving (Show, Eq, Ord)
 
 showSError :: SemanticsError -> Text -> Text -> String
 showSError (SemanticsError l sc ec e) f o
