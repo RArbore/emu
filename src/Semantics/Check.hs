@@ -48,6 +48,9 @@ type Semantics = ExceptT SemanticsError (State Environment)
 uniform [] = True
 uniform (x:xs) = all (== x) xs
 
+canImplicitlyConvert :: DecoratedType -> DecoratedType -> Bool
+canImplicitlyConvert = (==) -- Strictest form, cannot coerce types, will likely replace with better coerce mechanism at later point
+
 check :: A.AST -> Semantics SAST
 check = undefined
 
@@ -77,8 +80,28 @@ checkExpr ((l, sc, ec), e) = checked
                                  return $ ArrayLiteral exprs
                              else throwError $ SemanticsError l sc ec HeterogenousArray
                       A.PrimaryIdentifier t -> do
-                             boundVars <- gets vars
+                             boundVars <- lift $ gets vars
                              let lookup = M.lookup (t, Local) boundVars <|> M.lookup (t, Formal) boundVars <|> M.lookup (t, Global) boundVars
                              case lookup of
                                Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier t
                                Just dt -> return $ LValueExpression $ Identifier t $ (\(VarBinding _ (DecoratedIdentifier _ _ x) _) -> x) $ fromJust lookup
+                      A.Call f args -> do
+                             boundFuncs <- lift $ gets funcs
+                             let lookup = M.lookup f boundFuncs
+                             case lookup of
+                               Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier f
+                               Just df -> let (idens, retType) = (\(Function _ _ idens retType _) -> (idens, retType)) df
+                                          in if length idens /= length args then throwError $ SemanticsError l sc ec $ CallError f (length idens) (length args)
+                                          else do
+                                            sargs <- mapM checkExpr args
+                                            let mismatches = findMismatches canImplicitlyConvert (map (\(DecoratedIdentifier _ _ t) -> t) idens) (map typeOf sargs)
+                                            if null mismatches then return $ Call f sargs retType
+                                            else throwError $ SemanticsError l sc ec $ TypeError (fst $ head mismatches) (snd $ head mismatches)
+                                                where findMismatches :: (a -> a -> Bool) -> [a] -> [a] -> [(a, a)]
+                                                      findMismatches f [] [] = []
+                                                      findMismatches f _ [] = []
+                                                      findMismatches f [] _ = []
+                                                      findMismatches f (x:xs) (y:ys)
+                                                          | f x y = findMismatches f xs ys
+                                                          | otherwise = (x, y):(findMismatches f xs ys)
+                             

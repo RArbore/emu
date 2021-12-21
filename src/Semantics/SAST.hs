@@ -101,7 +101,7 @@ typeOf (Literal (FixedPointLiteral f)) = case f of
 typeOf (Literal (FloatingPointLiteral f)) = case f of
                                            F32Val _ -> DecoratedType 0 F32 []
                                            F64Val _ -> DecoratedType 0 F64 []
-typeOf (ArrayLiteral x) = typeOf $ head x
+typeOf (ArrayLiteral x) = let (DecoratedType p t ss) = typeOf $ head x in DecoratedType p t ((fromIntegral $ length x):ss)
 typeOf (Call _ _ t) = t
 typeOf (LValueExpression (Dereference e)) = let (DecoratedType d t a) = typeOf e in DecoratedType (d + 1) t a
 typeOf (LValueExpression (Access _ _ t)) = t
@@ -110,7 +110,7 @@ typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
 typeOf Undefined = DecoratedType 0 Void []
 
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
-data DecoratedType = DecoratedType Int Type [ComptimeValue] deriving (Show, Generic, NFData, Eq)
+data DecoratedType = DecoratedType Int Type [Word64] deriving (Show, Generic, NFData, Eq)
  
 data AssignOp = Equals
               | PlusEquals
