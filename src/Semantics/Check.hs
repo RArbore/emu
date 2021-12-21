@@ -105,7 +105,15 @@ checkExpr ((l, sc, ec), e) = checked
                                A.PreMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PreMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
                                A.PostPlusPlus -> if canIncDec $ typeOf sexpr then return $ Unary PostPlusPlus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
                                A.PostMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PostMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.Plus -> if numeric $ typeOf sexpr then return $ Unary Plus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
+                               A.Minus -> if numeric $ typeOf sexpr then return $ Unary Minus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                           where canIncDec (ArrayType t _) = canIncDec t
                                 canIncDec (PureType Void) = False
                                 canIncDec (PureType Bool) = False
                                 canIncDec _ = True
+                                numeric (ArrayType t _) = numeric t
+                                numeric (DerefType _) = False
+                                numeric (PureType Void) = False
+                                numeric (PureType Bool) = False
+                                numeric _ = True
+                                        
