@@ -22,6 +22,7 @@ import Control.Monad.State
 import Control.Monad.Except
 
 import qualified Data.ByteString as B
+import Data.Either
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
@@ -48,8 +49,8 @@ type Semantics = ExceptT SemanticsError (State Environment)
 uniform [] = True
 uniform (x:xs) = all (== x) xs
 
-canImplicitlyConvert :: DecoratedType -> DecoratedType -> Bool
-canImplicitlyConvert = (==) -- Strictest form, cannot coerce types, will likely replace with better coerce mechanism at later point
+implicitlyConvert :: Expression -> DecoratedType -> Either (Expression, DecoratedType) Expression
+implicitlyConvert e t = if typeOf e == t then Right e else Left (e, t)
 
 check :: A.AST -> Semantics SAST
 check = undefined
@@ -94,16 +95,9 @@ checkExpr ((l, sc, ec), e) = checked
                                           in if length idens /= length args then throwError $ SemanticsError l sc ec $ CallError f (length idens) (length args)
                                           else do
                                             sargs <- mapM checkExpr args
-                                            let mismatches = findMismatches canImplicitlyConvert (map (\(DecoratedIdentifier _ _ t) -> t) idens) (map typeOf sargs)
-                                            if null mismatches then return $ Call f sargs retType
-                                            else throwError $ SemanticsError l sc ec $ TypeError (fst $ head mismatches) (snd $ head mismatches)
-                                                where findMismatches :: (a -> a -> Bool) -> [a] -> [a] -> [(a, a)]
-                                                      findMismatches f [] [] = []
-                                                      findMismatches f _ [] = []
-                                                      findMismatches f [] _ = []
-                                                      findMismatches f (x:xs) (y:ys)
-                                                          | f x y = findMismatches f xs ys
-                                                          | otherwise = (x, y):(findMismatches f xs ys)
+                                            let converts = zipWith implicitlyConvert sargs (map (\(DecoratedIdentifier _ _ t) -> t) idens)
+                                            if all isRight converts then return $ Call f (map (fromRight undefined) converts) retType
+                                            else let mismatch = fromLeft undefined $ head $ filter isLeft converts in throwError $ SemanticsError l sc ec $ TypeError (snd $ mismatch) (typeOf $ fst $ mismatch)
                       A.Unary op expr -> do
                              sexpr <- checkExpr expr
                              case op of
