@@ -47,16 +47,19 @@ data Environment = Environment { vars :: Variables,
 
 type Semantics = ExceptT SemanticsError (State Environment)
 
+uniform :: Eq a => [a] -> Bool
 uniform [] = True
 uniform (x:xs) = all (== x) xs
 
 implicitlyConvert :: Expression -> DecoratedType -> Either (Expression, DecoratedType) Expression
 implicitlyConvert e t = if typeOf e == t then Right e else Left (e, t)
 
+checkExplicitCast :: DecoratedType -> DecoratedType -> Bool
+checkExplicitCast = (==)
+
 check :: A.AST -> Semantics SAST
 check = undefined
 
-uniform :: Eq a => [a] -> Bool
 checkExpr :: A.Expression -> Semantics Expression
 checkExpr ((l, sc, ec), e) = checked
     where checked = case e of
@@ -114,6 +117,9 @@ checkExpr ((l, sc, ec), e) = checked
                                A.And -> case sexpr of
                                           LValueExpression lval -> return $ Address lval
                                           _ -> throwError $ SemanticsError l sc ec $ AddressError
+                               A.Cast astDecType -> do
+                                           t <- checkDecoratedType astDecType
+                                           if checkExplicitCast (typeOf sexpr) t then return $ Unary Cast sexpr t else throwError $ SemanticsError l sc ec $ CastError (typeOf sexpr) t
                           where canIncDec (ArrayType t _) = canIncDec t
                                 canIncDec (PureType Void) = False
                                 canIncDec (PureType Bool) = False
