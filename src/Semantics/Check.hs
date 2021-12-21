@@ -107,6 +107,9 @@ checkExpr ((l, sc, ec), e) = checked
                                A.PostMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PostMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
                                A.Plus -> if numeric $ typeOf sexpr then return $ Unary Plus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                                A.Minus -> if numeric $ typeOf sexpr then return $ Unary Minus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
+                               A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ BooleanError $ typeOf sexpr
+                               A.Tilda -> if notPointer $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ PointerTypeError
+                               A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                           where canIncDec (ArrayType t _) = canIncDec t
                                 canIncDec (PureType Void) = False
                                 canIncDec (PureType Bool) = False
@@ -116,4 +119,11 @@ checkExpr ((l, sc, ec), e) = checked
                                 numeric (PureType Void) = False
                                 numeric (PureType Bool) = False
                                 numeric _ = True
-                                        
+                                boolean (ArrayType t _) = boolean t
+                                boolean (PureType Bool) = True
+                                boolean _ = False
+                                notPointer (ArrayType t _) = notPointer t
+                                notPointer (DerefType _) = False
+                                notPointer _ = True
+                                canDeref (DerefType _) = True
+                                canDeref _ = False
