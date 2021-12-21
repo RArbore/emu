@@ -112,14 +112,17 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Plus -> if numeric $ typeOf sexpr then return $ Unary Plus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                                A.Minus -> if numeric $ typeOf sexpr then return $ Unary Minus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                                A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ BooleanError $ typeOf sexpr
-                               A.Tilda -> if notPointer $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ PointerTypeError
+                               A.Tilda -> if notPointer $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec PointerTypeError
                                A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                                A.And -> case sexpr of
                                           LValueExpression lval -> return $ Address lval
-                                          _ -> throwError $ SemanticsError l sc ec $ AddressError
+                                          _ -> throwError $ SemanticsError l sc ec AddressError
                                A.Cast astDecType -> do
                                            t <- checkDecoratedType astDecType
                                            if checkExplicitCast (typeOf sexpr) t then return $ Unary Cast sexpr t else throwError $ SemanticsError l sc ec $ CastError (typeOf sexpr) t
+                               A.Index exprs -> do
+                                           sexprs <- mapM checkExpr exprs
+                                           indexArr sexpr sexprs
                           where canIncDec (ArrayType t _) = canIncDec t
                                 canIncDec (PureType Void) = False
                                 canIncDec (PureType Bool) = False
@@ -137,6 +140,22 @@ checkExpr ((l, sc, ec), e) = checked
                                 notPointer _ = True
                                 canDeref (DerefType _) = True
                                 canDeref _ = False
+                                isIntegralType (PureType U8) = True
+                                isIntegralType (PureType U16) = True
+                                isIntegralType (PureType U32) = True
+                                isIntegralType (PureType U64) = True
+                                isIntegralType (PureType I8) = True
+                                isIntegralType (PureType I16) = True
+                                isIntegralType (PureType I32) = True
+                                isIntegralType (PureType I64) = True
+                                isIntegralType _ = False
+                                indexArr :: Expression -> [Expression] -> Semantics Expression
+                                indexArr e [] = return e
+                                indexArr e (index:indices)
+                                    | isIntegralType $ typeOf index = case typeOf e of
+                                                                        (ArrayType t _) -> (\x -> return $ Unary (Index index) x t) =<< (indexArr e indices)
+                                                                        _ -> throwError $ SemanticsError l sc ec IndexNonArrayError
+                                    | otherwise = throwError $ SemanticsError l sc ec NonIntegralIndexError
 
 checkDecoratedType :: A.DecoratedType -> Semantics DecoratedType
 checkDecoratedType ((l, sc, ec), A.PureType t) = return $ PureType t

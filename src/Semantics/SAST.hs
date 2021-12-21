@@ -157,4 +157,4 @@ data UnaryOp = PrePlusPlus
              | Cast 
              | PostPlusPlus
              | PostMinusMinus
-             | Index [Expression] deriving (Show, Generic, NFData, Eq)
+             | Index Expression deriving (Show, Generic, NFData, Eq)
