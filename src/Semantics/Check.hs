@@ -52,10 +52,64 @@ uniform [] = True
 uniform (x:xs) = all (== x) xs
 
 implicitlyConvert :: Expression -> DecoratedType -> Either (Expression, DecoratedType) Expression
-implicitlyConvert e t = if typeOf e == t then Right e else Left (e, t)
+implicitlyConvert e t = if checkImplicitCast (typeOf e) t then Right e else Left (e, t)
 
 checkExplicitCast :: DecoratedType -> DecoratedType -> Bool
-checkExplicitCast = (==)
+checkExplicitCast t1 t2 = checkExplicitCastHelper t1 t2 || checkImplicitCast t1 t2
+    where checkExplicitCastHelper (PureType U8) (DerefType _) = True
+          checkExplicitCastHelper (PureType U16) (DerefType _) = True
+          checkExplicitCastHelper (PureType U32) (DerefType _) = True
+          checkExplicitCastHelper (PureType U64) (DerefType _) = True
+          checkExplicitCastHelper (PureType F32) (PureType U8) = True
+          checkExplicitCastHelper (PureType F64) (PureType U8) = True
+          checkExplicitCastHelper (PureType F32) (PureType U16) = True
+          checkExplicitCastHelper (PureType F64) (PureType U16) = True
+          checkExplicitCastHelper (PureType F32) (PureType U32) = True
+          checkExplicitCastHelper (PureType F64) (PureType U32) = True
+          checkExplicitCastHelper (PureType F32) (PureType U64) = True
+          checkExplicitCastHelper (PureType F64) (PureType U64) = True
+          checkExplicitCastHelper (PureType F32) (PureType I8) = True
+          checkExplicitCastHelper (PureType F64) (PureType I8) = True
+          checkExplicitCastHelper (PureType F32) (PureType I16) = True
+          checkExplicitCastHelper (PureType F64) (PureType I16) = True
+          checkExplicitCastHelper (PureType F32) (PureType I32) = True
+          checkExplicitCastHelper (PureType F64) (PureType I32) = True
+          checkExplicitCastHelper (PureType F32) (PureType I64) = True
+          checkExplicitCastHelper (PureType F64) (PureType I64) = True
+          checkExplicitCastHelper (ArrayType tt1 s1) (ArrayType tt2 s2) = s1 == s2 && checkExplicitCast tt1 tt2
+          checkExplicitCastHelper _ _ = False
+
+checkImplicitCast :: DecoratedType -> DecoratedType -> Bool
+checkImplicitCast t1 t2 = (t1 == t2) || checkImplicitCastHelper t1 t2
+    where checkImplicitCastHelper (PureType U8) (PureType U16) = True
+          checkImplicitCastHelper (PureType U8) (PureType U32) = True
+          checkImplicitCastHelper (PureType U8) (PureType U64) = True
+          checkImplicitCastHelper (PureType U16) (PureType U32) = True
+          checkImplicitCastHelper (PureType U16) (PureType U64) = True
+          checkImplicitCastHelper (PureType U32) (PureType U64) = True
+          checkImplicitCastHelper (PureType U8) (PureType I16) = True
+          checkImplicitCastHelper (PureType U8) (PureType I32) = True
+          checkImplicitCastHelper (PureType U8) (PureType I64) = True
+          checkImplicitCastHelper (PureType U16) (PureType I32) = True
+          checkImplicitCastHelper (PureType U16) (PureType I64) = True
+          checkImplicitCastHelper (PureType U32) (PureType I64) = True
+          checkImplicitCastHelper (PureType U8) (PureType F32) = True
+          checkImplicitCastHelper (PureType U8) (PureType F64) = True
+          checkImplicitCastHelper (PureType U16) (PureType F32) = True
+          checkImplicitCastHelper (PureType U16) (PureType F64) = True
+          checkImplicitCastHelper (PureType U32) (PureType F32) = True
+          checkImplicitCastHelper (PureType U32) (PureType F64) = True
+          checkImplicitCastHelper (PureType U64) (PureType F32) = True
+          checkImplicitCastHelper (PureType U64) (PureType F64) = True
+          checkImplicitCastHelper (PureType I8) (PureType F32) = True
+          checkImplicitCastHelper (PureType I8) (PureType F64) = True
+          checkImplicitCastHelper (PureType I16) (PureType F32) = True
+          checkImplicitCastHelper (PureType I16) (PureType F64) = True
+          checkImplicitCastHelper (PureType I32) (PureType F32) = True
+          checkImplicitCastHelper (PureType I32) (PureType F64) = True
+          checkImplicitCastHelper (PureType I64) (PureType F32) = True
+          checkImplicitCastHelper (PureType I64) (PureType F64) = True
+          checkImplicitCastHelper _ _ = False
 
 check :: A.AST -> Semantics SAST
 check = undefined
@@ -123,39 +177,39 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Index exprs -> do
                                            sexprs <- mapM checkExpr exprs
                                            indexArr sexpr sexprs
-                          where canIncDec (ArrayType t _) = canIncDec t
-                                canIncDec (PureType Void) = False
-                                canIncDec (PureType Bool) = False
-                                canIncDec _ = True
-                                numeric (ArrayType t _) = numeric t
-                                numeric (DerefType _) = False
-                                numeric (PureType Void) = False
-                                numeric (PureType Bool) = False
-                                numeric _ = True
-                                boolean (ArrayType t _) = boolean t
-                                boolean (PureType Bool) = True
-                                boolean _ = False
-                                notPointer (ArrayType t _) = notPointer t
-                                notPointer (DerefType _) = False
-                                notPointer _ = True
-                                canDeref (DerefType _) = True
-                                canDeref _ = False
-                                isIntegralType (PureType U8) = True
-                                isIntegralType (PureType U16) = True
-                                isIntegralType (PureType U32) = True
-                                isIntegralType (PureType U64) = True
-                                isIntegralType (PureType I8) = True
-                                isIntegralType (PureType I16) = True
-                                isIntegralType (PureType I32) = True
-                                isIntegralType (PureType I64) = True
-                                isIntegralType _ = False
-                                indexArr :: Expression -> [Expression] -> Semantics Expression
-                                indexArr e [] = return e
-                                indexArr e (index:indices)
-                                    | isIntegralType $ typeOf index = case typeOf e of
-                                                                        (ArrayType t _) -> (\x -> return $ Unary (Index index) x t) =<< (indexArr e indices)
-                                                                        _ -> throwError $ SemanticsError l sc ec IndexNonArrayError
-                                    | otherwise = throwError $ SemanticsError l sc ec NonIntegralIndexError
+          canIncDec (ArrayType t _) = canIncDec t
+          canIncDec (PureType Void) = False
+          canIncDec (PureType Bool) = False
+          canIncDec _ = True
+          numeric (ArrayType t _) = numeric t
+          numeric (DerefType _) = False
+          numeric (PureType Void) = False
+          numeric (PureType Bool) = False
+          numeric _ = True
+          boolean (ArrayType t _) = boolean t
+          boolean (PureType Bool) = True
+          boolean _ = False
+          notPointer (ArrayType t _) = notPointer t
+          notPointer (DerefType _) = False
+          notPointer _ = True
+          canDeref (DerefType _) = True
+          canDeref _ = False
+          isIntegralType (PureType U8) = True
+          isIntegralType (PureType U16) = True
+          isIntegralType (PureType U32) = True
+          isIntegralType (PureType U64) = True
+          isIntegralType (PureType I8) = True
+          isIntegralType (PureType I16) = True
+          isIntegralType (PureType I32) = True
+          isIntegralType (PureType I64) = True
+          isIntegralType _ = False
+          indexArr :: Expression -> [Expression] -> Semantics Expression
+          indexArr e [] = return e
+          indexArr e (index:indices)
+              | isIntegralType $ typeOf index = case typeOf e of
+                                                  (ArrayType t _) -> (\x -> return $ Unary (Index index) x t) =<< (indexArr e indices)
+                                                  _ -> throwError $ SemanticsError l sc ec IndexNonArrayError
+              | otherwise = throwError $ SemanticsError l sc ec NonIntegralIndexError
 
 checkDecoratedType :: A.DecoratedType -> Semantics DecoratedType
 checkDecoratedType ((l, sc, ec), A.PureType t) = return $ PureType t
