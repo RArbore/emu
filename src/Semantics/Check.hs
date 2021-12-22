@@ -52,7 +52,7 @@ uniform [] = True
 uniform (x:xs) = all (== x) xs
 
 implicitlyConvert :: Expression -> DecoratedType -> Either (Expression, DecoratedType) Expression
-implicitlyConvert e t = if checkImplicitCast (typeOf e) t then Right e else Left (e, t)
+implicitlyConvert e t = if checkImplicitCast (typeOf e) t then if typeOf e == t then Right e else Right (Unary Cast e t) else Left (e, t)
 
 checkExplicitCast :: DecoratedType -> DecoratedType -> Bool
 checkExplicitCast t1 t2 = checkExplicitCastHelper t1 t2 || checkImplicitCast t1 t2
@@ -186,6 +186,11 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Equals -> if not $ isLValue sexpr1 then throwError $ SemanticsError l sc ec AssignError
                                            else if not $ checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sexpr2) (typeOf sexpr1)
                                                 else return $ Assign Equals ((\(LValueExpression lval) -> lval) sexpr1) sexpr2
+                               A.PlusEquals -> arithEqualsOp sexpr1 sexpr2 PlusEquals True numeric numeric NumericError NumericError
+                               A.MinusEquals -> arithEqualsOp sexpr1 sexpr2 MinusEquals True numeric numeric NumericError NumericError
+                               A.StarEquals -> arithEqualsOp sexpr1 sexpr2 StarEquals False numeric numeric NumericError NumericError
+                               A.SlashEquals -> arithEqualsOp sexpr1 sexpr2 SlashEquals False numeric numeric NumericError NumericError
+                               A.PercentEquals -> arithEqualsOp sexpr1 sexpr2 PercentEquals False isIntegralType isIntegralType NonIntegralError NonIntegralError
                                A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
                                A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
                                A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
@@ -254,6 +259,18 @@ checkExpr ((l, sc, ec), e) = checked
                                                   (ArrayType t _) -> (\x -> return $ Unary (Index index) x t) =<< (indexArr e indices)
                                                   _ -> throwError $ SemanticsError l sc ec IndexNonArrayError
               | otherwise = throwError $ SemanticsError l sc ec (NonIntegralError $ typeOf index)
+          arithEqualsOp :: Expression -> Expression -> AssignOp -> Bool -> (DecoratedType -> Bool) -> (DecoratedType -> Bool) -> (DecoratedType -> SemanticsErrorType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
+          arithEqualsOp sexpr1 sexpr2 op canPtrLeft f1 f2 err1 err2 = if not $ isLValue sexpr1 then throwError $ SemanticsError l sc ec AssignError
+                                                                      else case typeOf sexpr1 of
+                                                                             DerefType _ -> if (not canPtrLeft) || (not $ isIntegralType $ typeOf sexpr2) then throwError $ SemanticsError l sc ec $ NonIntegralError $ typeOf sexpr2
+                                                                                            else return $ Assign op ((\(LValueExpression lval) -> lval) sexpr1) sexpr2
+                                                                             _ -> if (f1 $ typeOf sexpr1) && (f2 $ typeOf sexpr2)
+                                                                                  then let converted = implicitlyConvert sexpr2 (typeOf sexpr1)
+                                                                                       in case converted of
+                                                                                            Left (_, _) -> throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sexpr2) (typeOf sexpr1)
+                                                                                            Right casted -> return $ Assign op ((\(LValueExpression lval) -> lval) sexpr1) casted
+                                                                                  else if f1 $ typeOf sexpr1 then throwError $ SemanticsError l sc ec $ err2 $ typeOf sexpr2
+                                                                                       else throwError $ SemanticsError l sc ec $ err1 $ typeOf sexpr1
 
 checkDecoratedType :: A.DecoratedType -> Semantics DecoratedType
 checkDecoratedType ((l, sc, ec), A.PureType t) = return $ PureType t
