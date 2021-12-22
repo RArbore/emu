@@ -188,6 +188,12 @@ checkExpr ((l, sc, ec), e) = checked
                                A.BitwiseOr -> createCheckedOperand notVoid BitwiseOr (typeReconciliation sexpr1 sexpr2) BadTypeError
                                A.BitwiseXor -> createCheckedOperand notVoid BitwiseXor (typeReconciliation sexpr1 sexpr2) BadTypeError
                                A.BitwiseAnd -> createCheckedOperand notVoid BitwiseAnd (typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.EqualsEquals -> createCheckedOperand notVoid EqualsEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.ExclaEquals -> createCheckedOperand notVoid ExclaEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.Greater -> createCheckedOperand numeric Greater (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.Lesser -> createCheckedOperand numeric Lesser (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.GreaterEquals -> createCheckedOperand numeric GreaterEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.LesserEquals -> createCheckedOperand numeric LesserEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
                                                   else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
@@ -197,6 +203,7 @@ checkExpr ((l, sc, ec), e) = checked
           createCheckedOperand f o (Right (e1, e2, t)) auxEr = if (f $ typeOf e1) && (f $ typeOf e2) then return $ Binary o e1 e2 t
                                                                else if f $ typeOf e1 then throwError $ SemanticsError l sc ec $ auxEr $ typeOf e2
                                                                     else throwError $ SemanticsError l sc ec $ auxEr $ typeOf e1
+          overrideType t eith = (\(e1, e2, _) -> (e1, e2, t)) <$> eith
           notVoid (ArrayType t _) = notVoid t
           notVoid (DerefType t) = notVoid t
           notVoid (PureType Void) = False
