@@ -190,7 +190,11 @@ checkExpr ((l, sc, ec), e) = checked
                                A.MinusEquals -> arithEqualsOp sexpr1 sexpr2 MinusEquals True numeric numeric NumericError NumericError
                                A.StarEquals -> arithEqualsOp sexpr1 sexpr2 StarEquals False numeric numeric NumericError NumericError
                                A.SlashEquals -> arithEqualsOp sexpr1 sexpr2 SlashEquals False numeric numeric NumericError NumericError
-                               A.PercentEquals -> arithEqualsOp sexpr1 sexpr2 PercentEquals False isIntegralType isIntegralType NonIntegralError NonIntegralError
+                               A.PercentEquals -> arithEqualsOp sexpr1 sexpr2 PercentEquals False numeric isIntegralType NumericError NonIntegralError
+                               A.LShiftEquals -> arithEqualsOp sexpr1 sexpr2 LShiftEquals False numeric isIntegralType NumericError NonIntegralError
+                               A.HatEquals -> arithEqualsOp sexpr1 sexpr2 HatEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
+                               A.BarEquals -> arithEqualsOp sexpr1 sexpr2 BarEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
+                               A.AndEquals -> arithEqualsOp sexpr1 sexpr2 AndEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
                                A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
                                A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
                                A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
