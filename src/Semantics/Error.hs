@@ -50,6 +50,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | IndexNonArrayError
                         | NonIntegralIndexError
                         | NonComptimeError
+                        | TypeReconcileError DecoratedType DecoratedType
                         | CallError Text Int Int
                         | AddressError
                         | AssignError
@@ -97,6 +98,7 @@ instance Show SemanticsErrorType where
     show IndexNonArrayError = "can't index non-array (possibly indexing an array with too many indices?)"
     show NonIntegralIndexError = "can't index array with non-integral value"
     show NonComptimeError = "array size isn't known at compile-time"
+    show (TypeReconcileError t1 t2) = "can't reconcile types " ++ show' t1 ++ " and " ++ show' t2 ++ " (tried to use these types as operands in binary operation, neither can be implicitly casted to the other)"
     show (CallError iden n1 n2) = "function " ++ T.unpack iden ++ " expected " ++ show n1 ++ " arguments, got " ++ show n2
     show AddressError = "can't take address of non-lvalue"
     show AssignError = "can't assign to a non-lvalue"
