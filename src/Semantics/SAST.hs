@@ -26,6 +26,7 @@ module Semantics.SAST
      ComptimeValue  (..),
      DecoratedIdentifier (..),
      DecoratedType (..),
+     AssignOp  (..),
      BinaryOp  (..),
      UnaryOp  (..),
 

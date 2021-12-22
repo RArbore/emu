@@ -42,6 +42,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | TypeError DecoratedType DecoratedType
                         | BadTypeError DecoratedType
                         | CastError DecoratedType DecoratedType
+                        | ImplicitCastError DecoratedType DecoratedType
                         | IncDecError DecoratedType
                         | NumericError DecoratedType
                         | BooleanError DecoratedType
@@ -91,6 +92,7 @@ instance Show SemanticsErrorType where
     show (TypeError t1 t2) = "expected type " ++ show' t1 ++ ", got type " ++ show' t2
     show (BadTypeError t) = show' t ++ " isn't a legal type here"
     show (CastError t1 t2) = "couldn't cast type " ++ show' t1 ++ " to type " ++ show' t2
+    show (ImplicitCastError t1 t2) = "couldn't implicitly cast type " ++ show' t1 ++ " to type " ++ show' t2
     show (IncDecError t) = "can't increment or decrement value of type " ++ show' t
     show (NumericError t) = show' t ++ " isn't a numeric type"
     show (BooleanError t) = show' t ++ " isn't a logical type"

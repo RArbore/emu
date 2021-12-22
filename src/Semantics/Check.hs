@@ -183,6 +183,9 @@ checkExpr ((l, sc, ec), e) = checked
                              sexpr1 <- checkExpr expr1
                              sexpr2 <- checkExpr expr2
                              case op of
+                               A.Equals -> if not $ isLValue sexpr1 then throwError $ SemanticsError l sc ec AssignError
+                                           else if not $ checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sexpr2) (typeOf sexpr1)
+                                                else return $ Assign Equals ((\(LValueExpression lval) -> lval) sexpr1) sexpr2
                                A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
                                A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
                                A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
@@ -242,6 +245,8 @@ checkExpr ((l, sc, ec), e) = checked
           isIntegralType (PureType I32) = True
           isIntegralType (PureType I64) = True
           isIntegralType _ = False
+          isLValue (LValueExpression _) = True
+          isLValue _ = False
           indexArr :: Expression -> [Expression] -> Semantics Expression
           indexArr e [] = return e
           indexArr e (index:indices)
