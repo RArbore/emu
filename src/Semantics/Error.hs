@@ -49,7 +49,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | DerefNonPointerError DecoratedType
                         | InvalidArraySizeError
                         | IndexNonArrayError
-                        | NonIntegralIndexError
+                        | NonIntegralError DecoratedType
                         | NonComptimeError
                         | TypeReconcileError DecoratedType DecoratedType
                         | CallError Text Int Int
@@ -98,7 +98,7 @@ instance Show SemanticsErrorType where
     show (DerefNonPointerError t) = "can't derefence non-pointer type " ++ show' t
     show InvalidArraySizeError = "invalid size for array"
     show IndexNonArrayError = "can't index non-array (possibly indexing an array with too many indices?)"
-    show NonIntegralIndexError = "can't index array with non-integral value"
+    show (NonIntegralError t) = show' t ++ " is a non-integral type"
     show NonComptimeError = "array size isn't known at compile-time"
     show (TypeReconcileError t1 t2) = "can't reconcile types " ++ show' t1 ++ " and " ++ show' t2 ++ " (tried to use these types as operands in binary operation, neither can be implicitly casted to the other)"
     show (CallError iden n1 n2) = "function " ++ T.unpack iden ++ " expected " ++ show n1 ++ " arguments, got " ++ show n2

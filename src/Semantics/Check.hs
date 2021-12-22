@@ -77,6 +77,7 @@ checkExplicitCast t1 t2 = checkExplicitCastHelper t1 t2 || checkImplicitCast t1 
           checkExplicitCastHelper (PureType F64) (PureType I32) = True
           checkExplicitCastHelper (PureType F32) (PureType I64) = True
           checkExplicitCastHelper (PureType F64) (PureType I64) = True
+          checkExplicitCastHelper (DerefType _) (DerefType _) = True
           checkExplicitCastHelper (ArrayType tt1 s1) (ArrayType tt2 s2) = s1 == s2 && checkExplicitCast tt1 tt2
           checkExplicitCastHelper _ _ = False
 
@@ -182,27 +183,29 @@ checkExpr ((l, sc, ec), e) = checked
                              sexpr1 <- checkExpr expr1
                              sexpr2 <- checkExpr expr2
                              case op of
-                               A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError
-                               A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError
-                               A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError
-                               A.BitwiseOr -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseOr (typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.BitwiseXor -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseXor (typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.BitwiseAnd -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseAnd (typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.EqualsEquals -> createCheckedOperand singletonNonVoid singletonNonVoid EqualsEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.ExclaEquals -> createCheckedOperand singletonNonVoid singletonNonVoid ExclaEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.Greater -> createCheckedOperand numeric numeric Greater (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
-                               A.Lesser -> createCheckedOperand numeric numeric Lesser (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
-                               A.GreaterEquals -> createCheckedOperand numeric numeric GreaterEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
-                               A.LesserEquals -> createCheckedOperand numeric numeric LesserEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
+                               A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
+                               A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
+                               A.BitwiseOr -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseOr (typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
+                               A.BitwiseXor -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseXor (typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
+                               A.BitwiseAnd -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseAnd (typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
+                               A.EqualsEquals -> createCheckedOperand singletonNonVoid singletonNonVoid EqualsEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
+                               A.ExclaEquals -> createCheckedOperand singletonNonVoid singletonNonVoid ExclaEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
+                               A.Greater -> createCheckedOperand numeric numeric Greater (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.Lesser -> createCheckedOperand numeric numeric Lesser (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.GreaterEquals -> createCheckedOperand numeric numeric GreaterEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.LesserEquals -> createCheckedOperand numeric numeric LesserEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.LShift -> createCheckedOperand numeric isIntegralType LShift (Right (sexpr1, sexpr2, typeOf sexpr1)) NumericError NonIntegralError
+                               A.RShift -> createCheckedOperand numeric isIntegralType RShift (Right (sexpr1, sexpr2, typeOf sexpr1)) NumericError NonIntegralError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
                                                   else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
                                                        else Left $ SemanticsError l sc ec $ TypeReconcileError (typeOf sexpr1) (typeOf sexpr2)
-          createCheckedOperand :: (DecoratedType -> Bool) -> (DecoratedType -> Bool) -> BinaryOp -> Either SemanticsError (Expression, Expression, DecoratedType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
-          createCheckedOperand _ _ _ (Left s) _ = throwError s
-          createCheckedOperand f1 f2 o (Right (e1, e2, t)) auxEr = if (f1 $ typeOf e1) && (f2 $ typeOf e2) then return $ Binary o e1 e2 t
-                                                                   else if f1 $ typeOf e1 then throwError $ SemanticsError l sc ec $ auxEr $ typeOf e2
-                                                                        else throwError $ SemanticsError l sc ec $ auxEr $ typeOf e1
+          createCheckedOperand :: (DecoratedType -> Bool) -> (DecoratedType -> Bool) -> BinaryOp -> Either SemanticsError (Expression, Expression, DecoratedType) -> (DecoratedType -> SemanticsErrorType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
+          createCheckedOperand _ _ _ (Left s) _ _ = throwError s
+          createCheckedOperand f1 f2 o (Right (e1, e2, t)) auxEr1 auxEr2 = if (f1 $ typeOf e1) && (f2 $ typeOf e2) then return $ Binary o e1 e2 t
+                                                                           else if f1 $ typeOf e1 then throwError $ SemanticsError l sc ec $ auxEr2 $ typeOf e2
+                                                                                else throwError $ SemanticsError l sc ec $ auxEr1 $ typeOf e1
           overrideType t eith = (\(e1, e2, _) -> (e1, e2, t)) <$> eith
           singletonNonVoid (ArrayType _ _) = False
           singletonNonVoid (DerefType _) = False
@@ -236,7 +239,7 @@ checkExpr ((l, sc, ec), e) = checked
               | isIntegralType $ typeOf index = case typeOf e of
                                                   (ArrayType t _) -> (\x -> return $ Unary (Index index) x t) =<< (indexArr e indices)
                                                   _ -> throwError $ SemanticsError l sc ec IndexNonArrayError
-              | otherwise = throwError $ SemanticsError l sc ec NonIntegralIndexError
+              | otherwise = throwError $ SemanticsError l sc ec (NonIntegralError $ typeOf index)
 
 checkDecoratedType :: A.DecoratedType -> Semantics DecoratedType
 checkDecoratedType ((l, sc, ec), A.PureType t) = return $ PureType t
