@@ -182,17 +182,25 @@ checkExpr ((l, sc, ec), e) = checked
                              sexpr1 <- checkExpr expr1
                              sexpr2 <- checkExpr expr2
                              case op of
-                               A.LogicOr -> createCheckedOperand boolean LogicOr typeReconciliation BooleanError
-                                   where typeReconciliation = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
-                                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
-                                                                   else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
-                                                                        else Left $ SemanticsError l sc ec $ TypeReconcileError (typeOf sexpr1) (typeOf sexpr2)
-                                         createCheckedOperand :: (DecoratedType -> Bool) -> BinaryOp -> Either SemanticsError (Expression, Expression, DecoratedType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
-                                         createCheckedOperand _ _ (Left s) _ = throwError s
-                                         createCheckedOperand f o (Right (e1, e2, t)) auxEr = if (f $ typeOf e1) && (f $ typeOf e2)
-                                                                                                      then return $ Binary o e1 e2 t
-                                                                                                      else if f $ typeOf e1 then throwError $ SemanticsError l sc ec $ auxEr $ typeOf e2
-                                                                                                           else throwError $ SemanticsError l sc ec $ auxEr $ typeOf e1
+                               A.LogicOr -> createCheckedOperand boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError
+                               A.LogicXor -> createCheckedOperand boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError
+                               A.LogicAnd -> createCheckedOperand boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError
+                               A.BitwiseOr -> createCheckedOperand notVoid BitwiseOr (typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.BitwiseXor -> createCheckedOperand notVoid BitwiseXor (typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.BitwiseAnd -> createCheckedOperand notVoid BitwiseAnd (typeReconciliation sexpr1 sexpr2) BadTypeError
+          typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
+                                             else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
+                                                  else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
+                                                       else Left $ SemanticsError l sc ec $ TypeReconcileError (typeOf sexpr1) (typeOf sexpr2)
+          createCheckedOperand :: (DecoratedType -> Bool) -> BinaryOp -> Either SemanticsError (Expression, Expression, DecoratedType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
+          createCheckedOperand _ _ (Left s) _ = throwError s
+          createCheckedOperand f o (Right (e1, e2, t)) auxEr = if (f $ typeOf e1) && (f $ typeOf e2) then return $ Binary o e1 e2 t
+                                                               else if f $ typeOf e1 then throwError $ SemanticsError l sc ec $ auxEr $ typeOf e2
+                                                                    else throwError $ SemanticsError l sc ec $ auxEr $ typeOf e1
+          notVoid (ArrayType t _) = notVoid t
+          notVoid (DerefType t) = notVoid t
+          notVoid (PureType Void) = False
+          notVoid _ = True
           canIncDec (ArrayType t _) = canIncDec t
           canIncDec (PureType Void) = False
           canIncDec (PureType Bool) = False

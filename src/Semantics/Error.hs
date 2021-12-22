@@ -40,6 +40,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | VoidVarDeclaration Text
                         | UndefinedIdentifier Text
                         | TypeError DecoratedType DecoratedType
+                        | BadTypeError DecoratedType
                         | CastError DecoratedType DecoratedType
                         | IncDecError DecoratedType
                         | NumericError DecoratedType
@@ -88,6 +89,7 @@ instance Show SemanticsErrorType where
     show (VoidVarDeclaration iden) = "cannot declare variable " ++ T.unpack iden ++ " as type void"
     show (UndefinedIdentifier iden) = "cannot reference the undefined identifier " ++ T.unpack iden
     show (TypeError t1 t2) = "expected type " ++ show' t1 ++ ", got type " ++ show' t2
+    show (BadTypeError t) = show' t ++ " isn't a legal type here"
     show (CastError t1 t2) = "couldn't cast type " ++ show' t1 ++ " to type " ++ show' t2
     show (IncDecError t) = "can't increment or decrement value of type " ++ show' t
     show (NumericError t) = show' t ++ " isn't a numeric type"
