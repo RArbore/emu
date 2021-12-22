@@ -144,9 +144,7 @@ data BinaryOp = LogicOr
               | TermMinus
               | FactorStar
               | FactorSlash
-              | FactorPercent
-              | Dot 
-              | Arrow deriving (Show, Generic, NFData, Eq)
+              | FactorPercent deriving (Show, Generic, NFData, Eq)
                 
 data UnaryOp = PrePlusPlus
              | PreMinusMinus

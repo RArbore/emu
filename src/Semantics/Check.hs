@@ -197,6 +197,15 @@ checkExpr ((l, sc, ec), e) = checked
                                A.LesserEquals -> createCheckedOperand numeric numeric LesserEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError NumericError
                                A.LShift -> createCheckedOperand numeric isIntegralType LShift (Right (sexpr1, sexpr2, typeOf sexpr1)) NumericError NonIntegralError
                                A.RShift -> createCheckedOperand numeric isIntegralType RShift (Right (sexpr1, sexpr2, typeOf sexpr1)) NumericError NonIntegralError
+                               A.TermPlus -> case typeOf sexpr1 of
+                                               DerefType _ -> createCheckedOperand (\_ -> True) isIntegralType TermPlus (Right (sexpr1, sexpr2, typeOf sexpr1)) BadTypeError NonIntegralError
+                                               otherwise -> createCheckedOperand numeric numeric TermPlus (typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.TermMinus -> case typeOf sexpr1 of
+                                               DerefType _ -> createCheckedOperand (\_ -> True) isIntegralType TermMinus (Right (sexpr1, sexpr2, typeOf sexpr1)) BadTypeError NonIntegralError
+                                               otherwise -> createCheckedOperand numeric numeric TermMinus (typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.FactorStar -> createCheckedOperand numeric numeric FactorStar (typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.FactorSlash -> createCheckedOperand numeric numeric FactorSlash (typeReconciliation sexpr1 sexpr2) NumericError NumericError
+                               A.FactorPercent -> createCheckedOperand isIntegralType isIntegralType FactorPercent (typeReconciliation sexpr1 sexpr2) NonIntegralError NonIntegralError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
                                                   else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
