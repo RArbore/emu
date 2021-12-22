@@ -167,7 +167,7 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Plus -> if numeric $ typeOf sexpr then return $ Unary Plus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                                A.Minus -> if numeric $ typeOf sexpr then return $ Unary Minus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                                A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ BooleanError $ typeOf sexpr
-                               A.Tilda -> if notPointer $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec PointerTypeError
+                               A.Tilda -> if singletonNonVoid $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec PointerTypeError
                                A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                                A.And -> case sexpr of
                                           LValueExpression lval -> return $ Address lval
@@ -182,47 +182,43 @@ checkExpr ((l, sc, ec), e) = checked
                              sexpr1 <- checkExpr expr1
                              sexpr2 <- checkExpr expr2
                              case op of
-                               A.LogicOr -> createCheckedOperand boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError
-                               A.LogicXor -> createCheckedOperand boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError
-                               A.LogicAnd -> createCheckedOperand boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError
-                               A.BitwiseOr -> createCheckedOperand notVoid BitwiseOr (typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.BitwiseXor -> createCheckedOperand notVoid BitwiseXor (typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.BitwiseAnd -> createCheckedOperand notVoid BitwiseAnd (typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.EqualsEquals -> createCheckedOperand notVoid EqualsEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.ExclaEquals -> createCheckedOperand notVoid ExclaEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
-                               A.Greater -> createCheckedOperand numeric Greater (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
-                               A.Lesser -> createCheckedOperand numeric Lesser (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
-                               A.GreaterEquals -> createCheckedOperand numeric GreaterEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
-                               A.LesserEquals -> createCheckedOperand numeric LesserEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError
+                               A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError
+                               A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError
+                               A.BitwiseOr -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseOr (typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.BitwiseXor -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseXor (typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.BitwiseAnd -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseAnd (typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.EqualsEquals -> createCheckedOperand singletonNonVoid singletonNonVoid EqualsEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.ExclaEquals -> createCheckedOperand singletonNonVoid singletonNonVoid ExclaEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) BadTypeError
+                               A.Greater -> createCheckedOperand numeric numeric Greater (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.Lesser -> createCheckedOperand numeric numeric Lesser (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.GreaterEquals -> createCheckedOperand numeric numeric GreaterEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
+                               A.LesserEquals -> createCheckedOperand numeric numeric LesserEquals (overrideType (PureType Bool) $ typeReconciliation sexpr1 sexpr2) NumericError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
                                                   else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
                                                        else Left $ SemanticsError l sc ec $ TypeReconcileError (typeOf sexpr1) (typeOf sexpr2)
-          createCheckedOperand :: (DecoratedType -> Bool) -> BinaryOp -> Either SemanticsError (Expression, Expression, DecoratedType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
-          createCheckedOperand _ _ (Left s) _ = throwError s
-          createCheckedOperand f o (Right (e1, e2, t)) auxEr = if (f $ typeOf e1) && (f $ typeOf e2) then return $ Binary o e1 e2 t
-                                                               else if f $ typeOf e1 then throwError $ SemanticsError l sc ec $ auxEr $ typeOf e2
-                                                                    else throwError $ SemanticsError l sc ec $ auxEr $ typeOf e1
+          createCheckedOperand :: (DecoratedType -> Bool) -> (DecoratedType -> Bool) -> BinaryOp -> Either SemanticsError (Expression, Expression, DecoratedType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
+          createCheckedOperand _ _ _ (Left s) _ = throwError s
+          createCheckedOperand f1 f2 o (Right (e1, e2, t)) auxEr = if (f1 $ typeOf e1) && (f2 $ typeOf e2) then return $ Binary o e1 e2 t
+                                                                   else if f1 $ typeOf e1 then throwError $ SemanticsError l sc ec $ auxEr $ typeOf e2
+                                                                        else throwError $ SemanticsError l sc ec $ auxEr $ typeOf e1
           overrideType t eith = (\(e1, e2, _) -> (e1, e2, t)) <$> eith
-          notVoid (ArrayType t _) = notVoid t
-          notVoid (DerefType t) = notVoid t
-          notVoid (PureType Void) = False
-          notVoid _ = True
-          canIncDec (ArrayType t _) = canIncDec t
+          singletonNonVoid (ArrayType _ _) = False
+          singletonNonVoid (DerefType _) = False
+          singletonNonVoid (PureType Void) = False
+          singletonNonVoid _ = True
+          canIncDec (ArrayType _ _) = False
           canIncDec (PureType Void) = False
           canIncDec (PureType Bool) = False
           canIncDec _ = True
-          numeric (ArrayType t _) = numeric t
+          numeric (ArrayType _ _) = False
           numeric (DerefType _) = False
           numeric (PureType Void) = False
           numeric (PureType Bool) = False
           numeric _ = True
-          boolean (ArrayType t _) = boolean t
           boolean (PureType Bool) = True
           boolean _ = False
-          notPointer (ArrayType t _) = notPointer t
-          notPointer (DerefType _) = False
-          notPointer _ = True
           canDeref (DerefType _) = True
           canDeref _ = False
           isIntegralType (PureType U8) = True
