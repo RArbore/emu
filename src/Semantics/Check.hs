@@ -218,7 +218,18 @@ checkExpr ((l, sc, ec), e) = checked
                                A.FactorStar -> createCheckedOperand numeric numeric FactorStar (typeReconciliation sexpr1 sexpr2) NumericError NumericError
                                A.FactorSlash -> createCheckedOperand numeric numeric FactorSlash (typeReconciliation sexpr1 sexpr2) NumericError NumericError
                                A.FactorPercent -> createCheckedOperand isIntegralType isIntegralType FactorPercent (typeReconciliation sexpr1 sexpr2) NonIntegralError NonIntegralError
-                      A.Access expr1 expr2 -> undefined
+                      A.Access expr1 expr2 -> do
+                             sstruct <- checkExpr expr1
+                             case sstruct of
+                               LValueExpression lval -> case typeOf sstruct of
+                                                          PureType (StructType structName) -> do
+                                                                              boundStructs <- lift $ gets structs
+                                                                              let lookup = M.lookup structName boundStructs
+                                                                              case lookup of
+                                                                                Just (Structure _ _ decIdens) -> undefined
+                                                                                Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
+                                                          _ -> throwError $ SemanticsError l sc ec NonStructFieldAccessError
+                               _ -> throwError $ SemanticsError l sc ec LValueAccessError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
                                                   else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
@@ -307,3 +318,25 @@ extractWord64 (I32Val x)
 extractWord64 (I64Val x)
     | x >= 0 = Just $ fromIntegral x
     | otherwise = Nothing
+
+sizeOf :: DecoratedType -> Semantics Word64
+sizeOf (PureType Void) = return 0
+sizeOf (PureType Bool) = return 1
+sizeOf (PureType U8) = return 1
+sizeOf (PureType U16) = return 2
+sizeOf (PureType U32) = return 4
+sizeOf (PureType U64) = return 8
+sizeOf (PureType I8) = return 1
+sizeOf (PureType I16) = return 2
+sizeOf (PureType I32) = return 4
+sizeOf (PureType I64) = return 8
+sizeOf (PureType F32) = return 4
+sizeOf (PureType F64) = return 8
+sizeOf (PureType (StructType structName)) = do
+  boundStructs <- lift $ gets structs
+  let lookup = M.lookup structName boundStructs
+  case lookup of
+    Just (Structure _ _ decIdens) -> (foldl (+) 0) <$> (sequence $ map sizeOf $ map (\(DecoratedIdentifier _ _ t) -> t) decIdens)
+    Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
+sizeOf (DerefType _) = return 8
+sizeOf (ArrayType t s) = (* s) <$> sizeOf t

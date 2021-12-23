@@ -79,7 +79,7 @@ data Expression = Binary BinaryOp Expression Expression DecoratedType
                 | Undefined deriving (Show, Generic, NFData, Eq)
 
 data LValue = Dereference Expression
-            | Access LValue Int DecoratedType
+            | Access LValue Word64 DecoratedType
             | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq)
 
 data ComptimeValue = BooleanLiteral Bool

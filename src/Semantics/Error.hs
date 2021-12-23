@@ -59,6 +59,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | ImproperIdentifier Text
                         | FieldAccessError Text Text
                         | LValueAccessError
+                        | NonStructFieldAccessError
                         | NameAccessError
                         | HeterogenousArray
                         | DeadCode
@@ -109,6 +110,7 @@ instance Show SemanticsErrorType where
     show (ImproperIdentifier iden) = "improperly used identifier " ++ T.unpack iden
     show (FieldAccessError iden1 iden2) = "struct type " ++ T.unpack iden1 ++ " doesn't contain a field named " ++ T.unpack iden2
     show LValueAccessError = "cannot access a field of a non-lvalue"
+    show NonStructFieldAccessError = "cannot access a field of a non-struct"
     show NameAccessError = "cannot access a field with an expression"
     show HeterogenousArray = "expressions in array literal don't have the same type"
     show DeadCode = "code is never reached"
