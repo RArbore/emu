@@ -77,6 +77,7 @@ data Expression' = Binary BinaryOp Expression Expression
                  | PrimaryIdentifier Text
                  | Call Text [Expression]
                  | ArrayLiteral [Expression]
+                 | Access Expression Expression
                  | Undefined deriving (Show, Generic, NFData, Eq)
 
 data FixedPointVal = U8Val Word8
@@ -147,9 +148,7 @@ data BinaryOp = Equals
               | TermMinus
               | FactorStar
               | FactorSlash
-              | FactorPercent
-              | Dot 
-              | Arrow deriving (Show, Generic, NFData, Eq)
+              | FactorPercent deriving (Show, Generic, NFData, Eq)
                 
 data UnaryOp = PrePlusPlus
              | PreMinusMinus

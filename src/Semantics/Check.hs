@@ -218,6 +218,7 @@ checkExpr ((l, sc, ec), e) = checked
                                A.FactorStar -> createCheckedOperand numeric numeric FactorStar (typeReconciliation sexpr1 sexpr2) NumericError NumericError
                                A.FactorSlash -> createCheckedOperand numeric numeric FactorSlash (typeReconciliation sexpr1 sexpr2) NumericError NumericError
                                A.FactorPercent -> createCheckedOperand isIntegralType isIntegralType FactorPercent (typeReconciliation sexpr1 sexpr2) NonIntegralError NonIntegralError
+                      A.Access expr1 expr2 -> undefined
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
                                                   else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)

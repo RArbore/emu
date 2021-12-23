@@ -248,8 +248,8 @@ opTable =
     [
      [
       Postfix $ foldr1 (.) . reverse <$> some postfix,
-      InfixL $ (locWrapBin $ Binary Dot) <$ pSymbol ".",
-      InfixL $ (locWrapBin $ Binary Arrow) <$ tryPSymbol "->"
+      InfixL $ (locWrapBin $ Access) <$ pSymbol ".",
+      InfixL $ (locWrapBin $ (\e1 e2 -> Access (locWrapUn (Unary Star) e1) e2)) <$ tryPSymbol "->"
      ],
      [Prefix $ foldr1 (.) <$> some prefix],
      [

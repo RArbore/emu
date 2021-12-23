@@ -86,30 +86,6 @@ data ComptimeValue = BooleanLiteral Bool
                    | FixedPointLiteral FixedPointVal
                    | FloatingPointLiteral FloatingPointVal deriving (Show, Generic, NFData, Eq)
 
-typeOf :: Expression -> DecoratedType
-typeOf (Binary _ _ _ t) = t
-typeOf (Unary _ _ t) = t
-typeOf (Literal (BooleanLiteral _)) = PureType Bool
-typeOf (Literal (FixedPointLiteral f)) = case f of
-                                           U8Val _ -> PureType U8
-                                           U16Val _ -> PureType U16
-                                           U32Val _ -> PureType U32
-                                           U64Val _ -> PureType U64
-                                           I8Val _ -> PureType I8
-                                           I16Val _ -> PureType I16
-                                           I32Val _ -> PureType I32
-                                           I64Val _ -> PureType I64
-typeOf (Literal (FloatingPointLiteral f)) = case f of
-                                           F32Val _ -> PureType F32
-                                           F64Val _ -> PureType F64
-typeOf (ArrayLiteral x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
-typeOf (Call _ _ t) = t
-typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
-typeOf (LValueExpression (Access _ _ t)) = t
-typeOf (LValueExpression (Identifier _ t)) = t
-typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
-typeOf Undefined = PureType Void
-
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = PureType Type
                    | DerefType DecoratedType
@@ -157,3 +133,27 @@ data UnaryOp = PrePlusPlus
              | PostPlusPlus
              | PostMinusMinus
              | Index Expression deriving (Show, Generic, NFData, Eq)
+
+typeOf :: Expression -> DecoratedType
+typeOf (Binary _ _ _ t) = t
+typeOf (Unary _ _ t) = t
+typeOf (Literal (BooleanLiteral _)) = PureType Bool
+typeOf (Literal (FixedPointLiteral f)) = case f of
+                                           U8Val _ -> PureType U8
+                                           U16Val _ -> PureType U16
+                                           U32Val _ -> PureType U32
+                                           U64Val _ -> PureType U64
+                                           I8Val _ -> PureType I8
+                                           I16Val _ -> PureType I16
+                                           I32Val _ -> PureType I32
+                                           I64Val _ -> PureType I64
+typeOf (Literal (FloatingPointLiteral f)) = case f of
+                                           F32Val _ -> PureType F32
+                                           F64Val _ -> PureType F64
+typeOf (ArrayLiteral x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
+typeOf (Call _ _ t) = t
+typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
+typeOf (LValueExpression (Access _ _ t)) = t
+typeOf (LValueExpression (Identifier _ t)) = t
+typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
+typeOf Undefined = PureType Void
