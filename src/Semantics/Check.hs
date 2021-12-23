@@ -221,14 +221,21 @@ checkExpr ((l, sc, ec), e) = checked
                       A.Access expr1 expr2 -> do
                              sstruct <- checkExpr expr1
                              case sstruct of
-                               LValueExpression lval -> case typeOf sstruct of
-                                                          PureType (StructType structName) -> do
-                                                                              boundStructs <- lift $ gets structs
-                                                                              let lookup = M.lookup structName boundStructs
-                                                                              case lookup of
-                                                                                Just (Structure _ _ decIdens) -> undefined
-                                                                                Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
-                                                          _ -> throwError $ SemanticsError l sc ec NonStructFieldAccessError
+                               LValueExpression lval ->
+                                   case typeOf sstruct of
+                                     PureType (StructType structName) ->
+                                         do
+                                           boundStructs <- lift $ gets structs
+                                           let lookup = M.lookup structName boundStructs
+                                           case lookup of
+                                             Just struct ->
+                                                 case expr2 of
+                                                   (_, A.PrimaryIdentifier fieldName) -> do
+                                                       (pos, t) <- getPosInStruct (l, sc, ec) fieldName struct 0
+                                                       return $ LValueExpression $ Access lval pos t
+                                                   _ -> throwError $ SemanticsError l sc ec NameAccessError
+                                             Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
+                                     _ -> throwError $ SemanticsError l sc ec NonStructFieldAccessError
                                _ -> throwError $ SemanticsError l sc ec LValueAccessError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
                                              else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
@@ -340,3 +347,9 @@ sizeOf (PureType (StructType structName)) = do
     Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
 sizeOf (DerefType _) = return 8
 sizeOf (ArrayType t s) = (* s) <$> sizeOf t
+
+getPosInStruct :: (Int, Int, Int) -> Text -> Structure -> Word64 -> Semantics (Word64, DecoratedType)
+getPosInStruct (l, sc, ec) search (Structure _ structName []) _ = throwError $ SemanticsError l sc ec $ FieldAccessError structName search
+getPosInStruct errPos search (Structure mods structName ((DecoratedIdentifier _ fieldName t):dis)) pos
+    | search == fieldName = return (pos, t)
+    | otherwise = sizeOf t >>= (\x -> getPosInStruct errPos search (Structure mods structName dis) (pos + x))
