@@ -126,13 +126,22 @@ checkStmt ((l, sc, ec), s) = checked
                       A.ExpressionStatement e -> ExpressionStatement <$> checkExpr e
                       A.IfElseStatement cond b1 b2 -> do
                              scond <- checkExpr cond
+                             boundVars <- gets vars
+                             sb1 <- checkStmt b1
+                             modify $ \env -> env { vars = boundVars }
+                             boundVars <- gets vars
+                             sb2 <- checkStmt b2
+                             modify $ \env -> env { vars = boundVars }
                              case typeOf scond of
-                               PureType Bool -> IfElseStatement <$> return scond <*> checkStmt b1 <*> checkStmt b2
+                               PureType Bool -> return $ IfElseStatement scond sb1 sb2
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
                       A.WhileStatement cond b -> do
                              scond <- checkExpr cond
+                             boundVars <- gets vars
+                             sb <- checkStmt b
+                             modify $ \env -> env { vars = boundVars }
                              case typeOf scond of
-                               PureType Bool -> IfElseStatement <$> return scond <*> (DoWhileStatement <$> return scond <*> checkStmt b) <*> return EmptyStatement
+                               PureType Bool -> return $ IfElseStatement scond (DoWhileStatement scond sb) EmptyStatement
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
                       A.ForStatement decl cond iter b -> do
                              boundVars <- gets vars
