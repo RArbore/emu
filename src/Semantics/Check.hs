@@ -43,7 +43,8 @@ type Structures = M.Map Text Structure
 
 data Environment = Environment { vars :: Variables,
                                  funcs :: Functions,
-                                 structs :: Structures }
+                                 structs :: Structures,
+                                 curFunc :: Text }
 
 type Semantics = ExceptT SemanticsError (State Environment)
 
@@ -128,25 +129,15 @@ checkStmt ((l, sc, ec), s) = checked
                       A.WhileStatement cond b -> do
                              scond <- checkExpr cond
                              case typeOf scond of
-                               PureType Bool -> WhileStatement <$> return scond <*> checkStmt b
+                               PureType Bool -> IfElseStatement <$> return scond <*> (DoWhileStatement <$> return scond <*> checkStmt b) <*> return EmptyStatement
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
 
 checkExpr :: A.Expression -> Semantics Expression
 checkExpr ((l, sc, ec), e) = checked
     where checked = case e of
                       A.BooleanLiteral b -> return $ Literal $ BooleanLiteral b
-                      A.FixedPointLiteral i -> case i of
-                                                 A.U8Val _ -> return $ Literal $ FixedPointLiteral i
-                                                 A.U16Val _ -> return $ Literal $ FixedPointLiteral i
-                                                 A.U32Val _ -> return $ Literal $ FixedPointLiteral i
-                                                 A.U64Val _ -> return $ Literal $ FixedPointLiteral i
-                                                 A.I8Val _ -> return $ Literal $ FixedPointLiteral i
-                                                 A.I16Val _ -> return $ Literal $ FixedPointLiteral i
-                                                 A.I32Val _ -> return $ Literal $ FixedPointLiteral i
-                                                 A.I64Val _ -> return $ Literal $ FixedPointLiteral i
-                      A.FloatingPointLiteral d -> case d of
-                                                    A.F32Val _ -> return $ Literal $ FloatingPointLiteral d
-                                                    A.F64Val _ -> return $ Literal $ FloatingPointLiteral d
+                      A.FixedPointLiteral i -> return $ Literal $ FixedPointLiteral i
+                      A.FloatingPointLiteral d -> return $ Literal $ FloatingPointLiteral d
                       A.CharLiteral c -> return $ Literal $ FixedPointLiteral $ U8Val c
                       A.StringLiteral s -> return $ ArrayLiteral $ map (Literal . FixedPointLiteral . U8Val) $ B.unpack s
                       A.Undefined -> return $ Undefined

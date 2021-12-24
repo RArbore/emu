@@ -59,7 +59,7 @@ data Declaration = StructDecl Structure
     
 data Statement = ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement
-               | WhileStatement Expression Statement
+               | DoWhileStatement Expression Statement
                | SwitchStatement Expression Statement
                | CaseStatement Expression Statement
                | ReturnStatement Expression
