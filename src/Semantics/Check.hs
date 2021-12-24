@@ -116,6 +116,11 @@ checkImplicitCast t1 t2 = (t1 == t2) || checkImplicitCastHelper t1 t2
 check :: A.AST -> Semantics SAST
 check = undefined
 
+checkStmt :: A.Statement -> Semantics Statement
+checkStmt ((l, sc, ec), s) = checked
+    where checked = case s of
+                      A.ExpressionStatement e -> ExpressionStatement <$> checkExpr e
+
 checkExpr :: A.Expression -> Semantics Expression
 checkExpr ((l, sc, ec), e) = checked
     where checked = case e of
@@ -223,18 +228,17 @@ checkExpr ((l, sc, ec), e) = checked
                              case sstruct of
                                LValueExpression lval ->
                                    case typeOf sstruct of
-                                     PureType (StructType structName) ->
-                                         do
-                                           boundStructs <- lift $ gets structs
-                                           let lookup = M.lookup structName boundStructs
-                                           case lookup of
-                                             Just struct ->
-                                                 case expr2 of
-                                                   (_, A.PrimaryIdentifier fieldName) -> do
-                                                       (pos, t) <- getPosInStruct (l, sc, ec) fieldName struct 0
-                                                       return $ LValueExpression $ Access lval pos t
-                                                   _ -> throwError $ SemanticsError l sc ec NameAccessError
-                                             Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
+                                     PureType (StructType structName) -> do
+                                                         boundStructs <- lift $ gets structs
+                                                         let lookup = M.lookup structName boundStructs
+                                                         case lookup of
+                                                           Just struct ->
+                                                               case expr2 of
+                                                                 (_, A.PrimaryIdentifier fieldName) -> do
+                                                                            (pos, t) <- getPosInStruct (l, sc, ec) fieldName struct 0
+                                                                            return $ LValueExpression $ Access lval pos t
+                                                                 _ -> throwError $ SemanticsError l sc ec NameAccessError
+                                                           Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
                                      _ -> throwError $ SemanticsError l sc ec NonStructFieldAccessError
                                _ -> throwError $ SemanticsError l sc ec LValueAccessError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
