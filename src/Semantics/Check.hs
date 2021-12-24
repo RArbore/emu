@@ -135,23 +135,19 @@ checkStmt ((l, sc, ec), s) = checked
                                PureType Bool -> IfElseStatement <$> return scond <*> (DoWhileStatement <$> return scond <*> checkStmt b) <*> return EmptyStatement
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
                       A.ForStatement decl cond iter b -> do
+                             boundVars <- gets vars
+                             sdecl <- checkDecl decl
                              scond <- checkExpr cond
+                             siter <- checkExpr iter
+                             sb <- checkStmt b
+                             modify $ \env -> env { vars = boundVars }
                              case typeOf scond of
-                               PureType Bool -> do
-                                                 siter <- checkExpr iter
-                                                 sb <- checkStmt b
-                                                 fb <- StatementDecl
-                                                       <$> (IfElseStatement
-                                                            <$> return scond
-                                                                    <*> (DoWhileStatement
-                                                                         <$> return scond
-                                                                                 <*> (return
-                                                                                      $ Block [StatementDecl sb, StatementDecl
-                                                                                                                 $ ExpressionStatement
-                                                                                                                       $ siter]))
-                                                                    <*> return EmptyStatement)
-                                                 sdecl <- checkDecl decl
-                                                 return $ Block [sdecl, fb]
+                               PureType Bool -> return $ Block [
+                                                          sdecl,
+                                                          StatementDecl $ IfElseStatement scond
+                                                                            (DoWhileStatement scond (Block [StatementDecl sb, StatementDecl $ ExpressionStatement siter]))
+                                                                            EmptyStatement
+                                                         ]
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
 
 checkExpr :: A.Expression -> Semantics Expression
@@ -169,13 +165,13 @@ checkExpr ((l, sc, ec), e) = checked
                                  return $ ArrayLiteral exprs
                              else throwError $ SemanticsError l sc ec HeterogenousArray
                       A.PrimaryIdentifier t -> do
-                             boundVars <- lift $ gets vars
+                             boundVars <- gets vars
                              let lookup = M.lookup (t, Local) boundVars <|> M.lookup (t, Formal) boundVars <|> M.lookup (t, Global) boundVars
                              case lookup of
                                Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier t
                                Just dt -> return $ LValueExpression $ Identifier t $ (\(VarBinding _ (DecoratedIdentifier _ _ x) _) -> x) $ fromJust lookup
                       A.Call f args -> do
-                             boundFuncs <- lift $ gets funcs
+                             boundFuncs <- gets funcs
                              let lookup = M.lookup f boundFuncs
                              case lookup of
                                Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier f
@@ -252,7 +248,7 @@ checkExpr ((l, sc, ec), e) = checked
                                LValueExpression lval ->
                                    case typeOf sstruct of
                                      PureType (StructType structName) -> do
-                                                         boundStructs <- lift $ gets structs
+                                                         boundStructs <- gets structs
                                                          let lookup = M.lookup structName boundStructs
                                                          case lookup of
                                                            Just struct ->
@@ -367,7 +363,7 @@ sizeOf (PureType I64) = return 8
 sizeOf (PureType F32) = return 4
 sizeOf (PureType F64) = return 8
 sizeOf (PureType (StructType structName)) = do
-  boundStructs <- lift $ gets structs
+  boundStructs <- gets structs
   let lookup = M.lookup structName boundStructs
   case lookup of
     Just (Structure _ _ decIdens) -> (foldl (+) 0) <$> (sequence $ map sizeOf $ map (\(DecoratedIdentifier _ _ t) -> t) decIdens)
