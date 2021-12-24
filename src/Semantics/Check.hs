@@ -120,6 +120,16 @@ checkStmt :: A.Statement -> Semantics Statement
 checkStmt ((l, sc, ec), s) = checked
     where checked = case s of
                       A.ExpressionStatement e -> ExpressionStatement <$> checkExpr e
+                      A.IfElseStatement cond b1 b2 -> do
+                             scond <- checkExpr cond
+                             case typeOf scond of
+                               PureType Bool -> IfElseStatement <$> return scond <*> checkStmt b1 <*> checkStmt b2
+                               _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
+                      A.WhileStatement cond b -> do
+                             scond <- checkExpr cond
+                             case typeOf scond of
+                               PureType Bool -> WhileStatement <$> return scond <*> checkStmt b
+                               _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
 
 checkExpr :: A.Expression -> Semantics Expression
 checkExpr ((l, sc, ec), e) = checked
