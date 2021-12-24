@@ -117,6 +117,9 @@ checkImplicitCast t1 t2 = (t1 == t2) || checkImplicitCastHelper t1 t2
 check :: A.AST -> Semantics SAST
 check = undefined
 
+checkDecl :: A.Declaration -> Semantics Declaration
+checkDecl = undefined
+        
 checkStmt :: A.Statement -> Semantics Statement
 checkStmt ((l, sc, ec), s) = checked
     where checked = case s of
@@ -130,6 +133,25 @@ checkStmt ((l, sc, ec), s) = checked
                              scond <- checkExpr cond
                              case typeOf scond of
                                PureType Bool -> IfElseStatement <$> return scond <*> (DoWhileStatement <$> return scond <*> checkStmt b) <*> return EmptyStatement
+                               _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
+                      A.ForStatement decl cond iter b -> do
+                             scond <- checkExpr cond
+                             case typeOf scond of
+                               PureType Bool -> do
+                                                 siter <- checkExpr iter
+                                                 sb <- checkStmt b
+                                                 fb <- StatementDecl
+                                                       <$> (IfElseStatement
+                                                            <$> return scond
+                                                                    <*> (DoWhileStatement
+                                                                         <$> return scond
+                                                                                 <*> (return
+                                                                                      $ Block [StatementDecl sb, StatementDecl
+                                                                                                                 $ ExpressionStatement
+                                                                                                                       $ siter]))
+                                                                    <*> return EmptyStatement)
+                                                 sdecl <- checkDecl decl
+                                                 return $ Block [sdecl, fb]
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
 
 checkExpr :: A.Expression -> Semantics Expression
