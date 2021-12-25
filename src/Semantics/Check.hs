@@ -168,6 +168,8 @@ checkStmt ((l, sc, ec), s) = checked
                              else throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
                       A.BreakStatement -> undefined
                       A.ContinueStatement -> undefined
+                      A.Block decls -> Block <$> mapM checkDecl decls
+                      A.EmptyStatement -> return EmptyStatement
 
 checkExpr :: A.Expression -> Semantics Expression
 checkExpr ((l, sc, ec), e) = checked
@@ -179,7 +181,7 @@ checkExpr ((l, sc, ec), e) = checked
                       A.StringLiteral s -> return $ ArrayLiteral $ map (Literal . FixedPointLiteral . U8Val) $ B.unpack s
                       A.Undefined -> return $ Undefined
                       A.ArrayLiteral x -> do
-                             exprs <- sequence $ map checkExpr x
+                             exprs <- mapM checkExpr x
                              if uniform $ map typeOf exprs then
                                  return $ ArrayLiteral exprs
                              else throwError $ SemanticsError l sc ec HeterogenousArray
@@ -385,7 +387,7 @@ sizeOf (PureType (StructType structName)) = do
   boundStructs <- gets structs
   let lookup = M.lookup structName boundStructs
   case lookup of
-    Just (Structure _ _ decIdens) -> (foldl (+) 0) <$> (sequence $ map sizeOf $ map (\(DecoratedIdentifier _ _ t) -> t) decIdens)
+    Just (Structure _ _ decIdens) -> (foldl (+) 0) <$> (mapM sizeOf $ map (\(DecoratedIdentifier _ _ t) -> t) decIdens)
     Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType structName
 sizeOf (DerefType _) = return 8
 sizeOf (ArrayType t s) = (* s) <$> sizeOf t
