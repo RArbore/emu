@@ -23,6 +23,7 @@ import Control.Monad.Except
 
 import qualified Data.ByteString as B
 import Data.Either
+import Data.List
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text)
@@ -118,7 +119,37 @@ check :: A.AST -> Semantics SAST
 check = undefined
 
 checkDecl :: A.Declaration -> Semantics Declaration
-checkDecl = undefined
+checkDecl ((l, sc, ec), d) = checked
+    where checked = case d of
+                      A.StructDecl mods name fields -> do
+                             boundVars <- gets vars
+                             boundFuncs <- gets funcs
+                             boundStructs <- gets structs
+                             let lookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
+                             let funcLookup = M.lookup name boundFuncs
+                             let structLookup = M.lookup name boundStructs
+                             when (isJust lookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
+                             sfields <- checkFields (l, sc, ec) fields
+                             undefined
+
+checkFields :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
+checkFields (l, sc, ec) idens = let sortedNames = map (\(A.DecoratedIdentifier _ n _) -> n) $
+                                                  sortBy (\(A.DecoratedIdentifier _ n1 _) (A.DecoratedIdentifier _ n2 _) -> compare n1 n2) idens
+                                    checkDup [] = Nothing
+                                    checkDup [x] = Nothing
+                                    checkDup (x1:x2:xs)
+                                        | x1 == x2 = Just x1
+                                        | otherwise = checkDup (x2:xs)
+                                    maybeDup = checkDup sortedNames
+                                in case maybeDup of
+                                     Just dupName -> throwError $ SemanticsError l sc ec $ DuplicateField dupName
+                                     Nothing -> mapM convertIden idens
+                                         where convertIden (A.DecoratedIdentifier mods name decType) = do
+                                                   sDecType <- checkType decType
+                                                   return $ DecoratedIdentifier mods name sDecType
+
+checkType :: A.DecoratedType -> Semantics DecoratedType
+checkType = undefined
         
 checkStmt :: A.Statement -> Semantics Statement
 checkStmt ((l, sc, ec), s) = checked

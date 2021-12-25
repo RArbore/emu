@@ -36,7 +36,8 @@ data SemanticsError = SemanticsError { line :: Int,
                                        endCol :: Int,
                                        errorType :: SemanticsErrorType }
 
-data SemanticsErrorType = DuplicateDeclaration Text VarKind
+data SemanticsErrorType = DuplicateDeclaration Text 
+                        | DuplicateField Text 
                         | VoidVarDeclaration Text
                         | UndefinedIdentifier Text
                         | TypeError DecoratedType DecoratedType
@@ -64,7 +65,7 @@ data SemanticsErrorType = DuplicateDeclaration Text VarKind
                         | HeterogenousArray
                         | DeadCode
 
-data VarKind = Global | Local | Formal | StructField Text deriving (Show, Eq, Ord)
+data VarKind = Global | Local | Formal deriving (Show, Eq, Ord)
 
 showSError :: SemanticsError -> Text -> Text -> String
 showSError (SemanticsError l sc ec e) f o
@@ -84,10 +85,8 @@ showSError (SemanticsError l sc ec e) f o
               | otherwise = ec - sc
 
 instance Show SemanticsErrorType where
-    show (DuplicateDeclaration iden Global) = "cannot redeclare already declared global identifier " ++ T.unpack iden
-    show (DuplicateDeclaration iden Local) = "cannot redeclare already declared local identifier " ++ T.unpack iden
-    show (DuplicateDeclaration iden Formal) = "cannot redeclare already declared formal identifier " ++ T.unpack iden
-    show (DuplicateDeclaration iden (StructField name)) = "cannot redeclare already declared structure field identifier " ++ T.unpack iden ++ " for structure " ++ T.unpack name
+    show (DuplicateDeclaration iden) = "cannot redeclare already declared identifier " ++ T.unpack iden
+    show (DuplicateField iden) = "cannot redeclare already declared field " ++ T.unpack iden
     show (VoidVarDeclaration iden) = "cannot declare variable " ++ T.unpack iden ++ " as type void"
     show (UndefinedIdentifier iden) = "cannot reference the undefined identifier " ++ T.unpack iden
     show (TypeError t1 t2) = "expected type " ++ show' t1 ++ ", got type " ++ show' t2
