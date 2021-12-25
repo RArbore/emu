@@ -44,7 +44,7 @@ type Structures = M.Map Text Structure
 data Environment = Environment { vars :: Variables,
                                  funcs :: Functions,
                                  structs :: Structures,
-                                 curFunc :: Text }
+                                 curFuncRetType :: DecoratedType }
 
 type Semantics = ExceptT SemanticsError (State Environment)
 
@@ -158,6 +158,16 @@ checkStmt ((l, sc, ec), s) = checked
                                                                             EmptyStatement
                                                          ]
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
+                      A.SwitchStatement _ _ -> undefined
+                      A.CaseStatement _ _ -> undefined
+                      A.ReturnStatement expr -> do
+                             sexpr <- checkExpr expr
+                             retType <- gets curFuncRetType
+                             if typeOf sexpr == retType
+                             then return $ ReturnStatement sexpr
+                             else throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
+                      A.BreakStatement -> undefined
+                      A.ContinueStatement -> undefined
 
 checkExpr :: A.Expression -> Semantics Expression
 checkExpr ((l, sc, ec), e) = checked
