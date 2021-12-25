@@ -149,8 +149,33 @@ checkFields (l, sc, ec) idens = let sortedNames = map (\(A.DecoratedIdentifier _
                                                    return $ DecoratedIdentifier mods name sDecType
 
 checkType :: A.DecoratedType -> Semantics DecoratedType
-checkType = undefined
-        
+checkType ((l, sc, ec), A.PureType t) = return $ PureType t
+checkType ((l, sc, ec), A.DerefType t) = DerefType <$> checkType t
+checkType ((l, sc, ec), A.ArrayType t e) = do se <- checkExpr e
+                                              case se of
+                                                Literal (BooleanLiteral _) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType Bool
+                                                Literal (FixedPointLiteral fv) -> case extractWord64 fv of
+                                                                                    Just w64 -> ArrayType <$> checkType t <*> return w64
+                                                                                    Nothing -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+                                                Literal (FloatingPointLiteral (F32Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F32
+                                                Literal (FloatingPointLiteral (F64Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F64
+                                                LValueExpression (Identifier name tIden) -> do boundVars <- gets vars
+                                                                                               let lookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
+                                                                                               case lookup of
+                                                                                                 Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier name
+                                                                                                 Just (VarBinding mods _ ce) ->
+                                                                                                     if not $ Comptime `elem` mods
+                                                                                                     then throwError $ SemanticsError l sc ec $ NonComptimeError
+                                                                                                     else case ce of
+                                                                                                            Literal (BooleanLiteral _) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType Bool
+                                                                                                            Literal (FixedPointLiteral fv) -> case extractWord64 fv of
+                                                                                                                                                Just w64 -> ArrayType <$> checkType t <*> return w64
+                                                                                                                                                Nothing -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+                                                                                                            Literal (FloatingPointLiteral (F32Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F32
+                                                                                                            Literal (FloatingPointLiteral (F64Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F64
+                                                                                                            _ -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ typeOf ce
+                                                _ -> throwError $ SemanticsError l sc ec $ NonComptimeError
+
 checkStmt :: A.Statement -> Semantics Statement
 checkStmt ((l, sc, ec), s) = checked
     where checked = case s of
