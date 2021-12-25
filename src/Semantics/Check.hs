@@ -168,7 +168,11 @@ checkStmt ((l, sc, ec), s) = checked
                              else throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
                       A.BreakStatement -> undefined
                       A.ContinueStatement -> undefined
-                      A.Block decls -> Block <$> mapM checkDecl decls
+                      A.Block decls -> do
+                             boundVars <- gets vars
+                             sdecls <- mapM checkDecl decls
+                             modify $ \env -> env { vars = boundVars }
+                             return $ Block sdecls
                       A.EmptyStatement -> return EmptyStatement
 
 checkExpr :: A.Expression -> Semantics Expression
