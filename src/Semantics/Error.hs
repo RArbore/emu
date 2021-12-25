@@ -27,7 +27,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
 
-import Parser.AST (Type (..))
+import Parser.AST (Type (..), Modifier (..))
 
 import Semantics.SAST
      
@@ -63,6 +63,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | NonStructFieldAccessError
                         | NameAccessError
                         | HeterogenousArray
+                        | InvalidModifier Modifier
                         | DeadCode
 
 data VarKind = Global | Local | Formal deriving (Show, Eq, Ord)
@@ -112,6 +113,12 @@ instance Show SemanticsErrorType where
     show NonStructFieldAccessError = "cannot access a field of a non-struct"
     show NameAccessError = "cannot access a field with an expression"
     show HeterogenousArray = "expressions in array literal don't have the same type"
+    show (InvalidModifier Pure) = "pure is an invalid modifier here"
+    show (InvalidModifier Const) = "const is an invalid modifier here"
+    show (InvalidModifier Inline) = "inline is an invalid modifier here"
+    show (InvalidModifier Comptime) = "comptime is an invalid modifier here"
+    show (InvalidModifier Register) = "register is an invalid modifier here"
+    show (InvalidModifier Restrict) = "restrict is an invalid modifier here"
     show DeadCode = "code is never reached"
 
 show'' :: Type -> String

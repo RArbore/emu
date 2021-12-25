@@ -130,7 +130,13 @@ checkDecl ((l, sc, ec), d) = checked
                              let structLookup = M.lookup name boundStructs
                              when (isJust lookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
                              sfields <- checkFields (l, sc, ec) fields
-                             undefined
+                             when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
+                             when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
+                             when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
+                             when (A.Comptime `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Comptime
+                             when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
+                             when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
+                             return $ StructDecl $ Structure mods name sfields
 
 checkFields :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
 checkFields (l, sc, ec) idens = let sortedNames = map (\(A.DecoratedIdentifier _ n _) -> n) $
