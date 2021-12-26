@@ -151,36 +151,8 @@ checkFields (l, sc, ec) idens = let sortedNames = map (\(A.DecoratedIdentifier _
                                      Just dupName -> throwError $ SemanticsError l sc ec $ DuplicateField dupName
                                      Nothing -> mapM convertIden idens
                                          where convertIden (A.DecoratedIdentifier mods name decType) = do
-                                                   sDecType <- checkType decType
+                                                   sDecType <- checkDecoratedType decType
                                                    return $ DecoratedIdentifier mods name sDecType
-
-checkType :: A.DecoratedType -> Semantics DecoratedType
-checkType ((l, sc, ec), A.PureType t) = return $ PureType t
-checkType ((l, sc, ec), A.DerefType t) = DerefType <$> checkType t
-checkType ((l, sc, ec), A.ArrayType t e) = do se <- checkExpr e
-                                              case se of
-                                                Literal (BooleanLiteral _) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType Bool
-                                                Literal (FixedPointLiteral fv) -> case extractWord64 fv of
-                                                                                    Just w64 -> ArrayType <$> checkType t <*> return w64
-                                                                                    Nothing -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
-                                                Literal (FloatingPointLiteral (F32Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F32
-                                                Literal (FloatingPointLiteral (F64Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F64
-                                                LValueExpression (Identifier name tIden) -> do boundVars <- gets vars
-                                                                                               let lookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
-                                                                                               case lookup of
-                                                                                                 Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier name
-                                                                                                 Just (VarBinding mods _ ce) ->
-                                                                                                     if not $ Comptime `elem` mods
-                                                                                                     then throwError $ SemanticsError l sc ec $ NonComptimeError
-                                                                                                     else case ce of
-                                                                                                            Literal (BooleanLiteral _) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType Bool
-                                                                                                            Literal (FixedPointLiteral fv) -> case extractWord64 fv of
-                                                                                                                                                Just w64 -> ArrayType <$> checkType t <*> return w64
-                                                                                                                                                Nothing -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
-                                                                                                            Literal (FloatingPointLiteral (F32Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F32
-                                                                                                            Literal (FloatingPointLiteral (F64Val _)) -> throwError $ SemanticsError l sc ec $ NonIntegralError $ PureType F64
-                                                                                                            _ -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ typeOf ce
-                                                _ -> throwError $ SemanticsError l sc ec $ NonComptimeError
 
 checkStmt :: A.Statement -> Semantics Statement
 checkStmt ((l, sc, ec), s) = checked
@@ -240,16 +212,24 @@ checkStmt ((l, sc, ec), s) = checked
 checkExpr :: A.Expression -> Semantics Expression
 checkExpr ((l, sc, ec), e) = checked
     where checked = case e of
-                      A.BooleanLiteral b -> return $ Literal $ BooleanLiteral b
-                      A.FixedPointLiteral i -> return $ Literal $ FixedPointLiteral i
-                      A.FloatingPointLiteral d -> return $ Literal $ FloatingPointLiteral d
-                      A.CharLiteral c -> return $ Literal $ FixedPointLiteral $ U8Val c
-                      A.StringLiteral s -> return $ ArrayLiteral $ map (Literal . FixedPointLiteral . U8Val) $ B.unpack s
+                      A.BooleanLiteral b -> return $ Literal $ ComptimeBool b
+                      A.FixedPointLiteral (U8Val x) -> return $ Literal $ ComptimeU8 x
+                      A.FixedPointLiteral (U16Val x) -> return $ Literal $ ComptimeU16 x
+                      A.FixedPointLiteral (U32Val x) -> return $ Literal $ ComptimeU32 x
+                      A.FixedPointLiteral (U64Val x) -> return $ Literal $ ComptimeU64 x
+                      A.FixedPointLiteral (I8Val x) -> return $ Literal $ ComptimeI8 x
+                      A.FixedPointLiteral (I16Val x) -> return $ Literal $ ComptimeI16 x
+                      A.FixedPointLiteral (I32Val x) -> return $ Literal $ ComptimeI32 x
+                      A.FixedPointLiteral (I64Val x) -> return $ Literal $ ComptimeI64 x
+                      A.FloatingPointLiteral (F32Val x) -> return $ Literal $ ComptimeF32 x
+                      A.FloatingPointLiteral (F64Val x) -> return $ Literal $ ComptimeF64 x
+                      A.CharLiteral c -> return $ Literal $ ComptimeU8 c
+                      A.StringLiteral s -> let unpacked = B.unpack s in return $ Literal $ ComptimeU8Arr unpacked [fromIntegral $ length unpacked]
                       A.Undefined -> return $ Undefined
                       A.ArrayLiteral x -> do
                              exprs <- mapM checkExpr x
                              if uniform $ map typeOf exprs then
-                                 return $ ArrayLiteral exprs
+                                 return $ Array exprs
                              else throwError $ SemanticsError l sc ec HeterogenousArray
                       A.PrimaryIdentifier t -> do
                              boundVars <- gets vars
@@ -410,29 +390,17 @@ checkDecoratedType ((l, sc, ec), A.PureType t) = return $ PureType t
 checkDecoratedType ((l, sc, ec), A.DerefType t) = DerefType <$> checkDecoratedType t
 checkDecoratedType ((l, sc, ec), A.ArrayType t e) = do
   sexpr <- checkExpr e
+  st <- checkDecoratedType t
   case sexpr of
-    Literal c -> case c of
-                   FixedPointLiteral v -> case extractWord64 v of
-                                            Just w64 -> (\x -> ArrayType x w64) <$> checkDecoratedType t
-                                            _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
-                   _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+    Literal cv -> case cv of
+                    ComptimePointer _ _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+                    ComptimeU8 w8 -> case extractWord64 w8 of
+                                       Just ex64 -> return $ ArrayType st ex64
+                                       Nothing -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
     _ -> throwError $ SemanticsError l sc ec $ NonComptimeError
 
-extractWord64 :: FixedPointVal -> Maybe Word64
-extractWord64 (U8Val x) = Just $ fromIntegral x
-extractWord64 (U16Val x) = Just $ fromIntegral x
-extractWord64 (U32Val x) = Just $ fromIntegral x
-extractWord64 (U64Val x) = Just $ fromIntegral x
-extractWord64 (I8Val x)
-    | x >= 0 = Just $ fromIntegral x
-    | otherwise = Nothing
-extractWord64 (I16Val x)
-    | x >= 0 = Just $ fromIntegral x
-    | otherwise = Nothing
-extractWord64 (I32Val x)
-    | x >= 0 = Just $ fromIntegral x
-    | otherwise = Nothing
-extractWord64 (I64Val x)
+extractWord64 :: Integral a => a -> Maybe Word64
+extractWord64 x
     | x >= 0 = Just $ fromIntegral x
     | otherwise = Nothing
 

@@ -37,6 +37,7 @@ module Semantics.SAST
 import Control.DeepSeq
     
 import qualified Data.ByteString as B
+import Data.Int
 import Data.Text (Text)
 import Data.Word
 
@@ -71,7 +72,7 @@ data Statement = ExpressionStatement Expression
 data Expression = Binary BinaryOp Expression Expression DecoratedType
                 | Unary UnaryOp Expression DecoratedType
                 | Literal ComptimeValue
-                | ArrayLiteral [Expression]
+                | Array [Expression]
                 | Call Text [Expression] DecoratedType
                 | LValueExpression LValue
                 | Assign AssignOp LValue Expression
@@ -82,9 +83,30 @@ data LValue = Dereference Expression
             | Access LValue Word64 DecoratedType
             | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq)
 
-data ComptimeValue = BooleanLiteral Bool
-                   | FixedPointLiteral FixedPointVal
-                   | FloatingPointLiteral FloatingPointVal deriving (Show, Generic, NFData, Eq)
+data ComptimeValue = ComptimePointer Word64 DecoratedType 
+                   | ComptimeBool Bool
+                   | ComptimeU8 Word8 
+                   | ComptimeU16 Word16 
+                   | ComptimeU32 Word32 
+                   | ComptimeU64 Word64 
+                   | ComptimeI8 Int8 
+                   | ComptimeI16 Int16 
+                   | ComptimeI32 Int32 
+                   | ComptimeI64 Int64 
+                   | ComptimeF32 Float 
+                   | ComptimeF64 Double 
+                   | ComptimePointerArr [Word64] DecoratedType [Word64]
+                   | ComptimeBoolArr [Bool] [Word64]
+                   | ComptimeU8Arr [Word8] [Word64]
+                   | ComptimeU16Arr [Word16] [Word64]
+                   | ComptimeU32Arr [Word32] [Word64]
+                   | ComptimeU64Arr [Word64] [Word64]
+                   | ComptimeI8Arr [Int8] [Word64]
+                   | ComptimeI16Arr [Int16] [Word64]
+                   | ComptimeI32Arr [Int32] [Word64]
+                   | ComptimeI64Arr [Int64] [Word64]
+                   | ComptimeF32Arr [Float] [Word64]
+                   | ComptimeF64Arr [Double] [Word64] deriving (Show, Generic, NFData, Eq)
 
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = PureType Type
@@ -137,23 +159,38 @@ data UnaryOp = PrePlusPlus
 typeOf :: Expression -> DecoratedType
 typeOf (Binary _ _ _ t) = t
 typeOf (Unary _ _ t) = t
-typeOf (Literal (BooleanLiteral _)) = PureType Bool
-typeOf (Literal (FixedPointLiteral f)) = case f of
-                                           U8Val _ -> PureType U8
-                                           U16Val _ -> PureType U16
-                                           U32Val _ -> PureType U32
-                                           U64Val _ -> PureType U64
-                                           I8Val _ -> PureType I8
-                                           I16Val _ -> PureType I16
-                                           I32Val _ -> PureType I32
-                                           I64Val _ -> PureType I64
-typeOf (Literal (FloatingPointLiteral f)) = case f of
-                                           F32Val _ -> PureType F32
-                                           F64Val _ -> PureType F64
-typeOf (ArrayLiteral x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
+typeOf (Literal (ComptimePointer _ t)) = DerefType t
+typeOf (Literal (ComptimeBool _)) = PureType Bool
+typeOf (Literal (ComptimeU8 _)) = PureType U8
+typeOf (Literal (ComptimeU16 _)) = PureType U16
+typeOf (Literal (ComptimeU32 _)) = PureType U32
+typeOf (Literal (ComptimeU64 _)) = PureType U64
+typeOf (Literal (ComptimeI8 _)) = PureType I8
+typeOf (Literal (ComptimeI16 _)) = PureType I16
+typeOf (Literal (ComptimeI32 _)) = PureType I32
+typeOf (Literal (ComptimeI64 _)) = PureType I64
+typeOf (Literal (ComptimeF32 _)) = PureType F32
+typeOf (Literal (ComptimeF64 _)) = PureType F64
+typeOf (Literal (ComptimePointerArr _ t dims)) = arrayWrap dims $ DerefType t
+typeOf (Literal (ComptimeBoolArr _ dims)) = arrayWrap dims $ PureType Bool
+typeOf (Literal (ComptimeU8Arr _ dims)) = arrayWrap dims $ PureType U8
+typeOf (Literal (ComptimeU16Arr _ dims)) = arrayWrap dims $ PureType U16
+typeOf (Literal (ComptimeU32Arr _ dims)) = arrayWrap dims $ PureType U32
+typeOf (Literal (ComptimeU64Arr _ dims)) = arrayWrap dims $ PureType U64
+typeOf (Literal (ComptimeI8Arr _ dims)) = arrayWrap dims $ PureType I8
+typeOf (Literal (ComptimeI16Arr _ dims)) = arrayWrap dims $ PureType I16
+typeOf (Literal (ComptimeI32Arr _ dims)) = arrayWrap dims $ PureType I32
+typeOf (Literal (ComptimeI64Arr _ dims)) = arrayWrap dims $ PureType I64
+typeOf (Literal (ComptimeF32Arr _ dims)) = arrayWrap dims $ PureType F32
+typeOf (Literal (ComptimeF64Arr _ dims)) = arrayWrap dims $ PureType F64
+typeOf (Array x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
 typeOf (Call _ _ t) = t
 typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
 typeOf (LValueExpression (Access _ _ t)) = t
 typeOf (LValueExpression (Identifier _ t)) = t
 typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
 typeOf Undefined = PureType Void
+
+arrayWrap :: [Word64] -> DecoratedType -> DecoratedType
+arrayWrap [] t = t
+arrayWrap (x:xs) t = ArrayType (arrayWrap xs t) x
