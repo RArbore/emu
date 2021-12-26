@@ -393,11 +393,20 @@ checkDecoratedType ((l, sc, ec), A.ArrayType t e) = do
   st <- checkDecoratedType t
   case sexpr of
     Literal cv -> case cv of
-                    ComptimePointer _ _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
-                    ComptimeU8 w8 -> case extractWord64 w8 of
-                                       Just ex64 -> return $ ArrayType st ex64
-                                       Nothing -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+                    ComptimeU8 x -> exWord x st
+                    ComptimeU16 x -> exWord x st
+                    ComptimeU32 x -> exWord x st
+                    ComptimeU64 x -> exWord x st
+                    ComptimeI8 x -> exWord x st
+                    ComptimeI16 x -> exWord x st
+                    ComptimeI32 x -> exWord x st
+                    ComptimeI64 x -> exWord x st
+                    _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
     _ -> throwError $ SemanticsError l sc ec $ NonComptimeError
+    where exWord :: Integral a => a -> DecoratedType -> Semantics DecoratedType
+          exWord x st = case extractWord64 x of
+                          Just ex64 -> return $ ArrayType st ex64
+                          Nothing -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
 
 extractWord64 :: Integral a => a -> Maybe Word64
 extractWord64 x
