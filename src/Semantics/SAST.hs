@@ -94,7 +94,8 @@ data ComptimeValue = ComptimePointer Word64 DecoratedType
                    | ComptimeI32 Int32 
                    | ComptimeI64 Int64 
                    | ComptimeF32 Float 
-                   | ComptimeF64 Double 
+                   | ComptimeF64 Double
+                   | ComptimeStruct [ComptimeValue] Text
                    | ComptimePointerArr [Word64] DecoratedType [Word64]
                    | ComptimeBoolArr [Bool] [Word64]
                    | ComptimeU8Arr [Word8] [Word64]
@@ -106,7 +107,8 @@ data ComptimeValue = ComptimePointer Word64 DecoratedType
                    | ComptimeI32Arr [Int32] [Word64]
                    | ComptimeI64Arr [Int64] [Word64]
                    | ComptimeF32Arr [Float] [Word64]
-                   | ComptimeF64Arr [Double] [Word64] deriving (Show, Generic, NFData, Eq)
+                   | ComptimeF64Arr [Double] [Word64]
+                   | ComptimeStructArr [[ComptimeValue]] Text [Word64] deriving (Show, Generic, NFData, Eq)
 
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = PureType Type
@@ -171,6 +173,7 @@ typeOf (Literal (ComptimeI32 _)) = PureType I32
 typeOf (Literal (ComptimeI64 _)) = PureType I64
 typeOf (Literal (ComptimeF32 _)) = PureType F32
 typeOf (Literal (ComptimeF64 _)) = PureType F64
+typeOf (Literal (ComptimeStruct _ t)) = PureType $ StructType t
 typeOf (Literal (ComptimePointerArr _ t dims)) = arrayWrap dims $ DerefType t
 typeOf (Literal (ComptimeBoolArr _ dims)) = arrayWrap dims $ PureType Bool
 typeOf (Literal (ComptimeU8Arr _ dims)) = arrayWrap dims $ PureType U8
@@ -183,6 +186,7 @@ typeOf (Literal (ComptimeI32Arr _ dims)) = arrayWrap dims $ PureType I32
 typeOf (Literal (ComptimeI64Arr _ dims)) = arrayWrap dims $ PureType I64
 typeOf (Literal (ComptimeF32Arr _ dims)) = arrayWrap dims $ PureType F32
 typeOf (Literal (ComptimeF64Arr _ dims)) = arrayWrap dims $ PureType F64
+typeOf (Literal (ComptimeStructArr _ t dims)) = arrayWrap dims $ PureType $ StructType t
 typeOf (Array x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
 typeOf (Call _ _ t) = t
 typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
