@@ -455,4 +455,13 @@ getPosInStruct errPos search (Structure mods structName ((DecoratedIdentifier _ 
 
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate _ (Literal cv) = return cv
-comptimeEvaluate (l, sc, ec) _ = throwError $ SemanticsError l sc ec $ NonComptimeError
+comptimeEvaluate (l, sc, ec) (LValueExpression (Identifier name _)) = do
+  boundVars <- gets vars
+  let lookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
+  case lookup of
+    Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier name
+    Just (VarBinding (DecoratedIdentifier mods _ varT) ve) ->
+        if A.Const `elem` mods
+        then comptimeEvaluate (l, sc, ec) ve
+        else throwError $ SemanticsError l sc ec $ NonConstArraySizeError
+comptimeEvaluate (l, sc, ec) _ = throwError $ SemanticsError l sc ec NonComptimeError

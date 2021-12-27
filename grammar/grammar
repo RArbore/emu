@@ -53,7 +53,7 @@ continueStatement := "continue;"
 
 modifier := "pure" | "const" | "inline" | "register" | "restrict"
 
-expression := assignment
+expression := "comptime" assigment | assigment
 assignment := logicOr ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=" logicOr )*
 logicOr := ( logicXor "||" )* logicXor
 logicXor := ( logicAnd "^^" )* logicAnd
