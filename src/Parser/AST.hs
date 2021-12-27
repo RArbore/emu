@@ -78,6 +78,7 @@ data Expression' = Binary BinaryOp Expression Expression
                  | Call Text [Expression]
                  | ArrayLiteral [Expression]
                  | Access Expression Expression
+                 | ComptimeExpression Expression
                  | Undefined deriving (Show, Generic, NFData, Eq)
 
 data FixedPointVal = U8Val Word8

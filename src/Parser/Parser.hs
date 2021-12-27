@@ -293,7 +293,8 @@ opTable =
       InfixR $ (locWrapBin $ Binary HatEquals) <$ tryPSymbol "^=",
       InfixR $ (locWrapBin $ Binary BarEquals) <$ tryPSymbol "|=",
       InfixR $ (locWrapBin $ Binary AndEquals) <$ tryPSymbol "&="
-     ]
+     ],
+     [Prefix $ (locWrapUn $ ComptimeExpression) <$ pSymbol "comptime"]
     ]
     where locWrapBin b x@((sl, sc, _), _) y@((el, _, ec), _) = (ln, b x y)
               where ln

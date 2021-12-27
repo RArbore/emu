@@ -225,6 +225,7 @@ checkExpr ((l, sc, ec), e) = checked
                       A.CharLiteral c -> return $ Literal $ ComptimeU8 c
                       A.StringLiteral s -> let unpacked = B.unpack s in return $ Literal $ ComptimeU8Arr unpacked [fromIntegral $ length unpacked]
                       A.Undefined -> return $ Undefined
+                      A.ComptimeExpression ce -> Literal <$> (checkExpr ce >>= comptimeEvaluate (l, sc, ec))
                       A.ArrayLiteral x -> do
                              exprs <- mapM checkExpr x
                              if uniform $ map typeOf exprs then
@@ -451,3 +452,7 @@ getPosInStruct (l, sc, ec) search (Structure _ structName []) _ = throwError $ S
 getPosInStruct errPos search (Structure mods structName ((DecoratedIdentifier _ fieldName t):dis)) pos
     | search == fieldName = return (pos, t)
     | otherwise = sizeOf t >>= (\x -> getPosInStruct errPos search (Structure mods structName dis) (pos + x))
+
+comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
+comptimeEvaluate _ (Literal cv) = return cv
+comptimeEvaluate (l, sc, ec) _ = throwError $ SemanticsError l sc ec $ NonComptimeError
