@@ -53,6 +53,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | IndexNonArrayError
                         | NonIntegralError DecoratedType
                         | NonComptimeError
+                        | NonConstArraySizeError 
                         | TypeReconcileError DecoratedType DecoratedType
                         | CallError Text Int Int
                         | AddressError
@@ -102,7 +103,8 @@ instance Show SemanticsErrorType where
     show InvalidArraySizeError = "invalid size for array"
     show IndexNonArrayError = "can't index non-array (possibly indexing an array with too many indices?)"
     show (NonIntegralError t) = show' t ++ " is a non-integral type"
-    show NonComptimeError = "array size isn't known at compile-time"
+    show NonComptimeError = "value of expression isn't known at compile-time"
+    show NonConstArraySizeError = "variables used as array sizes must be const"
     show (TypeReconcileError t1 t2) = "can't reconcile types " ++ show' t1 ++ " and " ++ show' t2 ++ " (tried to use these types as operands in binary operation, neither can be implicitly casted to the other)"
     show (CallError iden n1 n2) = "function " ++ T.unpack iden ++ " expected " ++ show n1 ++ " arguments, got " ++ show n2
     show AddressError = "can't take address of non-lvalue"
@@ -116,7 +118,6 @@ instance Show SemanticsErrorType where
     show (InvalidModifier Pure) = "pure is an invalid modifier here"
     show (InvalidModifier Const) = "const is an invalid modifier here"
     show (InvalidModifier Inline) = "inline is an invalid modifier here"
-    show (InvalidModifier Comptime) = "comptime is an invalid modifier here"
     show (InvalidModifier Register) = "register is an invalid modifier here"
     show (InvalidModifier Restrict) = "restrict is an invalid modifier here"
     show DeadCode = "code is never reached"

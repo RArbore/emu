@@ -133,7 +133,6 @@ checkDecl ((l, sc, ec), d) = checked
                              when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
-                             when (A.Comptime `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Comptime
                              when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
                              when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
                              return $ StructDecl $ Structure mods name sfields
@@ -236,7 +235,7 @@ checkExpr ((l, sc, ec), e) = checked
                              let lookup = M.lookup (t, Local) boundVars <|> M.lookup (t, Formal) boundVars <|> M.lookup (t, Global) boundVars
                              case lookup of
                                Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier t
-                               Just dt -> return $ LValueExpression $ Identifier t $ (\(VarBinding _ (DecoratedIdentifier _ _ x) _) -> x) $ fromJust lookup
+                               Just dt -> return $ LValueExpression $ Identifier t $ (\(VarBinding (DecoratedIdentifier _ _ x) _) -> x) $ fromJust lookup
                       A.Call f args -> do
                              boundFuncs <- gets funcs
                              let lookup = M.lookup f boundFuncs
@@ -391,18 +390,30 @@ checkDecoratedType ((l, sc, ec), A.DerefType t) = DerefType <$> checkDecoratedTy
 checkDecoratedType ((l, sc, ec), A.ArrayType t e) = do
   sexpr <- checkExpr e
   st <- checkDecoratedType t
-  case sexpr of
-    Literal cv -> case cv of
-                    ComptimeU8 x -> exWord x st
-                    ComptimeU16 x -> exWord x st
-                    ComptimeU32 x -> exWord x st
-                    ComptimeU64 x -> exWord x st
-                    ComptimeI8 x -> exWord x st
-                    ComptimeI16 x -> exWord x st
-                    ComptimeI32 x -> exWord x st
-                    ComptimeI64 x -> exWord x st
-                    _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
-    _ -> throwError $ SemanticsError l sc ec $ NonComptimeError
+  let recurCase se = case se of
+                       Literal cv -> case cv of
+                                       ComptimeU8 x -> exWord x st
+                                       ComptimeU16 x -> exWord x st
+                                       ComptimeU32 x -> exWord x st
+                                       ComptimeU64 x -> exWord x st
+                                       ComptimeI8 x -> exWord x st
+                                       ComptimeI16 x -> exWord x st
+                                       ComptimeI32 x -> exWord x st
+                                       ComptimeI64 x -> exWord x st
+                                       _ -> throwError $ SemanticsError l sc ec $ InvalidArraySizeError
+                       LValueExpression (Identifier name t) -> do
+                                                        boundVars <- gets vars
+                                                        let lookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
+                                                        case lookup of
+                                                          Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier name
+                                                          Just (VarBinding (DecoratedIdentifier mods _ varT) ve) ->
+                                                              if A.Const `elem` mods
+                                                              then if varT `elem` [PureType U8, PureType U16, PureType U32, PureType U64, PureType I8, PureType I16, PureType I32, PureType I64]
+                                                                   then recurCase ve
+                                                                   else throwError $ SemanticsError l sc ec $ NonIntegralError varT
+                                                              else throwError $ SemanticsError l sc ec $ NonConstArraySizeError
+                       _ -> throwError $ SemanticsError l sc ec $ NonComptimeError
+  recurCase sexpr
     where exWord :: Integral a => a -> DecoratedType -> Semantics DecoratedType
           exWord x st = case extractWord64 x of
                           Just ex64 -> return $ ArrayType st ex64

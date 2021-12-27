@@ -51,7 +51,7 @@ returnStatement := "return" expression? ";"
 breakStatement := "break;"
 continueStatement := "continue;"
 
-modifier := "pure" | "const" | "inline" | "comptime" | "register" | "restrict"
+modifier := "pure" | "const" | "inline" | "register" | "restrict"
 
 expression := assignment
 assignment := logicOr ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "&=" | "^=" | "|=" logicOr )*

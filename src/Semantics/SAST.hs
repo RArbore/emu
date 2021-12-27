@@ -51,7 +51,7 @@ data Structure = Structure [Modifier] Text [DecoratedIdentifier] deriving (Show,
 
 data Function = Function [Modifier] Text [DecoratedIdentifier] DecoratedType Statement deriving (Show, Generic, NFData)
 
-data VarBinding = VarBinding [Modifier] DecoratedIdentifier Expression deriving (Show, Generic, NFData)
+data VarBinding = VarBinding DecoratedIdentifier Expression deriving (Show, Generic, NFData)
 
 data Declaration = StructDecl Structure
                  | FuncDecl Function

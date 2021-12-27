@@ -101,7 +101,6 @@ data DecoratedType' = PureType Type
 data Modifier = Pure
               | Const
               | Inline
-              | Comptime
               | Register
               | Restrict deriving (Show, Generic, NFData, Eq)
                 

@@ -400,6 +400,5 @@ pModifier :: Parser Modifier
 pModifier = Pure <$ pRWord "pure"
             <|> Const <$ pRWord "const"
             <|> Inline <$ pRWord "inline"
-            <|> Comptime <$ pRWord "comptime"
             <|> Register <$ pRWord "register"
             <|> Restrict <$ pRWord "restrict"
