@@ -135,19 +135,38 @@ checkDecl ((l, sc, ec), d) = checked
                              let structLookup = M.lookup name boundStructs
                              when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
                              sfields <- checkDecoratedIdentifiers (l, sc, ec) fields
-                             return $ StructDecl $ Structure mods name sfields
+                             let struct = Structure mods name sfields
+                             modify $ \env -> env { structs = M.insert name struct boundStructs }
+                             return $ StructDecl $ struct
                       A.FuncDecl mods name args retType body -> do
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
                              when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
                              boundFuncs <- gets funcs
+                             prevEnv <- get
                              let funcLookup = M.lookup name boundFuncs
                              when (isJust funcLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
-                             sargs <- checkDecoratedIdentifiers (l, sc, ec) args
-                             sRetType <- checkDecoratedType retType
-                             sBody <- checkStmt body
-                             return $ FuncDecl $ Function mods name sargs sRetType sBody
+                             sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) args
+                             mapM (\decIden@(DecoratedIdentifier _ varName _) -> modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
+                             sretType <- checkDecoratedType retType
+                             sbody <- checkStmt body
+                             let func = Function mods name sargs sretType sbody
+                             modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
+                             return $ FuncDecl $ func
 
+checkDecoratedIdentifiersAndNames :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
+checkDecoratedIdentifiersAndNames (l, sc, ec) idens = do
+  sidens <- checkDecoratedIdentifiers (l, sc, ec) idens
+  boundVars <- gets vars
+  checkDecIdens sidens boundVars
+  return sidens
+    where checkDecIdens :: [DecoratedIdentifier] -> Variables -> Semantics ()
+          checkDecIdens [] _ = return ()
+          checkDecIdens ((DecoratedIdentifier _ name _):xs) bv = do
+                                                        let varLookup = M.lookup (name, Local) bv <|> M.lookup (name, Formal) bv <|> M.lookup (name, Global) bv
+                                                        when (isJust varLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
+                                                        checkDecIdens xs bv
+                                             
 checkDecoratedIdentifiers :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
 checkDecoratedIdentifiers (l, sc, ec) idens = let sortedNames = map (\(A.DecoratedIdentifier _ n _) -> n) $
                                                                 sortBy (\(A.DecoratedIdentifier _ n1 _) (A.DecoratedIdentifier _ n2 _) -> compare n1 n2) idens
