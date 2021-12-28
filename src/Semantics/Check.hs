@@ -122,36 +122,47 @@ checkDecl :: A.Declaration -> Semantics Declaration
 checkDecl ((l, sc, ec), d) = checked
     where checked = case d of
                       A.StructDecl mods name fields -> do
-                             boundVars <- gets vars
-                             boundFuncs <- gets funcs
-                             boundStructs <- gets structs
-                             let lookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
-                             let funcLookup = M.lookup name boundFuncs
-                             let structLookup = M.lookup name boundStructs
-                             when (isJust lookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
-                             sfields <- checkFields (l, sc, ec) fields
                              when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
                              when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
                              when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
+                             boundVars <- gets vars
+                             boundFuncs <- gets funcs
+                             boundStructs <- gets structs
+                             let varLookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
+                             let funcLookup = M.lookup name boundFuncs
+                             let structLookup = M.lookup name boundStructs
+                             when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
+                             sfields <- checkDecoratedIdentifiers (l, sc, ec) fields
                              return $ StructDecl $ Structure mods name sfields
+                      A.FuncDecl mods name args retType body -> do
+                             when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
+                             when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
+                             when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
+                             boundFuncs <- gets funcs
+                             let funcLookup = M.lookup name boundFuncs
+                             when (isJust funcLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
+                             sargs <- checkDecoratedIdentifiers (l, sc, ec) args
+                             sRetType <- checkDecoratedType retType
+                             sBody <- checkStmt body
+                             return $ FuncDecl $ Function mods name sargs sRetType sBody
 
-checkFields :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
-checkFields (l, sc, ec) idens = let sortedNames = map (\(A.DecoratedIdentifier _ n _) -> n) $
-                                                  sortBy (\(A.DecoratedIdentifier _ n1 _) (A.DecoratedIdentifier _ n2 _) -> compare n1 n2) idens
-                                    checkDup [] = Nothing
-                                    checkDup [x] = Nothing
-                                    checkDup (x1:x2:xs)
-                                        | x1 == x2 = Just x1
-                                        | otherwise = checkDup (x2:xs)
-                                    maybeDup = checkDup sortedNames
-                                in case maybeDup of
-                                     Just dupName -> throwError $ SemanticsError l sc ec $ DuplicateField dupName
-                                     Nothing -> mapM convertIden idens
-                                         where convertIden (A.DecoratedIdentifier mods name decType) = do
-                                                   sDecType <- checkDecoratedType decType
-                                                   return $ DecoratedIdentifier mods name sDecType
+checkDecoratedIdentifiers :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
+checkDecoratedIdentifiers (l, sc, ec) idens = let sortedNames = map (\(A.DecoratedIdentifier _ n _) -> n) $
+                                                                sortBy (\(A.DecoratedIdentifier _ n1 _) (A.DecoratedIdentifier _ n2 _) -> compare n1 n2) idens
+                                                  checkDup [] = Nothing
+                                                  checkDup [x] = Nothing
+                                                  checkDup (x1:x2:xs)
+                                                      | x1 == x2 = Just x1
+                                                      | otherwise = checkDup (x2:xs)
+                                                  maybeDup = checkDup sortedNames
+                                              in case maybeDup of
+                                                   Just dupName -> throwError $ SemanticsError l sc ec $ DuplicateField dupName
+                                                   Nothing -> mapM convertIden idens
+                                                       where convertIden (A.DecoratedIdentifier mods name decType) = do
+                                                                 sDecType <- checkDecoratedType decType
+                                                                 return $ DecoratedIdentifier mods name sDecType
 
 checkStmt :: A.Statement -> Semantics Statement
 checkStmt ((l, sc, ec), s) = checked
