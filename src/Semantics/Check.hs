@@ -116,6 +116,12 @@ checkImplicitCast t1 t2 = (t1 == t2) || checkImplicitCastHelper t1 t2
           checkImplicitCastHelper (PureType I64) (PureType F32) = True
           checkImplicitCastHelper (PureType I64) (PureType F64) = True
           checkImplicitCastHelper (PureType F32) (PureType F64) = True
+          checkImplicitCastHelper (PureType I8) (PureType I16) = True
+          checkImplicitCastHelper (PureType I8) (PureType I32) = True
+          checkImplicitCastHelper (PureType I8) (PureType I64) = True
+          checkImplicitCastHelper (PureType I16) (PureType I32) = True
+          checkImplicitCastHelper (PureType I16) (PureType I64) = True
+          checkImplicitCastHelper (PureType I32) (PureType I64) = True
           checkImplicitCastHelper _ _ = False
 
 check :: A.AST -> Semantics SAST
@@ -184,7 +190,10 @@ checkDecl ((l, sc, ec), d) = checked
                              then modify $ \_ -> prevEnv { vars = M.insert (name, Local) varBind boundVars }
                              else modify $ \_ -> prevEnv { vars = M.insert (name, Global) varBind boundVars }
                              return $ VarDecl $ varBind
-                      A.StatementDecl stmt -> StatementDecl <$> checkStmt stmt
+                      A.StatementDecl stmt -> do
+                             checkIfInFunctionAlready <- gets curFuncRetType
+                             when (isNothing checkIfInFunctionAlready) $ throwError $ SemanticsError l sc ec StatementOutsideDeclarationError
+                             StatementDecl <$> checkStmt stmt
 
 checkDecoratedIdentifiersAndNames :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
 checkDecoratedIdentifiersAndNames (l, sc, ec) idens = do
