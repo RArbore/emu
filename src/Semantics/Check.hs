@@ -47,7 +47,7 @@ type Structures = M.Map Text Structure
 data Environment = Environment { vars :: Variables,
                                  funcs :: Functions,
                                  structs :: Structures,
-                                 curFuncRetType :: Maybe DecoratedType }
+                                 curFuncRetType :: Maybe DecoratedType } deriving Show
 
 type Semantics = ExceptT SemanticsError (State Environment)
 
