@@ -45,7 +45,7 @@ type Structures = M.Map Text Structure
 data Environment = Environment { vars :: Variables,
                                  funcs :: Functions,
                                  structs :: Structures,
-                                 curFuncRetType :: DecoratedType }
+                                 curFuncRetType :: Maybe DecoratedType }
 
 type Semantics = ExceptT SemanticsError (State Environment)
 
@@ -139,6 +139,8 @@ checkDecl ((l, sc, ec), d) = checked
                              modify $ \env -> env { structs = M.insert name struct boundStructs }
                              return $ StructDecl $ struct
                       A.FuncDecl mods name args retType body -> do
+                             checkIfInFunctionAlready <- gets curFuncRetType
+                             when (isJust checkIfInFunctionAlready) $ throwError $ SemanticsError l sc ec NestedDeclarationError
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
                              when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
@@ -149,6 +151,7 @@ checkDecl ((l, sc, ec), d) = checked
                              sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) args
                              mapM (\decIden@(DecoratedIdentifier _ varName _) -> modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
                              sretType <- checkDecoratedType retType
+                             modify $ \env -> env { curFuncRetType = Just sretType }
                              sbody <- checkStmt body
                              let func = Function mods name sargs sretType sbody
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
@@ -225,10 +228,12 @@ checkStmt ((l, sc, ec), s) = checked
                       A.CaseStatement _ _ -> undefined
                       A.ReturnStatement expr -> do
                              sexpr <- checkExpr expr
-                             retType <- gets curFuncRetType
-                             if typeOf sexpr == retType
-                             then return $ ReturnStatement sexpr
-                             else throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
+                             mretType <- gets curFuncRetType
+                             case mretType of
+                               Just retType -> if typeOf sexpr == retType
+                                               then return $ ReturnStatement sexpr
+                                               else throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
+                               Nothing -> throwError $ SemanticsError l sc ec ReturnNotInFunctionError
                       A.BreakStatement -> undefined
                       A.ContinueStatement -> undefined
                       A.Block decls -> do

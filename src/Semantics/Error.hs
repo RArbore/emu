@@ -64,6 +64,8 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | NonStructFieldAccessError
                         | NameAccessError
                         | HeterogenousArray
+                        | ReturnNotInFunctionError
+                        | NestedDeclarationError
                         | InvalidModifier Modifier
                         | DeadCode
 
@@ -115,6 +117,8 @@ instance Show SemanticsErrorType where
     show NonStructFieldAccessError = "cannot access a field of a non-struct"
     show NameAccessError = "cannot access a field with an expression"
     show HeterogenousArray = "expressions in array literal don't have the same type"
+    show ReturnNotInFunctionError = "can't return while outside a function declaration"
+    show NestedDeclarationError = "invalid nested declaration"
     show (InvalidModifier Pure) = "pure is an invalid modifier here"
     show (InvalidModifier Const) = "const is an invalid modifier here"
     show (InvalidModifier Inline) = "inline is an invalid modifier here"
