@@ -50,7 +50,7 @@ newtype AST = AST [Declaration] deriving (Show, Generic, NFData)
 type Declaration = (Location, Declaration')
 data Declaration' = StructDecl [Modifier] Text [DecoratedIdentifier]
                   | FuncDecl [Modifier] Text [DecoratedIdentifier] DecoratedType Statement
-                  | VarDecl [Modifier] DecoratedIdentifier Expression
+                  | VarDecl DecoratedIdentifier Expression
                   | StatementDecl Statement deriving (Show, Generic, NFData)
     
 type Statement = (Location, Statement')

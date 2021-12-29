@@ -168,13 +168,12 @@ pDeclaration = (try pStmtDecl)
             return $ FuncDecl mods iden parameters typeP stmt
           pVarDecl = do
             (sl, sc) <- posEx
-            mods <- many pModifier
             iden <- pDecoratedIdentifier
             pSymbol "="
             expr <- pExpression
             pSymbol ";"
             (el, ec) <- posEx
-            return $ VarDecl mods iden expr
+            return $ VarDecl iden expr
           pStmtDecl = do
             stmt@(loc, _) <- pStatement
             return (loc, StatementDecl stmt)

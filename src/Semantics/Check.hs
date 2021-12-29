@@ -122,6 +122,8 @@ checkDecl :: A.Declaration -> Semantics Declaration
 checkDecl ((l, sc, ec), d) = checked
     where checked = case d of
                       A.StructDecl mods name fields -> do
+                             checkIfInFunctionAlready <- gets curFuncRetType
+                             when (isJust checkIfInFunctionAlready) $ throwError $ SemanticsError l sc ec NestedDeclarationError
                              when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
@@ -144,10 +146,14 @@ checkDecl ((l, sc, ec), d) = checked
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
                              when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
+                             boundVars <- gets vars
                              boundFuncs <- gets funcs
-                             prevEnv <- get
+                             boundStructs <- gets structs
+                             let varLookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
                              let funcLookup = M.lookup name boundFuncs
-                             when (isJust funcLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
+                             let structLookup = M.lookup name boundStructs
+                             when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
+                             prevEnv <- get
                              sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) args
                              mapM (\decIden@(DecoratedIdentifier _ varName _) -> modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
                              sretType <- checkDecoratedType retType
@@ -156,6 +162,25 @@ checkDecl ((l, sc, ec), d) = checked
                              let func = Function mods name sargs sretType sbody
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              return $ FuncDecl $ func
+                      A.VarDecl (A.DecoratedIdentifier mods name t) init -> do
+                             when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
+                             when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
+                             boundVars <- gets vars
+                             boundFuncs <- gets funcs
+                             boundStructs <- gets structs
+                             let varLookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
+                             let funcLookup = M.lookup name boundFuncs
+                             let structLookup = M.lookup name boundStructs
+                             when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
+                             prevEnv <- get
+                             st <- checkDecoratedType t
+                             sinit <- checkExpr init
+                             let varBind = VarBinding (DecoratedIdentifier mods name st) sinit
+                             checkIfInFunctionAlready <- gets curFuncRetType
+                             if isJust checkIfInFunctionAlready
+                             then modify $ \_ -> prevEnv { vars = M.insert (name, Local) varBind boundVars }
+                             else modify $ \_ -> prevEnv { vars = M.insert (name, Global) varBind boundVars }
+                             return $ VarDecl $ varBind
 
 checkDecoratedIdentifiersAndNames :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
 checkDecoratedIdentifiersAndNames (l, sc, ec) idens = do
