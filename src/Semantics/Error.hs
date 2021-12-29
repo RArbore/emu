@@ -78,14 +78,14 @@ showSError (SemanticsError l sc ec e) f o
                   ++ (show l) ++ ":"
                   ++ (show sc) ++ ":\n"
                   ++ take offset (repeat ' ') ++ "|\n"
-                  ++ (show l) ++ " | " ++ ((lines $ T.unpack o) !! l)
+                  ++ (show l) ++ " | " ++ ((lines $ T.unpack o) !! (l - 1)) ++ "\n"
                   ++ take offset (repeat ' ') ++ "| "
-                  ++ take sc (repeat ' ')
+                  ++ take (sc - 1) (repeat ' ')
                   ++ take repeatAmount (repeat '^') ++ "\n"
                   ++ show e
     where offset = 1 + (length $ show l)
           repeatAmount
-              | ec == -1 = T.length o - sc
+              | ec == -1 = T.length ((T.lines o) !! (l - 1)) - sc
               | otherwise = ec - sc
 
 instance Show SemanticsErrorType where

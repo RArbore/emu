@@ -115,6 +115,7 @@ checkImplicitCast t1 t2 = (t1 == t2) || checkImplicitCastHelper t1 t2
           checkImplicitCastHelper (PureType I32) (PureType F64) = True
           checkImplicitCastHelper (PureType I64) (PureType F32) = True
           checkImplicitCastHelper (PureType I64) (PureType F64) = True
+          checkImplicitCastHelper (PureType F32) (PureType F64) = True
           checkImplicitCastHelper _ _ = False
 
 check :: A.AST -> Semantics SAST
@@ -258,9 +259,9 @@ checkStmt ((l, sc, ec), s) = checked
                              sexpr <- checkExpr expr
                              mretType <- gets curFuncRetType
                              case mretType of
-                               Just retType -> if typeOf sexpr == retType
-                                               then return $ ReturnStatement sexpr
-                                               else throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
+                               Just retType -> case implicitlyConvert sexpr retType of
+                                               Right conv -> return $ ReturnStatement conv
+                                               Left _ -> throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
                                Nothing -> throwError $ SemanticsError l sc ec ReturnNotInFunctionError
                       A.BreakStatement -> undefined
                       A.ContinueStatement -> undefined

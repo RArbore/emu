@@ -43,4 +43,4 @@ main = do
       let checked = map ((\x -> runState x (SC.Environment M.empty M.empty M.empty Nothing)) . runExceptT . SC.check . fromRight undefined) parsed
       if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip (inputFiles checkedArgs) filesContents
       else do
-        print $ map (bimap (fromRight undefined) id) checked
+        print $ map (fst . bimap (fromRight undefined) id) checked
