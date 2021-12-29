@@ -13,6 +13,8 @@
 module Semantics.Check
     (
 
+     Environment (..),
+     
      check
 
     ) where
