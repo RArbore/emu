@@ -116,7 +116,7 @@ checkImplicitCast t1 t2 = (t1 == t2) || checkImplicitCastHelper t1 t2
           checkImplicitCastHelper _ _ = False
 
 check :: A.AST -> Semantics SAST
-check = undefined
+check (A.AST decls) = SAST <$> mapM checkDecl decls
 
 checkDecl :: A.Declaration -> Semantics Declaration
 checkDecl ((l, sc, ec), d) = checked
@@ -181,6 +181,7 @@ checkDecl ((l, sc, ec), d) = checked
                              then modify $ \_ -> prevEnv { vars = M.insert (name, Local) varBind boundVars }
                              else modify $ \_ -> prevEnv { vars = M.insert (name, Global) varBind boundVars }
                              return $ VarDecl $ varBind
+                      A.StatementDecl stmt -> StatementDecl <$> checkStmt stmt
 
 checkDecoratedIdentifiersAndNames :: A.Location -> [A.DecoratedIdentifier] -> Semantics [DecoratedIdentifier]
 checkDecoratedIdentifiersAndNames (l, sc, ec) idens = do
