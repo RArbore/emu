@@ -164,7 +164,9 @@ checkDecl ((l, sc, ec), d) = checked
                              when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
                              prevEnv <- get
                              sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) args
-                             mapM (\decIden@(DecoratedIdentifier _ varName _) -> modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
+                             mapM (\decIden@(DecoratedIdentifier _ varName varT) -> if isTypeVoid varT
+                                                                                    then throwError $ SemanticsError l sc ec $ VoidVarDeclaration varName
+                                                                                    else modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
                              sretType <- checkDecoratedType retType
                              modify $ \env -> env { curFuncRetType = Just sretType }
                              sbody <- checkStmt body
@@ -183,6 +185,7 @@ checkDecl ((l, sc, ec), d) = checked
                              when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
                              prevEnv <- get
                              st <- checkDecoratedType t
+                             when (isTypeVoid st) $ throwError $ SemanticsError l sc ec $ VoidVarDeclaration name
                              sinit <- checkExpr init
                              let varBind = VarBinding (DecoratedIdentifier mods name st) sinit
                              checkIfInFunctionAlready <- gets curFuncRetType
@@ -525,6 +528,12 @@ getPosInStruct (l, sc, ec) search (Structure _ structName []) _ = throwError $ S
 getPosInStruct errPos search (Structure mods structName ((DecoratedIdentifier _ fieldName t):dis)) pos
     | search == fieldName = return (pos, t)
     | otherwise = sizeOf t >>= (\x -> getPosInStruct errPos search (Structure mods structName dis) (pos + x))
+
+isTypeVoid :: DecoratedType -> Bool
+isTypeVoid (PureType Void) = True
+isTypeVoid (DerefType t) = isTypeVoid t
+isTypeVoid (ArrayType t _) = isTypeVoid t
+isTypeVoid _ = False
 
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate _ (Literal cv) = return cv

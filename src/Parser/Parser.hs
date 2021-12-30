@@ -229,7 +229,7 @@ pStatement = locWrap $ pIfElse
             pSymbol ":"
             stmt <- pStatement
             return $ CaseStatement expr stmt
-          pReturn = ReturnStatement <$> (pRWord "return" *> pExpression <* pSymbol ";")
+          pReturn = ReturnStatement <$> (pRWord "return" *> option (impossible Undefined) pExpression <* pSymbol ";")
           pBreak = BreakStatement <$ (do
                                        pRWord "break"
                                        pSymbol ";")
