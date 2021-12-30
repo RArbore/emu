@@ -81,6 +81,7 @@ data Expression = Binary BinaryOp Expression Expression DecoratedType
 
 data LValue = Dereference Expression
             | Access LValue Word64 DecoratedType
+            | Index LValue Expression DecoratedType
             | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq)
 
 data ComptimeValue = ComptimePointer Word64 DecoratedType 
@@ -155,8 +156,7 @@ data UnaryOp = PrePlusPlus
              | Tilda
              | Cast 
              | PostPlusPlus
-             | PostMinusMinus
-             | Index Expression deriving (Show, Generic, NFData, Eq)
+             | PostMinusMinus deriving (Show, Generic, NFData, Eq)
 
 typeOf :: Expression -> DecoratedType
 typeOf (Binary _ _ _ t) = t
@@ -191,6 +191,7 @@ typeOf (Array x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
 typeOf (Call _ _ t) = t
 typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
 typeOf (LValueExpression (Access _ _ t)) = t
+typeOf (LValueExpression (Index _ _ t)) = t
 typeOf (LValueExpression (Identifier _ t)) = t
 typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
 typeOf Undefined = PureType Void

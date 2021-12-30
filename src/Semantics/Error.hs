@@ -51,6 +51,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | DerefNonPointerError DecoratedType
                         | InvalidArraySizeError
                         | IndexNonArrayError
+                        | IndexNonLValue
                         | NonIntegralError DecoratedType
                         | NonComptimeError
                         | NonConstArraySizeError 
@@ -105,6 +106,7 @@ instance Show SemanticsErrorType where
     show (DerefNonPointerError t) = "can't derefence non-pointer type " ++ show' t
     show InvalidArraySizeError = "invalid size for array"
     show IndexNonArrayError = "can't index non-array (possibly indexing an array with too many indices?)"
+    show IndexNonLValue = "can't index non-lvalue"
     show (NonIntegralError t) = show' t ++ " is a non-integral type"
     show NonComptimeError = "value of expression isn't known at compile-time"
     show NonConstArraySizeError = "variables used as array sizes must be const"

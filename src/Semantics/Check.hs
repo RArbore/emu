@@ -343,9 +343,11 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Cast astDecType -> do
                                            t <- checkDecoratedType astDecType
                                            if checkExplicitCast (typeOf sexpr) t then return $ Unary Cast sexpr t else throwError $ SemanticsError l sc ec $ CastError (typeOf sexpr) t
-                               A.Index exprs -> do
-                                           sexprs <- mapM checkExpr exprs
-                                           indexArr sexpr sexprs
+                               A.Index exprs -> case sexpr of
+                                                  LValueExpression lval -> do
+                                                             sexprs <- mapM checkExpr exprs
+                                                             LValueExpression <$> indexArr lval sexprs
+                                                  _ -> throwError $ SemanticsError l sc ec IndexNonLValue
                       A.Binary op expr1 expr2 -> do
                              sexpr1 <- checkExpr expr1
                              sexpr2 <- checkExpr expr2
@@ -441,11 +443,11 @@ checkExpr ((l, sc, ec), e) = checked
           isIntegralType _ = False
           isLValue (LValueExpression _) = True
           isLValue _ = False
-          indexArr :: Expression -> [Expression] -> Semantics Expression
-          indexArr e [] = return e
-          indexArr e (index:indices)
-              | isIntegralType $ typeOf index = case typeOf e of
-                                                  (ArrayType t _) -> (\x -> return $ Unary (Index index) x t) =<< (indexArr e indices)
+          indexArr :: LValue -> [Expression] -> Semantics LValue
+          indexArr lval [] = return lval
+          indexArr lval (index:indices)
+              | isIntegralType $ typeOf index = case typeOf $ LValueExpression lval of
+                                                  (ArrayType t _) -> (\x -> return $ Index x index t) =<< (indexArr lval indices)
                                                   _ -> throwError $ SemanticsError l sc ec IndexNonArrayError
               | otherwise = throwError $ SemanticsError l sc ec (NonIntegralError $ typeOf index)
           arithEqualsOp :: Expression -> Expression -> AssignOp -> Bool -> (DecoratedType -> Bool) -> (DecoratedType -> Bool) -> (DecoratedType -> SemanticsErrorType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
