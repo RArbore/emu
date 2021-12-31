@@ -46,7 +46,6 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | ImplicitCastError DecoratedType DecoratedType
                         | IncDecError DecoratedType
                         | NumericError DecoratedType
-                        | BooleanError DecoratedType
                         | PointerTypeError
                         | DerefNonPointerError DecoratedType
                         | InvalidArraySizeError
@@ -59,7 +58,6 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | CallError Text Int Int
                         | AddressError
                         | AssignError
-                        | ImproperIdentifier Text
                         | FieldAccessError Text Text
                         | LValueAccessError
                         | NonStructFieldAccessError
@@ -101,7 +99,6 @@ instance Show SemanticsErrorType where
     show (ImplicitCastError t1 t2) = "couldn't implicitly cast type " ++ show' t1 ++ " to type " ++ show' t2
     show (IncDecError t) = "can't increment or decrement value of type " ++ show' t
     show (NumericError t) = show' t ++ " isn't a numeric type"
-    show (BooleanError t) = show' t ++ " isn't a logical type"
     show PointerTypeError = "can't perform operation on pointer type"
     show (DerefNonPointerError t) = "can't derefence non-pointer type " ++ show' t
     show InvalidArraySizeError = "invalid size for array"
@@ -114,7 +111,6 @@ instance Show SemanticsErrorType where
     show (CallError iden n1 n2) = "function " ++ T.unpack iden ++ " expected " ++ show n1 ++ " arguments, got " ++ show n2
     show AddressError = "can't take address of non-lvalue"
     show AssignError = "can't assign to a non-lvalue"
-    show (ImproperIdentifier iden) = "improperly used identifier " ++ T.unpack iden
     show (FieldAccessError iden1 iden2) = "struct type " ++ T.unpack iden1 ++ " doesn't contain a field named " ++ T.unpack iden2
     show LValueAccessError = "cannot access a field of a non-lvalue"
     show NonStructFieldAccessError = "cannot access a field of a non-struct"

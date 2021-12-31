@@ -334,7 +334,7 @@ checkExpr ((l, sc, ec), e) = checked
                                A.PostMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PostMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
                                A.Plus -> if numeric $ typeOf sexpr then return $ Unary Plus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                                A.Minus -> if numeric $ typeOf sexpr then return $ Unary Minus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
-                               A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ BooleanError $ typeOf sexpr
+                               A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf sexpr
                                A.Tilda -> if singletonNonVoid $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec PointerTypeError
                                A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                                A.And -> case sexpr of
@@ -364,9 +364,9 @@ checkExpr ((l, sc, ec), e) = checked
                                A.HatEquals -> arithEqualsOp sexpr1 sexpr2 HatEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
                                A.BarEquals -> arithEqualsOp sexpr1 sexpr2 BarEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
                                A.AndEquals -> arithEqualsOp sexpr1 sexpr2 AndEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
-                               A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
-                               A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
-                               A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) BooleanError BooleanError
+                               A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) (TypeError (PureType Bool)) (TypeError (PureType Bool))
+                               A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) (TypeError (PureType Bool)) (TypeError (PureType Bool))
+                               A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) (TypeError (PureType Bool)) (TypeError (PureType Bool))
                                A.BitwiseOr -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseOr (typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
                                A.BitwiseXor -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseXor (typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
                                A.BitwiseAnd -> createCheckedOperand singletonNonVoid singletonNonVoid BitwiseAnd (typeReconciliation sexpr1 sexpr2) BadTypeError BadTypeError
