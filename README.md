@@ -7,7 +7,7 @@ Emu is in early development. The final compiler will be built in Haskell, with (
 
 - [x] Basic CLI interface
 - [x] Parser & AST
-- [ ] Semantic analysis
+- [x] Semantic analysis
 - [ ] LLVM code generation
 - [ ] Comptime evaluator
 - [ ] Full language feature-set
