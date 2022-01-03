@@ -97,19 +97,7 @@ data ComptimeValue = ComptimePointer Word64 DecoratedType
                    | ComptimeF32 Float 
                    | ComptimeF64 Double
                    | ComptimeStruct [ComptimeValue] Text
-                   | ComptimePointerArr [Word64] DecoratedType [Word64]
-                   | ComptimeBoolArr [Bool] [Word64]
-                   | ComptimeU8Arr [Word8] [Word64]
-                   | ComptimeU16Arr [Word16] [Word64]
-                   | ComptimeU32Arr [Word32] [Word64]
-                   | ComptimeU64Arr [Word64] [Word64]
-                   | ComptimeI8Arr [Int8] [Word64]
-                   | ComptimeI16Arr [Int16] [Word64]
-                   | ComptimeI32Arr [Int32] [Word64]
-                   | ComptimeI64Arr [Int64] [Word64]
-                   | ComptimeF32Arr [Float] [Word64]
-                   | ComptimeF64Arr [Double] [Word64]
-                   | ComptimeStructArr [[ComptimeValue]] Text [Word64] deriving (Show, Generic, NFData, Eq)
+                   | ComptimeArr [ComptimeValue] Word64 deriving (Show, Generic, NFData, Eq)
 
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = PureType Type
@@ -174,19 +162,7 @@ typeOf (Literal (ComptimeI64 _)) = PureType I64
 typeOf (Literal (ComptimeF32 _)) = PureType F32
 typeOf (Literal (ComptimeF64 _)) = PureType F64
 typeOf (Literal (ComptimeStruct _ t)) = PureType $ StructType t
-typeOf (Literal (ComptimePointerArr _ t dims)) = arrayWrap dims $ DerefType t
-typeOf (Literal (ComptimeBoolArr _ dims)) = arrayWrap dims $ PureType Bool
-typeOf (Literal (ComptimeU8Arr _ dims)) = arrayWrap dims $ PureType U8
-typeOf (Literal (ComptimeU16Arr _ dims)) = arrayWrap dims $ PureType U16
-typeOf (Literal (ComptimeU32Arr _ dims)) = arrayWrap dims $ PureType U32
-typeOf (Literal (ComptimeU64Arr _ dims)) = arrayWrap dims $ PureType U64
-typeOf (Literal (ComptimeI8Arr _ dims)) = arrayWrap dims $ PureType I8
-typeOf (Literal (ComptimeI16Arr _ dims)) = arrayWrap dims $ PureType I16
-typeOf (Literal (ComptimeI32Arr _ dims)) = arrayWrap dims $ PureType I32
-typeOf (Literal (ComptimeI64Arr _ dims)) = arrayWrap dims $ PureType I64
-typeOf (Literal (ComptimeF32Arr _ dims)) = arrayWrap dims $ PureType F32
-typeOf (Literal (ComptimeF64Arr _ dims)) = arrayWrap dims $ PureType F64
-typeOf (Literal (ComptimeStructArr _ t dims)) = arrayWrap dims $ PureType $ StructType t
+typeOf (Literal (ComptimeArr vals dim)) = ArrayType (typeOf $ Literal $ head vals) dim
 typeOf (Array x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
 typeOf (Call _ _ t) = t
 typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
@@ -195,7 +171,3 @@ typeOf (LValueExpression (Index _ _ t)) = t
 typeOf (LValueExpression (Identifier _ t)) = t
 typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
 typeOf Undefined = PureType Void
-
-arrayWrap :: [Word64] -> DecoratedType -> DecoratedType
-arrayWrap [] t = t
-arrayWrap (x:xs) t = ArrayType (arrayWrap xs t) x
