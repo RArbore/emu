@@ -10,6 +10,9 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
 
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE CApiFFI #-}
+
 import Control.Monad.State
 import Control.Monad.Except
 
@@ -30,6 +33,8 @@ import qualified Parser.Parser as P
 import qualified Semantics.Check as SC
 import qualified Semantics.Error as SE
 
+foreign import capi "codegen.h test" test :: IO ()
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -44,3 +49,4 @@ main = do
       if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip (inputFiles checkedArgs) filesContents
       else do
         print $ map (fst . bimap (fromRight undefined) id) checked
+        test

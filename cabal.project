@@ -3,3 +3,4 @@ packages: *.cabal
 package emu
     ghc-options: -O -O2 -optc-O3 -funfolding-use-threshold=16
     executable-profiling: True
+    extra-include-dirs: lib
