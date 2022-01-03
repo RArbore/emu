@@ -1,4 +1,8 @@
+#ifndef CODEGEN_H
+#define CODEGEN_H
+
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 typedef enum type_e {
@@ -115,6 +119,56 @@ typedef struct unary_expr {
     decorated_type *type;
 } unary_expr;
 
+typedef enum comptime_type {
+    CT_PTR,
+    CT_BOOL,
+    CT_U8,
+    CT_U16,
+    CT_U32,
+    CT_U64,
+    CT_I8,
+    CT_I16,
+    CT_I32,
+    CT_I64,
+    CT_F32,
+    CT_F64,
+    CT_STRUCT,
+    CT_ARR,
+} comptime_type;
+
+typedef struct comptime_value {
+    comptime_type type;
+    union {
+	__uint64_t comptime_ptr;
+	bool comptime_bool;
+	__uint8_t comptime_u8;
+	__uint16_t comptime_u16;
+	__uint32_t comptime_u32;
+	__uint64_t comptime_u64;
+	__int8_t comptime_i8;
+	__int16_t comptime_i16;
+	__int32_t comptime_i32;
+	__int64_t comptime_i64;
+	struct {
+	    struct comptime_value *fields;
+	    char *struct_name;
+	};
+	struct {
+	    struct comptime_value *elements;
+	    __uint64_t size;
+	};
+    };
+} comptime_value;
+
+typedef struct literal_expr {
+    comptime_value *comptime_value;
+} literal_expr;
+
+typedef struct array_expr {
+    struct expression *elements;
+    __uint64_t size;
+} array_expr;
+
 typedef struct expression {
     expression_type type;
     union {
@@ -216,3 +270,5 @@ typedef struct declaration {
 } declaration;
 
 void test(void);
+
+#endif
