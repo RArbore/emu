@@ -1,21 +1,6 @@
 #include <sys/types.h>
 #include <stdio.h>
 
-typedef enum modifiers {
-    PURE,
-    CONST,
-    INLINE,
-    REGISTER,
-    RESTRICT,
-} modifiers;
-
-typedef enum declaration_type {
-    STRUCT_DECL,
-    FUNC_DECL,
-    VAR_DECL,
-    STMT_DECL,
-} declaration_type;
-
 typedef enum type_e {
     VOID,
     BOOL,
@@ -55,34 +40,170 @@ typedef struct decorated_type {
     };
 } decorated_type;
 
+typedef enum modifiers {
+    PURE,
+    CONST,
+    INLINE,
+    REGISTER,
+    RESTRICT,
+} modifiers;
+
 typedef struct decorated_identifier {
     modifiers *mods;
     char *name;
     decorated_type *type;
 } decorated_identifier;
 
+typedef enum expression_type {
+    BINARY_EXPR,
+    UNARY_EXPR,
+    LITERAL_EXPR,
+    ARRAY_EXPR,
+    CALL_EXPR,
+    LVALUE_EXPR,
+    ASSIGN_EXPR,
+    ADDRESS_EXPR,
+    UNDEFINED,
+} expression_type;
+
+struct expression;
+
+typedef enum binary_op {
+    LOGIC_OR,
+    LOGIC_XOR,
+    LOGIC_AND,
+    BITWISE_OR,
+    BITWISE_XOR,
+    BITWISE_AND,
+    EQUALS_EQUALS,
+    EXCLA_EQUALS,
+    GREATER,
+    LESSER,
+    GREATER_EQUALS,
+    LESSER_EQUALS,
+    LSHIFT,
+    RSHIFT,
+    TERM_PLUS,
+    TERM_MINUS,
+    FACTOR_STAR,
+    FACTOR_SLASH,
+    FACTOR_PERCENT,
+} binary_op;
+
+typedef struct binary_expr {
+    binary_op op;
+    struct expression *expr1;
+    struct expression *expr2;
+    decorated_type *type;
+} binary_expr;
+
+typedef enum unary_op {
+    PRE_PLUS_PLUS,
+    PRE_MINUS_MINUS,
+    POST_PLUS_PLUS,
+    POST_MINUS_MINUS,
+    PLUS,
+    MINUS,
+    EXCLA,
+    TILDA,
+    CAST,
+} unary_op;
+
+typedef struct unary_expr {
+    unary_op op;
+    struct expression *expr;
+    decorated_type *type;
+} unary_expr;
+
+typedef struct expression {
+    expression_type type;
+    union {
+	binary_expr binary_expr;
+	unary_expr unary_expr;
+	literal_expr literal_expr;
+	array_expr array_expr;
+	call_expr call_expr;
+	lvalue_expr lvalue_expr;
+	assign_expr assign_expr;
+	address_expr address_expr;
+    };
+} expression;
+
+typedef struct expr_stmt {
+    expression *expr;
+} expr_stmt;
+
+struct statement;
+
+typedef struct ifelse_stmt {
+    expression *cond;
+    struct statement *pos;
+    struct statement *neg;
+} ifelse_stmt;
+
+typedef struct dowhile_stmt {
+    expression *cond;
+    struct statement *body;
+} dowhile_stmt;
+
+typedef struct return_stmt {
+    expression *expr;
+} return_stmt;
+
+typedef enum statement_type {
+    EXPR_STMT,
+    IFELSE_STMT,
+    DOWHILE_STMT,
+    RETURN_STMT,
+    BLOCK,
+    EMPTY,
+} statement_type;
+
+struct declaration;
+
+typedef struct statement {
+    statement_type type;
+    union {
+	expr_stmt expr_stmt;
+	ifelse_stmt ifelse_stmt;
+	dowhile_stmt dowhile_stmt;
+	return_stmt return_stmt;
+	struct {
+	    struct declaration *block;
+	    __uint64_t block_size;
+	};
+    };
+} statement;
+
 typedef struct struct_decl {
     modifiers *mods;
     char *name;
-    struct decorated_identifier *fields;
+    decorated_identifier *fields;
 } struct_decl;
 
 typedef struct func_decl {
     modifiers *mods;
     char *name;
-    struct decorated_identifier *params;
-    struct decorated_type *ret_type;
-    struct statement *body;
+    decorated_identifier *params;
+    decorated_type *ret_type;
+    statement *body;
 } func_decl;
 
 typedef struct var_decl {
-    struct decorated_identifier *iden;
-    struct expression *init;
+    decorated_identifier *iden;
+    expression *init;
 } var_decl;
 
 typedef struct stmt_decl {
-    struct statement *stmt;
+    statement *stmt;
 } stmt_decl;
+
+typedef enum declaration_type {
+    STRUCT_DECL,
+    FUNC_DECL,
+    VAR_DECL,
+    STMT_DECL,
+} declaration_type;
 
 typedef struct declaration {
     declaration_type type;
