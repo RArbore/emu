@@ -17,7 +17,39 @@ module Semantics.Marshal
 
 import Control.Applicative 
 
+import qualified Data.Text as T
+import Data.Word
+
+import Foreign.C.String
 import Foreign.Storable
 
+import Parser.AST
+    
 import Semantics.SAST
 
+#include "codegen.h"
+    
+instance Storable Type where
+    alignment _ = #alignment type
+    sizeOf _ = #size type
+    peek ptr = do
+      enum <- (id :: Word8 -> Word8) <$> (#peek type, type_e) ptr
+      cstruct_name <- (#peek type, struct_name) ptr
+      struct_name <- peekCString cstruct_name
+      return $ [Void, Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, StructType $ T.pack struct_name] !! fromIntegral enum
+    poke ptr Void = sequence_ [(#poke type, type_e) ptr ((#const VOID) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr Bool = sequence_ [(#poke type, type_e) ptr ((#const BOOL) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr U8 = sequence_ [(#poke type, type_e) ptr ((#const U8) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr U16 = sequence_ [(#poke type, type_e) ptr ((#const U16) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr U32 = sequence_ [(#poke type, type_e) ptr ((#const U32) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr U64 = sequence_ [(#poke type, type_e) ptr ((#const U64) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr I8 = sequence_ [(#poke type, type_e) ptr ((#const I8) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr I16 = sequence_ [(#poke type, type_e) ptr ((#const I16) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr I32 = sequence_ [(#poke type, type_e) ptr ((#const I32) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr I64 = sequence_ [(#poke type, type_e) ptr ((#const I64) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr F32 = sequence_ [(#poke type, type_e) ptr ((#const F32) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr F64 = sequence_ [(#poke type, type_e) ptr ((#const F64) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr (StructType struct_name) = do
+                         (#poke type, type_e) ptr ((#const STRUCT) :: Word8)
+                         cstruct_name <- newCString $ T.unpack struct_name
+                         (#poke type, struct_name) ptr cstruct_name
