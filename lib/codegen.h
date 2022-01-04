@@ -60,19 +60,24 @@ typedef struct decorated_type {
 
 void print_decorated_type(decorated_type*);
 
-typedef enum modifiers {
+typedef enum modifier {
     PURE,
     CONST,
     INLINE,
     REGISTER,
     RESTRICT,
-} modifiers;
+} modifier;
+
+void print_modifier(modifier);
 
 typedef struct decorated_identifier {
-    modifiers *mods;
+    modifier *mods;
+    uint64_t num_mods;
     char *name;
     decorated_type *type;
 } decorated_identifier;
+
+void print_decorated_identifier(decorated_identifier*);
 
 typedef enum expression_type {
     BINARY_EXPR,
@@ -309,13 +314,15 @@ typedef struct statement {
 } statement;
 
 typedef struct struct_decl {
-    modifiers *mods;
+    modifier *mods;
+    uint64_t num_mods;
     char *name;
     decorated_identifier *fields;
 } struct_decl;
 
 typedef struct func_decl {
-    modifiers *mods;
+    modifier *mods;
+    uint64_t num_mods;
     char *name;
     decorated_identifier *params;
     uint64_t num_params;

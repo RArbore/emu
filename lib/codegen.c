@@ -26,16 +26,37 @@ void print_type(type *t) {
     case I64: printf("I64"); break;
     case F32: printf("F32"); break;
     case F64: printf("F64"); break;
-    case STRUCT: printf("StructType %s", t->struct_name); break;
-    default: printf("INVALID ENUM CODE (print_type)");
+    case STRUCT: printf("(StructType %s)", t->struct_name); break;
+    default: printf("(INVALID ENUM CODE (print_type))");
     }
 }
 
 void print_decorated_type(decorated_type *dt) {
     switch (dt->decorated_type_e) {
-    case PURE_TYPE: printf("PureType "); print_type(dt->pure_type); break;
-    case DEREF_TYPE: printf("DerefType ("); print_decorated_type(dt->deref_type); printf(")"); break;
-    case ARRAY_TYPE: printf("ArrayType ("); print_decorated_type(dt->array_type); printf(") %lu", dt->array_size); break;
-    default: printf("INVALID ENUM CODE (print_decorated_type)");
+    case PURE_TYPE: printf("(PureType "); print_type(dt->pure_type); printf(")"); break;
+    case DEREF_TYPE: printf("(DerefType "); print_decorated_type(dt->deref_type); printf(")"); break;
+    case ARRAY_TYPE: printf("(ArrayType "); print_decorated_type(dt->array_type); printf(" %lu)", dt->array_size); break;
+    default: printf("(INVALID ENUM CODE (print_decorated_type))");
     }
+}
+
+void print_modifier(modifier mod) {
+    switch (mod) {
+    case PURE: printf("Pure"); break;
+    case CONST: printf("Const"); break;
+    case INLINE: printf("Inline"); break;
+    case REGISTER: printf("Register"); break;
+    case RESTRICT: printf("Restrict"); break;
+    default: printf("(INVALID ENUM CODE (print_modifier))");
+    }
+}
+
+void print_decorated_identifier(decorated_identifier *dec_iden) {
+    printf("DecoratedIdentifier [");
+    for (uint64_t i = 0; i < dec_iden->num_mods; i++) {
+	if (i) printf(",");
+	print_modifier(dec_iden->mods[i]);
+    }
+    printf("] %s ", dec_iden->name);
+    print_decorated_type(dec_iden->type);
 }
