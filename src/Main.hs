@@ -37,8 +37,9 @@ import qualified Parser.AST as PA
 import qualified Semantics.Check as SC
 import qualified Semantics.Error as SE
 import Semantics.Marshal
+import qualified Semantics.SAST as SA
 
-foreign import capi "codegen.h print_type" print_type :: Ptr PA.Type -> IO ()
+foreign import capi "codegen.h print_decorated_type" print_decorated_type :: Ptr SA.DecoratedType -> IO ()
 
 main :: IO ()
 main = do
@@ -54,7 +55,8 @@ main = do
       if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip (inputFiles checkedArgs) filesContents
       else do
         print $ map (fst . bimap (fromRight undefined) id) checked
-        let typeToPrint = PA.StructType $ T.pack "a_struct_name"
-        allocaBytes (sizeOf typeToPrint) $ \ptr -> do
-             poke ptr typeToPrint
-             print_type ptr
+        let typeToPrint = SA.DerefType $ SA.PureType $ PA.StructType $ T.pack "a_struct_name"
+        ptr <- callocBytes (sizeOf typeToPrint)
+        poke ptr typeToPrint
+        print_decorated_type ptr
+        free ptr

@@ -20,14 +20,20 @@ import Control.Applicative
 import qualified Data.Text as T
 import Data.Word
 
+import Foreign
 import Foreign.C.String
 import Foreign.Storable
 
-import Parser.AST
+import Parser.AST (Type (..))
     
 import Semantics.SAST
 
 #include "codegen.h"
+
+simpleTypePoke :: Word8 -> Ptr a -> IO ()
+simpleTypePoke e ptr = do
+  (#poke type, type_e) ptr e
+  withCString "" $ \x -> (#poke type, struct_name) ptr x
     
 instance Storable Type where
     alignment _ = #alignment type
@@ -48,19 +54,45 @@ instance Storable Type where
        return F32,
        return F64,
        (StructType . T.pack) <$> peekCString cstruct_name] !! fromIntegral enum
-    poke ptr Void = sequence_ [(#poke type, type_e) ptr ((#const VOID) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr Bool = sequence_ [(#poke type, type_e) ptr ((#const BOOL) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr U8 = sequence_ [(#poke type, type_e) ptr ((#const U8) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr U16 = sequence_ [(#poke type, type_e) ptr ((#const U16) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr U32 = sequence_ [(#poke type, type_e) ptr ((#const U32) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr U64 = sequence_ [(#poke type, type_e) ptr ((#const U64) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr I8 = sequence_ [(#poke type, type_e) ptr ((#const I8) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr I16 = sequence_ [(#poke type, type_e) ptr ((#const I16) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr I32 = sequence_ [(#poke type, type_e) ptr ((#const I32) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr I64 = sequence_ [(#poke type, type_e) ptr ((#const I64) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr F32 = sequence_ [(#poke type, type_e) ptr ((#const F32) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
-    poke ptr F64 = sequence_ [(#poke type, type_e) ptr ((#const F64) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
+    poke ptr Void = simpleTypePoke (#const VOID) ptr
+    poke ptr Bool = simpleTypePoke (#const BOOL) ptr
+    poke ptr U8 = simpleTypePoke (#const U8) ptr
+    poke ptr U16 = simpleTypePoke (#const U16) ptr
+    poke ptr U32 = simpleTypePoke (#const U32) ptr
+    poke ptr U64 = simpleTypePoke (#const U64) ptr
+    poke ptr I8 = simpleTypePoke (#const I8) ptr
+    poke ptr I16 = simpleTypePoke (#const I16) ptr
+    poke ptr I32 = simpleTypePoke (#const I32) ptr
+    poke ptr I64 = simpleTypePoke (#const I64) ptr
+    poke ptr F32 = simpleTypePoke (#const F32) ptr
+    poke ptr F64 = simpleTypePoke (#const F64) ptr
     poke ptr (StructType struct_name) = do
                          (#poke type, type_e) ptr ((#const STRUCT) :: Word8)
                          cstruct_name <- newCString $ T.unpack struct_name
                          (#poke type, struct_name) ptr cstruct_name
+
+instance Storable DecoratedType where
+    alignment _ = #alignment decorated_type
+    sizeOf _ = #size decorated_type
+    peek ptr = do
+      enum <- (id :: Word8 -> Word8) <$> (#peek decorated_type, decorated_type_e) ptr
+      case enum of
+        (#const PURE_TYPE) -> PureType <$> (peek =<< ((#peek decorated_type, pure_type) ptr))
+        (#const DEREF_TYPE) -> DerefType <$> (peek =<< ((#peek decorated_type, deref_type) ptr))
+        (#const ARRAY_TYPE) -> ArrayType <$> (peek =<< ((#peek decorated_type, array_type) ptr)) <*> (#peek decorated_type, array_size) ptr
+    poke ptr (PureType t) = do
+      (#poke decorated_type, decorated_type_e) ptr ((#const PURE_TYPE) :: Word8)
+      typePtr <- calloc
+      poke typePtr t
+      (#poke decorated_type, pure_type) ptr typePtr
+    poke ptr (DerefType dt) = do
+      (#poke decorated_type, decorated_type_e) ptr ((#const DEREF_TYPE) :: Word8)
+      decTypePtr <- calloc
+      poke decTypePtr dt
+      (#poke decorated_type, deref_type) ptr decTypePtr
+    poke ptr (ArrayType dt w) = do
+      (#poke decorated_type, decorated_type_e) ptr ((#const ARRAY_TYPE) :: Word8)
+      decTypePtr <- calloc
+      poke decTypePtr dt
+      (#poke decorated_type, array_type) ptr decTypePtr
+      (#poke decorated_type, array_size) ptr w

@@ -14,18 +14,28 @@
 
 void print_type(type *t) {
     switch (t->type_e) {
-    case VOID: printf("Void");
-    case BOOL: printf("Bool");
-    case U8: printf("U8");
-    case U16: printf("U16");
-    case U32: printf("U32");
-    case U64: printf("U64");
-    case I8: printf("I8");
-    case I16: printf("I16");
-    case I32: printf("I32");
-    case I64: printf("I64");
-    case F32: printf("F32");
-    case F64: printf("F64");
-    case STRUCT: printf("StructType %s", t->struct_name);
+    case VOID: printf("Void"); break;
+    case BOOL: printf("Bool"); break;
+    case U8: printf("U8"); break;
+    case U16: printf("U16"); break;
+    case U32: printf("U32"); break;
+    case U64: printf("U64"); break;
+    case I8: printf("I8"); break;
+    case I16: printf("I16"); break;
+    case I32: printf("I32"); break;
+    case I64: printf("I64"); break;
+    case F32: printf("F32"); break;
+    case F64: printf("F64"); break;
+    case STRUCT: printf("StructType %s", t->struct_name); break;
+    default: printf("INVALID ENUM CODE (print_type)");
+    }
+}
+
+void print_decorated_type(decorated_type *dt) {
+    switch (dt->decorated_type_e) {
+    case PURE_TYPE: printf("PureType "); print_type(dt->pure_type); break;
+    case DEREF_TYPE: printf("DerefType ("); print_decorated_type(dt->deref_type); printf(")"); break;
+    case ARRAY_TYPE: printf("ArrayType ("); print_decorated_type(dt->array_type); printf(") %lu", dt->array_size); break;
+    default: printf("INVALID ENUM CODE (print_decorated_type)");
     }
 }

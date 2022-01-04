@@ -58,6 +58,8 @@ typedef struct decorated_type {
     };
 } decorated_type;
 
+void print_decorated_type(decorated_type*);
+
 typedef enum modifiers {
     PURE,
     CONST,
