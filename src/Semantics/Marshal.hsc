@@ -35,8 +35,19 @@ instance Storable Type where
     peek ptr = do
       enum <- (id :: Word8 -> Word8) <$> (#peek type, type_e) ptr
       cstruct_name <- (#peek type, struct_name) ptr
-      struct_name <- peekCString cstruct_name
-      return $ [Void, Bool, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, StructType $ T.pack struct_name] !! fromIntegral enum
+      [return Void,
+       return Bool,
+       return U8,
+       return U16,
+       return U32,
+       return U64,
+       return I8,
+       return I16,
+       return I32,
+       return I64,
+       return F32,
+       return F64,
+       (StructType . T.pack) <$> peekCString cstruct_name] !! fromIntegral enum
     poke ptr Void = sequence_ [(#poke type, type_e) ptr ((#const VOID) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
     poke ptr Bool = sequence_ [(#poke type, type_e) ptr ((#const BOOL) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
     poke ptr U8 = sequence_ [(#poke type, type_e) ptr ((#const U8) :: Word8), withCString "" $ \x -> (#poke type, struct_name) ptr x]
