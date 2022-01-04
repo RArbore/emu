@@ -12,6 +12,20 @@
 
 #include "codegen.h"
 
-void test(void) {
-    printf("FFI test!");
+void print_type(type *t) {
+    switch (t->type_e) {
+    case VOID: printf("Void");
+    case BOOL: printf("Bool");
+    case U8: printf("U8");
+    case U16: printf("U16");
+    case U32: printf("U32");
+    case U64: printf("U64");
+    case I8: printf("I8");
+    case I16: printf("I16");
+    case I32: printf("I32");
+    case I64: printf("I64");
+    case F32: printf("F32");
+    case F64: printf("F64");
+    case STRUCT: printf("StructType %s", t->struct_name);
+    }
 }

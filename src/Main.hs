@@ -22,6 +22,9 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
+import Foreign
+import Foreign.Marshal.Alloc
+
 import System.Environment
 
 import Interface.ParseArgs
@@ -29,11 +32,13 @@ import Interface.ParseArgs
 import Text.Megaparsec
 
 import qualified Parser.Parser as P
+import qualified Parser.AST as PA
 
 import qualified Semantics.Check as SC
 import qualified Semantics.Error as SE
+import Semantics.Marshal
 
-foreign import capi "codegen.h test" test :: IO ()
+foreign import capi "codegen.h print_type" print_type :: Ptr PA.Type -> IO ()
 
 main :: IO ()
 main = do
@@ -49,4 +54,7 @@ main = do
       if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip (inputFiles checkedArgs) filesContents
       else do
         print $ map (fst . bimap (fromRight undefined) id) checked
-        test
+        let typeToPrint = PA.StructType $ T.pack "a_struct_name"
+        allocaBytes (sizeOf typeToPrint) $ \ptr -> do
+             poke ptr typeToPrint
+             print_type ptr

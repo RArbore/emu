@@ -38,6 +38,8 @@ typedef struct type {
     char *struct_name;
 } type;
 
+void print_type(type*);
+
 typedef enum decorated_type_e {
     PURE_TYPE,
     DEREF_TYPE,
@@ -344,7 +346,5 @@ typedef struct declaration {
 	stmt_decl stmt_decl;
     };
 } declaration;
-
-void test(void);
 
 #endif
