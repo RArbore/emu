@@ -1,8 +1,8 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
-#include <sys/types.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
 typedef enum type_e {
@@ -39,7 +39,7 @@ typedef struct decorated_type {
 	struct decorated_type *deref_type;
 	struct {
 	    struct decorated_type *array_type;
-	    __uint64_t array_size;
+	    uint64_t array_size;
 	};
     };
 } decorated_type;
@@ -139,23 +139,23 @@ typedef enum comptime_type {
 typedef struct comptime_value {
     comptime_type type;
     union {
-	__uint64_t comptime_ptr;
+	uint64_t comptime_ptr;
 	bool comptime_bool;
-	__uint8_t comptime_u8;
-	__uint16_t comptime_u16;
-	__uint32_t comptime_u32;
-	__uint64_t comptime_u64;
-	__int8_t comptime_i8;
-	__int16_t comptime_i16;
-	__int32_t comptime_i32;
-	__int64_t comptime_i64;
+	uint8_t comptime_u8;
+	uint16_t comptime_u16;
+	uint32_t comptime_u32;
+	uint64_t comptime_u64;
+	int8_t comptime_i8;
+	int16_t comptime_i16;
+	int32_t comptime_i32;
+	int64_t comptime_i64;
 	struct {
 	    struct comptime_value *fields;
 	    char *struct_name;
 	};
 	struct {
 	    struct comptime_value *elements;
-	    __uint64_t size;
+	    uint64_t size;
 	};
     };
 } comptime_value;
@@ -166,8 +166,71 @@ typedef struct literal_expr {
 
 typedef struct array_expr {
     struct expression *elements;
-    __uint64_t size;
+    uint64_t size;
 } array_expr;
+
+typedef struct call_expr {
+    char *func_name;
+    struct expression *args;
+    uint64_t num_args;
+    decorated_type *result_type;
+} call_expr;
+
+typedef enum lvalue_type {
+    DEREF,
+    ACCESS,
+    INDEX,
+    IDENTIFIER,
+} lvalue_type;
+
+typedef struct lvalue {
+    lvalue_type type;
+    union {
+	struct expression *dereferenced;
+	struct {
+	    struct lvalue *accessed;
+	    uint64_t offset;
+	    decorated_type *access_result_type;
+	};
+	struct {
+	    struct lvalue *indexed;
+	    struct expression *index;
+	    decorated_type *index_result_type;
+	};
+	struct {
+	    char *name;
+	    decorated_type *iden_type;
+	};
+    };
+} lvalue;
+
+typedef struct lvalue_expr {
+    lvalue *lvalue;
+} lvalue_expr;
+
+typedef enum assign_op {
+    EQUALS,
+    PLUS_EQUALS,
+    MINUS_EQUALS,
+    STAR_EQUALS,
+    SLASH_EQUALS,
+    PERCENT_EQUALS,
+    LSHIFT_EQUALS,
+    RSHIFT_EQUALS,
+    HAT_EQUALS,
+    BAR_EQUALS,
+    AND_EQUALS,
+} assign_op;
+
+typedef struct assign_expr {
+    assign_op assign_op;
+    lvalue *lvalue;
+    struct expression *expr;
+} assign_expr;
+
+typedef struct address_expr {
+    lvalue *lvalue;
+} address_expr;
 
 typedef struct expression {
     expression_type type;
@@ -224,7 +287,7 @@ typedef struct statement {
 	return_stmt return_stmt;
 	struct {
 	    struct declaration *block;
-	    __uint64_t block_size;
+	    uint64_t block_size;
 	};
     };
 } statement;
@@ -239,6 +302,7 @@ typedef struct func_decl {
     modifiers *mods;
     char *name;
     decorated_identifier *params;
+    uint64_t num_params;
     decorated_type *ret_type;
     statement *body;
 } func_decl;
