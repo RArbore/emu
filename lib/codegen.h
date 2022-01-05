@@ -17,6 +17,17 @@
 #include <stdint.h>
 #include <stdio.h>
 
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef float f32;
+typedef double f64;
+
 typedef enum type_e {
     VOID,
     BOOL,
@@ -53,7 +64,7 @@ typedef struct decorated_type {
 	struct decorated_type *deref_type;
 	struct {
 	    struct decorated_type *array_type;
-	    uint64_t array_size;
+	    u64 array_size;
 	};
     };
 } decorated_type;
@@ -72,7 +83,7 @@ void print_modifier(modifier);
 
 typedef struct decorated_identifier {
     modifier *mods;
-    uint64_t num_mods;
+    u64 num_mods;
     char *name;
     decorated_type *type;
 } decorated_identifier;
@@ -115,6 +126,8 @@ typedef enum binary_op {
     FACTOR_PERCENT,
 } binary_op;
 
+void print_binary_op(binary_op);
+
 typedef struct binary_expr {
     binary_op op;
     struct expression *expr1;
@@ -133,6 +146,8 @@ typedef enum unary_op {
     TILDA,
     CAST,
 } unary_op;
+
+void print_unary_op(unary_op);
 
 typedef struct unary_expr {
     unary_op op;
@@ -160,26 +175,34 @@ typedef enum comptime_type {
 typedef struct comptime_value {
     comptime_type type;
     union {
-	uint64_t comptime_ptr;
+	struct {
+	    u64 comptime_ptr;
+	    decorated_type *ptr_type;
+	};
 	bool comptime_bool;
-	uint8_t comptime_u8;
-	uint16_t comptime_u16;
-	uint32_t comptime_u32;
-	uint64_t comptime_u64;
-	int8_t comptime_i8;
-	int16_t comptime_i16;
-	int32_t comptime_i32;
-	int64_t comptime_i64;
+	u8 comptime_u8;
+	u16 comptime_u16;
+	u32 comptime_u32;
+	u64 comptime_u64;
+	i8 comptime_i8;
+	i16 comptime_i16;
+	i32 comptime_i32;
+	i64 comptime_i64;
+	f32 comptime_f32;
+	f64 comptime_f64;
 	struct {
 	    struct comptime_value *fields;
+	    u64 num_fields;
 	    char *struct_name;
 	};
 	struct {
 	    struct comptime_value *elements;
-	    uint64_t size;
+	    u64 size;
 	};
     };
 } comptime_value;
+
+void print_comptime_value(comptime_value*);
 
 typedef struct literal_expr {
     comptime_value *comptime_value;
@@ -187,13 +210,13 @@ typedef struct literal_expr {
 
 typedef struct array_expr {
     struct expression *elements;
-    uint64_t size;
+    u64 size;
 } array_expr;
 
 typedef struct call_expr {
     char *func_name;
     struct expression *args;
-    uint64_t num_args;
+    u64 num_args;
     decorated_type *result_type;
 } call_expr;
 
@@ -210,7 +233,7 @@ typedef struct lvalue {
 	struct expression *dereferenced;
 	struct {
 	    struct lvalue *accessed;
-	    uint64_t offset;
+	    u64 offset;
 	    decorated_type *access_result_type;
 	};
 	struct {
@@ -308,24 +331,24 @@ typedef struct statement {
 	return_stmt return_stmt;
 	struct {
 	    struct declaration *block;
-	    uint64_t block_size;
+	    u64 block_size;
 	};
     };
 } statement;
 
 typedef struct struct_decl {
     modifier *mods;
-    uint64_t num_mods;
+    u64 num_mods;
     char *name;
     decorated_identifier *fields;
 } struct_decl;
 
 typedef struct func_decl {
     modifier *mods;
-    uint64_t num_mods;
+    u64 num_mods;
     char *name;
     decorated_identifier *params;
-    uint64_t num_params;
+    u64 num_params;
     decorated_type *ret_type;
     statement *body;
 } func_decl;

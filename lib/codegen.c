@@ -53,10 +53,86 @@ void print_modifier(modifier mod) {
 
 void print_decorated_identifier(decorated_identifier *dec_iden) {
     printf("DecoratedIdentifier [");
-    for (uint64_t i = 0; i < dec_iden->num_mods; i++) {
+    for (u64 i = 0; i < dec_iden->num_mods; i++) {
 	if (i) printf(",");
 	print_modifier(dec_iden->mods[i]);
     }
     printf("] %s ", dec_iden->name);
     print_decorated_type(dec_iden->type);
+}
+
+void print_binary_op(binary_op bop) {
+    switch (bop) {
+    case LOGIC_OR: printf("LogicOr"); break;
+    case LOGIC_XOR: printf("LogicXor"); break;
+    case LOGIC_AND: printf("LogicAnd"); break;
+    case BITWISE_OR: printf("BitwiseOr"); break;
+    case BITWISE_XOR: printf("BitwiseXor"); break;
+    case BITWISE_AND: printf("BitwiseAnd"); break;
+    case EQUALS_EQUALS: printf("EqualsEquals"); break;
+    case EXCLA_EQUALS: printf("ExclaEquals"); break;
+    case GREATER: printf("Greater"); break;
+    case LESSER: printf("Lesser"); break;
+    case GREATER_EQUALS: printf("GreaterEquals"); break;
+    case LESSER_EQUALS: printf("LesserEquals"); break;
+    case LSHIFT: printf("LShift"); break;
+    case RSHIFT: printf("RShift"); break;
+    case TERM_PLUS: printf("TermPlus"); break;
+    case TERM_MINUS: printf("TermMinus"); break;
+    case FACTOR_STAR: printf("FactorStar"); break;
+    case FACTOR_SLASH: printf("FactorSlash"); break;
+    case FACTOR_PERCENT: printf("FactorPercent"); break;
+    default: printf("(INVALID ENUM CODE (print_binary_op))");
+    }
+}
+
+void print_unary_op(unary_op uop) {
+    switch (uop) {
+    case PRE_PLUS_PLUS: printf("PrePlusPlus"); break;
+    case PRE_MINUS_MINUS: printf("PreMinusMinus"); break;
+    case POST_PLUS_PLUS: printf("PostPlusPlus"); break;
+    case POST_MINUS_MINUS: printf("PostMinusMinus"); break;
+    case PLUS: printf("Plus"); break;
+    case MINUS: printf("Minus"); break;
+    case EXCLA: printf("Excla"); break;
+    case TILDA: printf("Tilda"); break;
+    case CAST: printf("Cast"); break;
+    default: printf("(INVALID ENUM CODE (print_unary_op))");
+    }
+}
+
+void print_comptime_value(comptime_value *cv) {
+    switch (cv->type) {
+    case CT_PTR: printf("(ComptimePointer %p ", (void *) cv->comptime_ptr); print_decorated_type(cv->ptr_type); printf(")"); break;
+    case CT_BOOL: printf(cv->comptime_bool ? "(ComptimeBool True)" : "(ComptimeBool False)"); break;
+    case CT_U8: printf("(ComptimeU8 %u)", cv->comptime_u8); break;
+    case CT_U16: printf("(ComptimeU16 %u)", cv->comptime_u16); break;
+    case CT_U32: printf("(ComptimeU32 %u)", cv->comptime_u32); break;
+    case CT_U64: printf("(ComptimeU64 %lu)", cv->comptime_u64); break;
+    case CT_I8: printf("(ComptimeI8 %d)", cv->comptime_i8); break;
+    case CT_I16: printf("(ComptimeI16 %d)", cv->comptime_i16); break;
+    case CT_I32: printf("(ComptimeI32 %d)", cv->comptime_i32); break;
+    case CT_I64: printf("(ComptimeI64 %ld)", cv->comptime_i64); break;
+    case CT_F32: printf("(ComptimeF32 %f)", cv->comptime_f32); break;
+    case CT_F64: printf("(ComptimeF64 %f)", cv->comptime_f64); break;
+    case CT_STRUCT: {
+	printf("(ComptimeStruct [");
+	for (u64 i = 0; i < cv->num_fields; cv++) {
+	    if (i) printf(",");
+	    print_comptime_value(cv->fields + i);
+	}
+	printf("] %s)", cv->struct_name);
+	break;
+    }
+    case CT_ARR: {
+	printf("(ComptimeArr [");
+	for (u64 i = 0; i < cv->size; cv++) {
+	    if (i) printf(",");
+	    print_comptime_value(cv->elements + i);
+	}
+	printf("] %lu)", cv->size);
+	break;
+    }
+    default: printf("(INVALID ENUM CODE (print_comptime_value))");
+    }
 }
