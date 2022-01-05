@@ -35,6 +35,11 @@ simpleTypePoke e ptr = do
   (#poke type, type_e) ptr e
   withCString "" $ \x -> (#poke type, struct_name) ptr x
 
+simpleCVPoke :: Word32 -> Ptr a -> (Ptr a -> b -> IO ()) -> b -> IO ()
+simpleCVPoke e ptr poke_val x = do
+  (#poke comptime_value, type) ptr e
+  poke_val ptr x
+
 tEnum :: Enum a => Word32 -> a
 tEnum = toEnum . fromIntegral
 
@@ -46,7 +51,6 @@ instance Storable Type where
     sizeOf _ = #size type
     peek ptr = do
       enum <- (#peek type, type_e) ptr :: IO Word32
-      cstruct_name <- (#peek type, struct_name) ptr
       [return Void,
        return Bool,
        return U8,
@@ -59,7 +63,7 @@ instance Storable Type where
        return I64,
        return F32,
        return F64,
-       (StructType . T.pack) <$> peekCString cstruct_name] !! fromIntegral enum
+       (StructType . T.pack) <$> (peekCString =<< (#peek type, struct_name) ptr)] !! fromIntegral enum
     poke ptr Void = simpleTypePoke (#const VOID) ptr
     poke ptr Bool = simpleTypePoke (#const BOOL) ptr
     poke ptr U8 = simpleTypePoke (#const U8) ptr
@@ -126,3 +130,57 @@ instance Storable DecoratedIdentifier where
                                         poke decTypePtr dt
                                         (#poke decorated_identifier, type) ptr decTypePtr
       
+instance Storable ComptimeValue where
+    alignment _ = #alignment comptime_value
+    sizeOf _ = #size comptime_value
+    peek ptr = do
+      enum <- (#peek comptime_value, type) ptr :: IO Word32
+      [ComptimePointer <$> (#peek comptime_value, comptime_ptr) ptr <*> (peek =<< (#peek comptime_value, ptr_type) ptr),
+       ComptimeBool <$> (#peek comptime_value, comptime_bool) ptr,
+       ComptimeU8 <$> (#peek comptime_value, comptime_u8) ptr,
+       ComptimeU16 <$> (#peek comptime_value, comptime_u16) ptr,
+       ComptimeU32 <$> (#peek comptime_value, comptime_u32) ptr,
+       ComptimeU64 <$> (#peek comptime_value, comptime_u64) ptr,
+       ComptimeI8 <$> (#peek comptime_value, comptime_i8) ptr,
+       ComptimeI16 <$> (#peek comptime_value, comptime_i16) ptr,
+       ComptimeI32 <$> (#peek comptime_value, comptime_i32) ptr,
+       ComptimeI64 <$> (#peek comptime_value, comptime_i64) ptr,
+       ComptimeF32 <$> (#peek comptime_value, comptime_f32) ptr,
+       ComptimeF64 <$> (#peek comptime_value, comptime_f64) ptr,
+       ComptimeStruct <$> (do size <- fromIntegral <$> ((#peek comptime_value, num_fields) ptr :: IO Word64)
+                              fields <- (#peek comptime_value, fields) ptr
+                              peekArray size fields) <*> (T.pack <$> (peekCString =<< (#peek comptime_value, struct_name) ptr)),
+       ComptimeArr <$> (do size <- fromIntegral <$> ((#peek comptime_value, size) ptr :: IO Word64)
+                           elems <- (#peek comptime_value, elements) ptr
+                           peekArray size elems)] !! fromIntegral enum
+    poke ptr (ComptimePointer p dt) = do
+                                  (#poke comptime_value, type) ptr ((#const CT_PTR) :: Word32)
+                                  (#poke comptime_value, comptime_ptr) ptr p
+                                  decTypePtr <- calloc
+                                  poke decTypePtr dt
+                                  (#poke comptime_value, ptr_type) ptr decTypePtr
+    poke ptr (ComptimeBool b) = simpleCVPoke (#const CT_BOOL) ptr (#poke comptime_value, comptime_bool) b
+    poke ptr (ComptimeU8 u8) = simpleCVPoke (#const CT_U8) ptr (#poke comptime_value, comptime_u8) u8
+    poke ptr (ComptimeU16 u16) = simpleCVPoke (#const CT_U16) ptr (#poke comptime_value, comptime_u16) u16
+    poke ptr (ComptimeU32 u32) = simpleCVPoke (#const CT_U32) ptr (#poke comptime_value, comptime_u32) u32
+    poke ptr (ComptimeU64 u64) = simpleCVPoke (#const CT_U64) ptr (#poke comptime_value, comptime_u64) u64
+    poke ptr (ComptimeI8 i8) = simpleCVPoke (#const CT_I8) ptr (#poke comptime_value, comptime_i8) i8
+    poke ptr (ComptimeI16 i16) = simpleCVPoke (#const CT_I16) ptr (#poke comptime_value, comptime_i16) i16
+    poke ptr (ComptimeI32 i32) = simpleCVPoke (#const CT_I32) ptr (#poke comptime_value, comptime_i32) i32
+    poke ptr (ComptimeI64 i64) = simpleCVPoke (#const CT_I64) ptr (#poke comptime_value, comptime_i64) i64
+    poke ptr (ComptimeF32 f32) = simpleCVPoke (#const CT_F32) ptr (#poke comptime_value, comptime_f32) f32
+    poke ptr (ComptimeF64 f64) = simpleCVPoke (#const CT_F64) ptr (#poke comptime_value, comptime_f64) f64
+    poke ptr (ComptimeStruct cvs name) = do
+                                  (#poke comptime_value, type) ptr ((#const CT_STRUCT) :: Word32)
+                                  (#poke comptime_value, num_fields) ptr (fromIntegral $ length cvs :: Word64)
+                                  cname <- newCString $ T.unpack name
+                                  (#poke comptime_value, struct_name) ptr cname
+                                  arrPtr <- callocArray (length cvs)
+                                  pokeArray arrPtr cvs
+                                  (#poke comptime_value, fields) ptr arrPtr
+    poke ptr (ComptimeArr cvs) = do
+                                  (#poke comptime_value, type) ptr ((#const CT_ARR) :: Word32)
+                                  (#poke comptime_value, size) ptr (fromIntegral $ length cvs :: Word64)
+                                  arrPtr <- callocArray (length cvs)
+                                  pokeArray arrPtr cvs
+                                  (#poke comptime_value, elements) ptr arrPtr

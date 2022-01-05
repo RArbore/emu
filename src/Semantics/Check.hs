@@ -299,7 +299,7 @@ checkExpr ((l, sc, ec), e) = checked
                       A.FloatingPointLiteral (F32Val x) -> return $ Literal $ ComptimeF32 x
                       A.FloatingPointLiteral (F64Val x) -> return $ Literal $ ComptimeF64 x
                       A.CharLiteral c -> return $ Literal $ ComptimeU8 c
-                      A.StringLiteral s -> let unpacked = B.unpack s in return $ Literal $ ComptimeArr (ComptimeU8 <$> unpacked) $ fromIntegral $ length unpacked
+                      A.StringLiteral s -> let unpacked = B.unpack s in return $ Literal $ ComptimeArr (ComptimeU8 <$> unpacked)
                       A.Undefined -> return $ Undefined
                       A.ComptimeExpression ce -> Literal <$> (checkExpr ce >>= comptimeEvaluate (l, sc, ec))
                       A.ArrayLiteral x -> do

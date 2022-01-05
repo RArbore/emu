@@ -117,7 +117,7 @@ void print_comptime_value(comptime_value *cv) {
     case CT_F64: printf("(ComptimeF64 %f)", cv->comptime_f64); break;
     case CT_STRUCT: {
 	printf("(ComptimeStruct [");
-	for (u64 i = 0; i < cv->num_fields; cv++) {
+	for (u64 i = 0; i < cv->num_fields; i++) {
 	    if (i) printf(",");
 	    print_comptime_value(cv->fields + i);
 	}
@@ -126,7 +126,7 @@ void print_comptime_value(comptime_value *cv) {
     }
     case CT_ARR: {
 	printf("(ComptimeArr [");
-	for (u64 i = 0; i < cv->size; cv++) {
+	for (u64 i = 0; i < cv->size; i++) {
 	    if (i) printf(",");
 	    print_comptime_value(cv->elements + i);
 	}
