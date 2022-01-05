@@ -34,6 +34,12 @@ simpleTypePoke :: Word32 -> Ptr a -> IO ()
 simpleTypePoke e ptr = do
   (#poke type, type_e) ptr e
   withCString "" $ \x -> (#poke type, struct_name) ptr x
+
+tEnum :: Enum a => Word32 -> a
+tEnum = toEnum . fromIntegral
+
+fEnum :: Enum a => a -> Word32
+fEnum = fromIntegral . fromEnum
     
 instance Storable Type where
     alignment _ = #alignment type
@@ -108,15 +114,10 @@ instance Storable DecoratedIdentifier where
       name <- peekCString cname
       decTypePtr <- (id :: Ptr DecoratedType -> Ptr DecoratedType) <$> (#peek decorated_identifier, type) ptr
       decType <- peek decTypePtr
-      return $ DecoratedIdentifier (map modConv w8Mods) (T.pack name) decType
-          where modConv 0 = Pure
-                modConv 1 = Const
-                modConv 2 = Inline
-                modConv 3 = Register
-                modConv 4 = Restrict
+      return $ DecoratedIdentifier (map tEnum w8Mods) (T.pack name) decType
     poke ptr (DecoratedIdentifier mods name dt) = do
                                         modsArrPtr <- callocArray (length mods)
-                                        pokeArray modsArrPtr (map modConv mods)
+                                        pokeArray modsArrPtr (map fEnum mods)
                                         (#poke decorated_identifier, mods) ptr modsArrPtr
                                         (#poke decorated_identifier, num_mods) ptr ((id :: Word64 -> Word64) $ fromIntegral $ length mods)
                                         cname <- newCString $ T.unpack name
@@ -124,10 +125,4 @@ instance Storable DecoratedIdentifier where
                                         decTypePtr <- calloc
                                         poke decTypePtr dt
                                         (#poke decorated_identifier, type) ptr decTypePtr
-                                            where modConv :: Modifier -> Word32
-                                                  modConv Pure = 0
-                                                  modConv Const = 1
-                                                  modConv Inline = 2
-                                                  modConv Register = 3
-                                                  modConv Restrict = 4
       

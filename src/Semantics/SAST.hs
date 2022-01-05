@@ -114,7 +114,7 @@ data AssignOp = Equals
               | RShiftEquals
               | HatEquals
               | BarEquals
-              | AndEquals deriving (Show, Generic, NFData, Eq)
+              | AndEquals deriving (Show, Generic, NFData, Eq, Enum)
             
 data BinaryOp = LogicOr
               | LogicXor
@@ -134,7 +134,7 @@ data BinaryOp = LogicOr
               | TermMinus
               | FactorStar
               | FactorSlash
-              | FactorPercent deriving (Show, Generic, NFData, Eq)
+              | FactorPercent deriving (Show, Generic, NFData, Eq, Enum)
                 
 data UnaryOp = PrePlusPlus
              | PreMinusMinus
@@ -144,7 +144,7 @@ data UnaryOp = PrePlusPlus
              | Tilda
              | Cast 
              | PostPlusPlus
-             | PostMinusMinus deriving (Show, Generic, NFData, Eq)
+             | PostMinusMinus deriving (Show, Generic, NFData, Eq, Enum)
 
 typeOf :: Expression -> DecoratedType
 typeOf (Binary _ _ _ t) = t
