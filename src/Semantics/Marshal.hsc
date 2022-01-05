@@ -45,7 +45,7 @@ instance Storable Type where
     alignment _ = #alignment type
     sizeOf _ = #size type
     peek ptr = do
-      enum <- (id :: Word32 -> Word32) <$> (#peek type, type_e) ptr
+      enum <- (#peek type, type_e) ptr :: IO Word32
       cstruct_name <- (#peek type, struct_name) ptr
       [return Void,
        return Bool,
@@ -81,7 +81,7 @@ instance Storable DecoratedType where
     alignment _ = #alignment decorated_type
     sizeOf _ = #size decorated_type
     peek ptr = do
-      enum <- (id :: Word32 -> Word32) <$> (#peek decorated_type, decorated_type_e) ptr
+      enum <- (#peek decorated_type, decorated_type_e) ptr :: IO Word32
       case enum of
         (#const PURE_TYPE) -> PureType <$> (peek =<< ((#peek decorated_type, pure_type) ptr))
         (#const DEREF_TYPE) -> DerefType <$> (peek =<< ((#peek decorated_type, deref_type) ptr))
@@ -107,19 +107,19 @@ instance Storable DecoratedIdentifier where
     alignment _ = #alignment decorated_identifier
     sizeOf _ = #size decorated_identifier
     peek ptr = do
-      numMods <- (id :: Word64 -> Word64) <$> (#peek decorated_identifier, num_mods) ptr
-      ptrMods <- (id :: Ptr Word32 -> Ptr Word32) <$> (#peek decorated_identifier, mods) ptr
+      numMods <- (#peek decorated_identifier, num_mods) ptr :: IO Word64
+      ptrMods <- (#peek decorated_identifier, mods) ptr :: IO (Ptr Word32)
       w8Mods <- peekArray (fromIntegral numMods) ptrMods
       cname <- (#peek decorated_identifier, name) ptr
       name <- peekCString cname
-      decTypePtr <- (id :: Ptr DecoratedType -> Ptr DecoratedType) <$> (#peek decorated_identifier, type) ptr
+      decTypePtr <- (#peek decorated_identifier, type) ptr :: IO (Ptr DecoratedType)
       decType <- peek decTypePtr
       return $ DecoratedIdentifier (map tEnum w8Mods) (T.pack name) decType
     poke ptr (DecoratedIdentifier mods name dt) = do
                                         modsArrPtr <- callocArray (length mods)
                                         pokeArray modsArrPtr (map fEnum mods)
                                         (#poke decorated_identifier, mods) ptr modsArrPtr
-                                        (#poke decorated_identifier, num_mods) ptr ((id :: Word64 -> Word64) $ fromIntegral $ length mods)
+                                        (#poke decorated_identifier, num_mods) ptr (fromIntegral $ length mods :: Word64)
                                         cname <- newCString $ T.unpack name
                                         (#poke decorated_identifier, name) ptr cname
                                         decTypePtr <- calloc
