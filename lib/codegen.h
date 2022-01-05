@@ -90,18 +90,6 @@ typedef struct decorated_identifier {
 
 void print_decorated_identifier(decorated_identifier*);
 
-typedef enum expression_type {
-    BINARY_EXPR,
-    UNARY_EXPR,
-    LITERAL_EXPR,
-    ARRAY_EXPR,
-    CALL_EXPR,
-    LVALUE_EXPR,
-    ASSIGN_EXPR,
-    ADDRESS_EXPR,
-    UNDEFINED,
-} expression_type;
-
 struct expression;
 
 typedef enum binary_op {
@@ -271,7 +259,7 @@ typedef enum assign_op {
 void print_assign_op(assign_op);
 
 typedef struct assign_expr {
-    assign_op assign_op;
+    assign_op op;
     lvalue *lvalue;
     struct expression *expr;
 } assign_expr;
@@ -279,6 +267,18 @@ typedef struct assign_expr {
 typedef struct address_expr {
     lvalue *lvalue;
 } address_expr;
+
+typedef enum expression_type {
+    BINARY_EXPR,
+    UNARY_EXPR,
+    LITERAL_EXPR,
+    ARRAY_EXPR,
+    CALL_EXPR,
+    LVALUE_EXPR,
+    ASSIGN_EXPR,
+    ADDRESS_EXPR,
+    UNDEFINED,
+} expression_type;
 
 typedef struct expression {
     expression_type type;

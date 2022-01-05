@@ -165,5 +165,34 @@ void print_assign_op(assign_op aop) {
 }
 
 void print_expression(expression *expr) {
-
+    switch (expr->type) {
+    case BINARY_EXPR: printf("(Binary "); print_binary_op(expr->binary_expr.op); printf(" "); print_expression(expr->binary_expr.expr1); printf(" "); print_expression(expr->binary_expr.expr2); printf(" "); print_decorated_type(expr->binary_expr.type); printf(")"); break; 
+    case UNARY_EXPR: printf("(Unary "); print_unary_op(expr->unary_expr.op); printf(" "); print_expression(expr->unary_expr.expr); printf(" "); print_decorated_type(expr->unary_expr.type); printf(")"); break;  
+    case LITERAL_EXPR: printf("(Literal "); print_comptime_value(expr->literal_expr.comptime_value); printf(")"); break;
+    case ARRAY_EXPR: {
+	printf("(Array [");
+	for (u64 i = 0; i < expr->array_expr.size; i++) {
+	    if (i) printf(",");
+	    print_expression(expr->array_expr.elements + i);
+	}
+	printf("])");
+	break;
+    }
+    case CALL_EXPR: {
+	printf("(Call %s [", expr->call_expr.func_name);
+	for (u64 i = 0; i < expr->call_expr.num_args; i++) {
+	    if (i) printf(",");
+	    print_expression(expr->call_expr.args + i);
+	}
+	printf("] ");
+	print_decorated_type(expr->call_expr.result_type);
+	printf(")");
+	break;
+    }
+    case LVALUE_EXPR: printf("(LValueExpression "); print_lvalue(expr->lvalue_expr.lvalue); printf(")"); break;
+    case ASSIGN_EXPR: printf("(Assign "); print_assign_op(expr->assign_expr.op); printf(" "); print_lvalue(expr->assign_expr.lvalue); printf(" "); print_expression(expr->assign_expr.expr); printf(")"); break;
+    case ADDRESS_EXPR: printf("(Address "); print_lvalue(expr->address_expr.lvalue); printf(")"); break;
+    case UNDEFINED: printf("Undefined"); break;
+    default: printf("(INVALID ENUM CODE (print_expression))");
+    }
 }
