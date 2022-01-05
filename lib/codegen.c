@@ -136,3 +136,34 @@ void print_comptime_value(comptime_value *cv) {
     default: printf("(INVALID ENUM CODE (print_comptime_value))");
     }
 }
+
+void print_lvalue(lvalue *lv) {
+    switch (lv->type) {
+    case DEREF: printf("(Dereference "); print_expression(lv->dereferenced); printf(")"); break;
+    case ACCESS: printf("(Access "); print_lvalue(lv->accessed); printf(" %lu ", lv->offset); print_decorated_type(lv->access_result_type); printf(")"); break;
+    case INDEX: printf("(Index "); print_lvalue(lv->indexed); printf(" "); print_expression(lv->index); printf(" "); print_decorated_type(lv->index_result_type); printf(")"); break;
+    case IDENTIFIER: printf("(Identifier %s ", lv->name); print_decorated_type(lv->iden_type); printf(")"); break;
+    default: printf("(INVALID ENUM CODE (print_lvalue))");
+    }
+}
+
+void print_assign_op(assign_op aop) {
+    switch (aop) {
+    case EQUALS: printf("Equals"); break;
+    case PLUS_EQUALS: printf("PlusEquals"); break;
+    case MINUS_EQUALS: printf("MinusEquals"); break;
+    case STAR_EQUALS: printf("StarEquals"); break;
+    case SLASH_EQUALS: printf("SlashEquals"); break;
+    case PERCENT_EQUALS: printf("PercentEquals"); break;
+    case LSHIFT_EQUALS: printf("LShiftEquals"); break;
+    case RSHIFT_EQUALS: printf("RShiftEquals"); break;
+    case HAT_EQUALS: printf("HatEquals"); break;
+    case BAR_EQUALS: printf("BarEquals"); break;
+    case AND_EQUALS: printf("AndEquals"); break;
+    default: printf("(INVALID ENUM CODE (print_assign_op))");
+    }
+}
+
+void print_expression(expression *expr) {
+
+}

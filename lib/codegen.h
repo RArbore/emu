@@ -248,6 +248,8 @@ typedef struct lvalue {
     };
 } lvalue;
 
+void print_lvalue(lvalue*);
+
 typedef struct lvalue_expr {
     lvalue *lvalue;
 } lvalue_expr;
@@ -265,6 +267,8 @@ typedef enum assign_op {
     BAR_EQUALS,
     AND_EQUALS,
 } assign_op;
+
+void print_assign_op(assign_op);
 
 typedef struct assign_expr {
     assign_op assign_op;
@@ -289,6 +293,8 @@ typedef struct expression {
 	address_expr address_expr;
     };
 } expression;
+
+void print_expression(expression*);
 
 typedef struct expr_stmt {
     expression *expr;
