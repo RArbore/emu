@@ -342,6 +342,8 @@ typedef struct statement {
     };
 } statement;
 
+void print_statement(statement*);
+
 typedef struct struct_decl {
     modifier *mods;
     u64 num_mods;
@@ -384,5 +386,7 @@ typedef struct declaration {
 	stmt_decl stmt_decl;
     };
 } declaration;
+
+void print_declaration(declaration*);
 
 #endif

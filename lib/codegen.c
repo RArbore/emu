@@ -196,3 +196,27 @@ void print_expression(expression *expr) {
     default: printf("(INVALID ENUM CODE (print_expression))");
     }
 }
+
+void print_statement(statement *stmt) {
+    switch (stmt->type) {
+    case EXPR_STMT: printf("(ExpressionStatement "); print_expression(stmt->expr_stmt.expr); printf(")"); break;
+    case IFELSE_STMT: printf("(IfElseStatement "); print_expression(stmt->ifelse_stmt.cond); printf(" "); print_statement(stmt->ifelse_stmt.pos); printf(" "); print_statement(stmt->ifelse_stmt.neg); printf(")"); break;
+    case DOWHILE_STMT: printf("(DoWhileStatement "); print_expression(stmt->dowhile_stmt.cond); printf(" "); print_statement(stmt->dowhile_stmt.body); printf(")"); break;
+    case RETURN_STMT: printf("(ReturnStatement "); print_expression(stmt->return_stmt.expr); printf(")"); break;
+    case BLOCK: {
+	printf("(Block [");
+	for (u64 i = 0; i < stmt->block_size; i++) {
+	    if (i) printf(",");
+	    print_declaration(stmt->block + i);
+	}
+	printf("])");
+	break;
+    }
+    case EMPTY: printf("EmptyStatement"); break;
+    default: printf("(INVALID ENUM CODE (print_statement))");
+    }
+}
+
+void print_declaration(declaration *decl) {
+
+}
