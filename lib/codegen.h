@@ -29,7 +29,7 @@ typedef float f32;
 typedef double f64;
 
 typedef enum type_e {
-    VOID,
+    VOID = 0,
     BOOL,
     U8,
     U16,
@@ -52,7 +52,7 @@ typedef struct type {
 void print_type(type*);
 
 typedef enum decorated_type_e {
-    PURE_TYPE,
+    PURE_TYPE = 0,
     DEREF_TYPE,
     ARRAY_TYPE,
 } decorated_type_e;
@@ -72,7 +72,7 @@ typedef struct decorated_type {
 void print_decorated_type(decorated_type*);
 
 typedef enum modifier {
-    PURE,
+    PURE = 0,
     CONST,
     INLINE,
     REGISTER,
@@ -93,7 +93,7 @@ void print_decorated_identifier(decorated_identifier*);
 struct expression;
 
 typedef enum binary_op {
-    LOGIC_OR,
+    LOGIC_OR = 0,
     LOGIC_XOR,
     LOGIC_AND,
     BITWISE_OR,
@@ -124,7 +124,7 @@ typedef struct binary_expr {
 } binary_expr;
 
 typedef enum unary_op {
-    PRE_PLUS_PLUS,
+    PRE_PLUS_PLUS = 0,
     PRE_MINUS_MINUS,
     POST_PLUS_PLUS,
     POST_MINUS_MINUS,
@@ -144,7 +144,7 @@ typedef struct unary_expr {
 } unary_expr;
 
 typedef enum comptime_type {
-    CT_PTR,
+    CT_PTR = 0,
     CT_BOOL,
     CT_U8,
     CT_U16,
@@ -209,7 +209,7 @@ typedef struct call_expr {
 } call_expr;
 
 typedef enum lvalue_type {
-    DEREF,
+    DEREF = 0,
     ACCESS,
     INDEX,
     IDENTIFIER,
@@ -243,7 +243,7 @@ typedef struct lvalue_expr {
 } lvalue_expr;
 
 typedef enum assign_op {
-    EQUALS,
+    EQUALS = 0,
     PLUS_EQUALS,
     MINUS_EQUALS,
     STAR_EQUALS,
@@ -269,7 +269,7 @@ typedef struct address_expr {
 } address_expr;
 
 typedef enum expression_type {
-    BINARY_EXPR,
+    BINARY_EXPR = 0,
     UNARY_EXPR,
     LITERAL_EXPR,
     ARRAY_EXPR,
@@ -318,7 +318,7 @@ typedef struct return_stmt {
 } return_stmt;
 
 typedef enum statement_type {
-    EXPR_STMT,
+    EXPR_STMT = 0,
     IFELSE_STMT,
     DOWHILE_STMT,
     RETURN_STMT,
@@ -372,7 +372,7 @@ typedef struct stmt_decl {
 } stmt_decl;
 
 typedef enum declaration_type {
-    STRUCT_DECL,
+    STRUCT_DECL = 0,
     FUNC_DECL,
     VAR_DECL,
     STMT_DECL,

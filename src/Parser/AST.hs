@@ -103,7 +103,7 @@ data Modifier = Pure
               | Const
               | Inline
               | Register
-              | Restrict deriving (Show, Generic, NFData, Eq)
+              | Restrict deriving (Show, Generic, NFData, Eq, Enum)
                 
 data Type = Void
           | Bool

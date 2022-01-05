@@ -26,7 +26,7 @@ void print_type(type *t) {
     case I64: printf("I64"); break;
     case F32: printf("F32"); break;
     case F64: printf("F64"); break;
-    case STRUCT: printf("(StructType %s)", t->struct_name); break;
+    case STRUCT: printf("(StructType \"%s\")", t->struct_name); break;
     default: printf("(INVALID ENUM CODE (print_type))");
     }
 }
@@ -57,7 +57,7 @@ void print_decorated_identifier(decorated_identifier *dec_iden) {
 	if (i) printf(",");
 	print_modifier(dec_iden->mods[i]);
     }
-    printf("] %s ", dec_iden->name);
+    printf("] \"%s\" ", dec_iden->name);
     print_decorated_type(dec_iden->type);
 }
 
@@ -121,7 +121,7 @@ void print_comptime_value(comptime_value *cv) {
 	    if (i) printf(",");
 	    print_comptime_value(cv->fields + i);
 	}
-	printf("] %s)", cv->struct_name);
+	printf("] \"%s\")", cv->struct_name);
 	break;
     }
     case CT_ARR: {
@@ -142,7 +142,7 @@ void print_lvalue(lvalue *lv) {
     case DEREF: printf("(Dereference "); print_expression(lv->dereferenced); printf(")"); break;
     case ACCESS: printf("(Access "); print_lvalue(lv->accessed); printf(" %lu ", lv->offset); print_decorated_type(lv->access_result_type); printf(")"); break;
     case INDEX: printf("(Index "); print_lvalue(lv->indexed); printf(" "); print_expression(lv->index); printf(" "); print_decorated_type(lv->index_result_type); printf(")"); break;
-    case IDENTIFIER: printf("(Identifier %s ", lv->name); print_decorated_type(lv->iden_type); printf(")"); break;
+    case IDENTIFIER: printf("(Identifier \"%s\" ", lv->name); print_decorated_type(lv->iden_type); printf(")"); break;
     default: printf("(INVALID ENUM CODE (print_lvalue))");
     }
 }
@@ -179,7 +179,7 @@ void print_expression(expression *expr) {
 	break;
     }
     case CALL_EXPR: {
-	printf("(Call %s [", expr->call_expr.func_name);
+	printf("(Call \"%s\" [", expr->call_expr.func_name);
 	for (u64 i = 0; i < expr->call_expr.num_args; i++) {
 	    if (i) printf(",");
 	    print_expression(expr->call_expr.args + i);
@@ -225,7 +225,7 @@ void print_declaration(declaration *decl) {
 	    if (i) printf(",");
 	    print_modifier(decl->struct_decl.mods[i]);
 	}
-	printf("] %s [", decl->struct_decl.name);
+	printf("] \"%s\" [", decl->struct_decl.name);
 	for (u64 i = 0; i < decl->struct_decl.num_fields; i++) {
 	    if (i) printf(",");
 	    print_decorated_identifier(decl->struct_decl.fields + i);
@@ -239,7 +239,7 @@ void print_declaration(declaration *decl) {
 	    if (i) printf(",");
 	    print_modifier(decl->func_decl.mods[i]);
 	}
-	printf("] %s [", decl->func_decl.name);
+	printf("] \"%s\" [", decl->func_decl.name);
 	for (u64 i = 0; i < decl->func_decl.num_params; i++) {
 	    if (i) printf(",");
 	    print_decorated_identifier(decl->func_decl.params + i);
