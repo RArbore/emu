@@ -218,5 +218,40 @@ void print_statement(statement *stmt) {
 }
 
 void print_declaration(declaration *decl) {
-
+    switch (decl->type) {
+    case STRUCT_DECL: {
+	printf("(StructDecl (Structure [");
+	for (u64 i = 0; i < decl->struct_decl.num_mods; i++) {
+	    if (i) printf(",");
+	    print_modifier(decl->struct_decl.mods[i]);
+	}
+	printf("] %s [", decl->struct_decl.name);
+	for (u64 i = 0; i < decl->struct_decl.num_fields; i++) {
+	    if (i) printf(",");
+	    print_decorated_identifier(decl->struct_decl.fields + i);
+	}
+	printf("]))");
+	break;
+    }
+    case FUNC_DECL: {
+	printf("(FuncDecl (Function [");
+	for (u64 i = 0; i < decl->func_decl.num_mods; i++) {
+	    if (i) printf(",");
+	    print_modifier(decl->func_decl.mods[i]);
+	}
+	printf("] %s [", decl->func_decl.name);
+	for (u64 i = 0; i < decl->func_decl.num_params; i++) {
+	    if (i) printf(",");
+	    print_decorated_identifier(decl->func_decl.params + i);
+	}
+	printf("] ");
+	print_decorated_type(decl->func_decl.ret_type);
+	print_statement(decl->func_decl.body);
+	printf("))");
+	break;
+    }
+    case VAR_DECL: printf("(VarDecl (VarBinding "); print_decorated_identifier(decl->var_decl.iden); printf(" "); print_expression(decl->var_decl.init); printf("))"); break;
+    case STMT_DECL: printf("(StatementDecl "); print_statement(decl->stmt_decl.stmt); printf(")"); break;
+    default: printf("(INVALID ENUM CODE (print_declaration))");
+    }
 }

@@ -349,6 +349,7 @@ typedef struct struct_decl {
     u64 num_mods;
     char *name;
     decorated_identifier *fields;
+    u64 num_fields;
 } struct_decl;
 
 typedef struct func_decl {
