@@ -257,6 +257,46 @@ instance Storable Expression where
        let ioadptr = (#peek expression, address_expr) ptr :: IO (Ptr ())
        in Address <$> (peek =<< (#peek address_expr, lvalue) =<< ioadptr),
        return Undefined] !! fromIntegral enum
+    poke ptr (Binary op e1 e2 dt) = do
+                               (#poke expression, type) ptr ((#const BINARY_EXPR) :: Word32)
+                               bptr <- callocBytes (#size binary_expr)
+                               e1ptr <- calloc
+                               e2ptr <- calloc
+                               dtptr <- calloc
+                               (#poke binary_expr, op) bptr $ fEnum op
+                               poke e1ptr e1
+                               poke e2ptr e2
+                               poke dtptr dt
+                               (#poke binary_expr, expr1) bptr e1ptr
+                               (#poke binary_expr, expr2) bptr e2ptr
+                               (#poke binary_expr, type) bptr dtptr
+                               (#poke expression, binary_expr) ptr bptr
+    poke ptr (Unary op e dt) = do
+                               (#poke expression, type) ptr ((#const UNARY_EXPR) :: Word32)
+                               uptr <- callocBytes (#size unary_expr)
+                               eptr <- calloc
+                               dtptr <- calloc
+                               (#poke unary_expr, op) uptr $ fEnum op
+                               poke eptr e
+                               poke dtptr dt
+                               (#poke unary_expr, expr) uptr eptr
+                               (#poke unary_expr, type) uptr dtptr
+                               (#poke expression, unary_expr) ptr uptr
+    poke ptr (Literal cv) = do
+      (#poke expression, type) ptr ((#const LITERAL_EXPR) :: Word32)
+      lptr <- callocBytes (#size literal_expr)
+      cvptr <- calloc
+      poke cvptr cv
+      (#poke literal_expr, comptime_value) lptr cvptr
+      (#poke expression, literal_expr) ptr lptr
+    poke ptr (Array es) = do
+      (#poke expression, type) ptr ((#const ARRAY_EXPR) :: Word32)
+      arptr <- callocBytes (#size array_expr)
+      esptr <- callocArray $ length es
+      pokeArray esptr es
+      (#poke array_expr, elements) arptr esptr
+      (#poke array_expr, size) arptr (fromIntegral $ length es :: Word64)
+      (#poke expression, array_expr) ptr arptr
       
 instance Storable Statement where
 
