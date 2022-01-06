@@ -113,12 +113,12 @@ instance Storable DecoratedIdentifier where
     peek ptr = do
       numMods <- (#peek decorated_identifier, num_mods) ptr :: IO Word64
       ptrMods <- (#peek decorated_identifier, mods) ptr :: IO (Ptr Word32)
-      w8Mods <- peekArray (fromIntegral numMods) ptrMods
+      w32Mods <- peekArray (fromIntegral numMods) ptrMods
       cname <- (#peek decorated_identifier, name) ptr
       name <- peekCString cname
       decTypePtr <- (#peek decorated_identifier, type) ptr :: IO (Ptr DecoratedType)
       decType <- peek decTypePtr
-      return $ DecoratedIdentifier (map tEnum w8Mods) (T.pack name) decType
+      return $ DecoratedIdentifier (map tEnum w32Mods) (T.pack name) decType
     poke ptr (DecoratedIdentifier mods name dt) = do
                                         modsArrPtr <- callocArray (length mods)
                                         pokeArray modsArrPtr (map fEnum mods)
@@ -228,6 +228,35 @@ instance Storable LValue where
                            (#poke lvalue, iden_type) ptr dtPtr
 
 instance Storable Expression where
+    alignment _ = #alignment expression
+    sizeOf _ = #size expression
+    peek ptr = do
+      enum <- (#peek expression, type) ptr :: IO Word32
+      [let iobptr = (#peek expression, binary_expr) ptr :: IO (Ptr ())
+       in Binary <$> (tEnum <$> ((#peek binary_expr, op) =<< iobptr)) <*> (peek =<< (#peek binary_expr, expr1) =<< iobptr) <*> (peek =<< (#peek binary_expr, expr2) =<< iobptr) <*> (peek =<< (#peek binary_expr, type) =<< iobptr),
+       let ioeptr = (#peek expression, unary_expr) ptr :: IO (Ptr ())
+       in Unary <$> (tEnum <$> ((#peek unary_expr, op) =<< ioeptr)) <*> (peek =<< (#peek unary_expr, expr) =<< ioeptr) <*> (peek =<< (#peek unary_expr, type) =<< ioeptr),
+       let iolptr = (#peek expression, literal_expr) ptr :: IO (Ptr ())
+       in Literal <$> (peek =<< (#peek literal_expr, comptime_value) =<< iolptr),
+       let ioarptr = (#peek expression, array_expr) ptr :: IO (Ptr ())
+       in Array <$>
+              (do
+                size <- (#peek array_expr, size) =<< ioarptr
+                contents <- (#peek array_expr, elements) =<< ioarptr
+                peekArray size contents),
+       let iocptr = (#peek expression, call_expr) ptr :: IO (Ptr ())
+       in Call <$> (T.pack <$> (peekCString =<< (#peek call_expr, func_name) =<< iocptr)) <*>
+              (do
+                num_args <- (#peek call_expr, num_args) =<< iocptr
+                args <- (#peek call_expr, args) =<< iocptr
+                peekArray num_args args) <*> (peek =<< (#peek call_expr, result_type) =<< iocptr),
+       let iolvptr = (#peek expression, lvalue_expr) ptr :: IO (Ptr ())
+       in LValueExpression <$> (peek =<< (#peek lvalue_expr, lvalue) =<< iolvptr),
+       let ioasptr = (#peek expression, assign_expr) ptr :: IO (Ptr ())
+       in Assign <$> (tEnum <$> ((#peek assign_expr, op) =<< ioasptr)) <*> (peek =<< (#peek assign_expr, lvalue) =<< ioasptr) <*> (peek =<< (#peek assign_expr, expr) =<< ioasptr),
+       let ioadptr = (#peek expression, address_expr) ptr :: IO (Ptr ())
+       in Address <$> (peek =<< (#peek address_expr, lvalue) =<< ioadptr),
+       return Undefined] !! fromIntegral enum
       
 instance Storable Statement where
 
