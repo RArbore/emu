@@ -55,12 +55,12 @@ main = do
       if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip (inputFiles checkedArgs) filesContents
       else do
         print $ map (fst . bimap (fromRight undefined) id) checked
-        let compVal = SA.ComptimeStruct [SA.ComptimeBool True, SA.ComptimeF32 1.5, SA.ComptimePointer 5 $ SA.PureType $ PA.I32] $ T.pack "a_struct"
+{-      let compVal = SA.ComptimeStruct [SA.ComptimeBool True, SA.ComptimeF32 1.5, SA.ComptimePointer 5 $ SA.PureType $ PA.I32] $ T.pack "a_struct"
         ptr <- callocBytes (sizeOf compVal)
         poke ptr compVal
         print_comptime_value ptr
         free ptr
-{-      let decIden = SA.DecoratedIdentifier [PA.Const, PA.Register] (T.pack "a_dec_iden") $ SA.DerefType $ SA.PureType $ PA.StructType $ T.pack "a_struct_name"
+        let decIden = SA.DecoratedIdentifier [PA.Const, PA.Register] (T.pack "a_dec_iden") $ SA.DerefType $ SA.PureType $ PA.StructType $ T.pack "a_struct_name"
         ptr <- callocBytes (sizeOf decIden)
         poke ptr decIden
         print_decorated_identifier ptr

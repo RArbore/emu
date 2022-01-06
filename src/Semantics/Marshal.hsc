@@ -184,3 +184,51 @@ instance Storable ComptimeValue where
                                   arrPtr <- callocArray (length cvs)
                                   pokeArray arrPtr cvs
                                   (#poke comptime_value, elements) ptr arrPtr
+
+instance Storable LValue where
+    alignment _ = #alignment lvalue
+    sizeOf _ = #size lvalue
+    peek ptr = do
+      enum <- (#peek lvalue, type) ptr :: IO Word32
+      [Dereference <$> (peek =<< (#peek lvalue, dereferenced) ptr),
+       Access <$> (peek =<< (#peek lvalue, accessed) ptr) <*> (#peek lvalue, offset) ptr <*> (peek =<< (#peek lvalue, access_result_type) ptr),
+       Index <$> (peek =<< (#peek lvalue, indexed) ptr) <*> (peek =<< (#peek lvalue, index) ptr) <*> (peek =<< (#peek lvalue, index_result_type) ptr),
+       Identifier <$> (T.pack <$> (peekCString =<< (#peek lvalue, name) ptr)) <*> (peek =<< (#peek lvalue, iden_type) ptr)] !! fromIntegral enum
+    poke ptr (Dereference e) = do
+                           (#poke lvalue, type) ptr ((#const DEREF) :: Word32)
+                           ePtr <- calloc
+                           poke ePtr e
+                           (#poke lvalue, dereferenced) ptr ePtr
+    poke ptr (Access lv w dt) = do
+                           (#poke lvalue, type) ptr ((#const ACCESS) :: Word32)
+                           (#poke lvalue, offset) ptr w
+                           lvPtr <- calloc
+                           dtPtr <- calloc
+                           poke lvPtr lv
+                           poke dtPtr dt
+                           (#poke lvalue, accessed) ptr lvPtr
+                           (#poke lvalue, access_result_type) ptr dtPtr
+    poke ptr (Index lv e dt) = do
+                           (#poke lvalue, type) ptr ((#const INDEX) :: Word32)
+                           lvPtr <- calloc
+                           ePtr <- calloc
+                           dtPtr <- calloc
+                           poke lvPtr lv
+                           poke ePtr e
+                           poke dtPtr dt
+                           (#poke lvalue, indexed) ptr lvPtr
+                           (#poke lvalue, index) ptr ePtr
+                           (#poke lvalue, index_result_type) ptr dtPtr
+    poke ptr (Identifier n dt) = do
+                           (#poke lvalue, type) ptr ((#const IDENTIFIER) :: Word32)
+                           cn <- newCString $ T.unpack n
+                           dtPtr <- calloc
+                           poke dtPtr dt
+                           (#poke lvalue, name) ptr cn
+                           (#poke lvalue, iden_type) ptr dtPtr
+
+instance Storable Expression where
+      
+instance Storable Statement where
+
+instance Storable Declaration where
