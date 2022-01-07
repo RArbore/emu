@@ -297,6 +297,45 @@ instance Storable Expression where
       (#poke array_expr, elements) arptr esptr
       (#poke array_expr, size) arptr (fromIntegral $ length es :: Word64)
       (#poke expression, array_expr) ptr arptr
+    poke ptr (Call n es dt) = (do
+                                (#poke expression, type) ptr ((#const CALL_EXPR) :: Word32)
+                                cptr <- callocBytes (#size call_expr)
+                                cn <- newCString $ T.unpack n
+                                esptr <- callocArray $ length es
+                                pokeArray esptr es
+                                dtptr <- calloc
+                                poke dtptr dt
+                                (#poke call_expr, func_name) cptr cn
+                                (#poke call_expr, args) cptr esptr
+                                (#poke call_expr, num_args) cptr (fromIntegral $ length es :: Word64)
+                                (#poke call_expr, result_type) cptr dtptr
+                                (#poke expression, call_expr) ptr cptr)
+    poke ptr (LValueExpression lv) = do
+                               (#poke expression, type) ptr ((#const LVALUE_EXPR) :: Word32)
+                               lveptr <- callocBytes (#size lvalue_expr)
+                               lvptr <- calloc
+                               poke lvptr lv
+                               (#poke lvalue_expr, lvalue) lveptr lvptr
+                               (#poke expression, lvalue_expr) ptr lveptr
+    poke ptr (Assign op lv e) = do
+                               (#poke expression, type) ptr ((#const ASSIGN_EXPR) :: Word32)
+                               asptr <- callocBytes (#size assign_expr)
+                               (#poke assign_expr, op) asptr $ fEnum op
+                               lvptr <- calloc
+                               eptr <- calloc
+                               poke lvptr lv
+                               poke eptr e
+                               (#poke assign_expr, lvalue) asptr lvptr
+                               (#poke assign_expr, expr) asptr eptr
+                               (#poke expression, assign_expr) ptr asptr
+    poke ptr (Address lv) = do
+      (#poke expression, type) ptr ((#const ADDRESS_EXPR) :: Word32)
+      adptr <- callocBytes (#size address_expr)
+      lvptr <- calloc
+      poke lvptr lv
+      (#poke address_expr, lvalue) adptr lvptr
+      (#poke expression, address_expr) ptr adptr
+    poke ptr Undefined = (#poke expression, type) ptr ((#const UNDEFINED) :: Word32)
       
 instance Storable Statement where
 
