@@ -355,5 +355,49 @@ instance Storable Statement where
                    size <- (#peek statement, block_size) ptr
                    peekArray size blockptr),
        return EmptyStatement] !! fromIntegral enum
+    poke ptr (ExpressionStatement e) = do
+                              (#poke statement, type) ptr ((#const EXPR_STMT) :: Word32)
+                              esptr <- callocBytes (#size expr_stmt)
+                              eptr <- calloc
+                              poke eptr e
+                              (#poke expr_stmt, expr) esptr eptr
+                              (#poke statement, expr_stmt) ptr esptr
+    poke ptr (IfElseStatement e s1 s2) = do
+                              (#poke statement, type) ptr ((#const IFELSE_STMT) :: Word32)
+                              ieptr <- callocBytes (#size ifelse_stmt)
+                              eptr <- calloc
+                              s1ptr <- calloc
+                              s2ptr <- calloc
+                              poke eptr e
+                              poke s1ptr s1
+                              poke s2ptr s2
+                              (#poke ifelse_stmt, cond) ieptr eptr
+                              (#poke ifelse_stmt, pos) ieptr s1ptr
+                              (#poke ifelse_stmt, neg) ieptr s2ptr
+                              (#poke statement, ifelse_stmt) ptr ieptr
+    poke ptr (DoWhileStatement e s) = do
+                              (#poke statement, type) ptr ((#const DOWHILE_STMT) :: Word32)
+                              dwptr <- callocBytes (#size dowhile_stmt)
+                              eptr <- calloc
+                              sptr <- calloc
+                              poke eptr e
+                              poke sptr s
+                              (#poke dowhile_stmt, cond) dwptr eptr
+                              (#poke dowhile_stmt, body) dwptr sptr
+                              (#poke statement, dowhile_stmt) ptr dwptr
+    poke ptr (ReturnStatement e) = do
+                              (#poke statement, type) ptr ((#const RETURN_STMT) :: Word32)
+                              rptr <- callocBytes (#size return_stmt)
+                              eptr <- calloc
+                              poke eptr e
+                              (#poke return_stmt, expr) rptr eptr
+                              (#poke statement, return_stmt) ptr rptr
+    poke ptr (Block ds) = do
+      (#poke statement, type) ptr ((#const BLOCK) :: Word32)
+      bptr <- callocArray $ length ds
+      pokeArray bptr ds
+      (#poke statement, block) ptr bptr
+      (#poke statement, block_size) ptr (fromIntegral $ length ds :: Word64)
+    poke ptr EmptyStatement = (#poke statement, type) ptr ((#const EMPTY) :: Word32)
 
 instance Storable Declaration where
