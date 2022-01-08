@@ -283,14 +283,14 @@ typedef enum expression_type {
 typedef struct expression {
     expression_type type;
     union {
-	binary_expr binary_expr;
-	unary_expr unary_expr;
-	literal_expr literal_expr;
-	array_expr array_expr;
-	call_expr call_expr;
-	lvalue_expr lvalue_expr;
-	assign_expr assign_expr;
-	address_expr address_expr;
+	binary_expr *binary_expr;
+	unary_expr *unary_expr;
+	literal_expr *literal_expr;
+	array_expr *array_expr;
+	call_expr *call_expr;
+	lvalue_expr *lvalue_expr;
+	assign_expr *assign_expr;
+	address_expr *address_expr;
     };
 } expression;
 
@@ -331,10 +331,10 @@ struct declaration;
 typedef struct statement {
     statement_type type;
     union {
-	expr_stmt expr_stmt;
-	ifelse_stmt ifelse_stmt;
-	dowhile_stmt dowhile_stmt;
-	return_stmt return_stmt;
+	expr_stmt *expr_stmt;
+	ifelse_stmt *ifelse_stmt;
+	dowhile_stmt *dowhile_stmt;
+	return_stmt *return_stmt;
 	struct {
 	    struct declaration *block;
 	    u64 block_size;
@@ -381,10 +381,10 @@ typedef enum declaration_type {
 typedef struct declaration {
     declaration_type type;
     union {
-	struct_decl struct_decl;
-	func_decl func_decl;
-	var_decl var_decl;
-	stmt_decl stmt_decl;
+	struct_decl *struct_decl;
+	func_decl *func_decl;
+	var_decl *var_decl;
+	stmt_decl *stmt_decl;
     };
 } declaration;
 

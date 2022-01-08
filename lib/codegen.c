@@ -166,32 +166,32 @@ void print_assign_op(assign_op aop) {
 
 void print_expression(expression *expr) {
     switch (expr->type) {
-    case BINARY_EXPR: printf("(Binary "); print_binary_op(expr->binary_expr.op); printf(" "); print_expression(expr->binary_expr.expr1); printf(" "); print_expression(expr->binary_expr.expr2); printf(" "); print_decorated_type(expr->binary_expr.type); printf(")"); break; 
-    case UNARY_EXPR: printf("(Unary "); print_unary_op(expr->unary_expr.op); printf(" "); print_expression(expr->unary_expr.expr); printf(" "); print_decorated_type(expr->unary_expr.type); printf(")"); break;  
-    case LITERAL_EXPR: printf("(Literal "); print_comptime_value(expr->literal_expr.comptime_value); printf(")"); break;
+    case BINARY_EXPR: printf("(Binary "); print_binary_op(expr->binary_expr->op); printf(" "); print_expression(expr->binary_expr->expr1); printf(" "); print_expression(expr->binary_expr->expr2); printf(" "); print_decorated_type(expr->binary_expr->type); printf(")"); break; 
+    case UNARY_EXPR: printf("(Unary "); print_unary_op(expr->unary_expr->op); printf(" "); print_expression(expr->unary_expr->expr); printf(" "); print_decorated_type(expr->unary_expr->type); printf(")"); break;  
+    case LITERAL_EXPR: printf("(Literal "); print_comptime_value(expr->literal_expr->comptime_value); printf(")"); break;
     case ARRAY_EXPR: {
 	printf("(Array [");
-	for (u64 i = 0; i < expr->array_expr.size; i++) {
+	for (u64 i = 0; i < expr->array_expr->size; i++) {
 	    if (i) printf(",");
-	    print_expression(expr->array_expr.elements + i);
+	    print_expression(expr->array_expr->elements + i);
 	}
 	printf("])");
 	break;
     }
     case CALL_EXPR: {
-	printf("(Call \"%s\" [", expr->call_expr.func_name);
-	for (u64 i = 0; i < expr->call_expr.num_args; i++) {
+	printf("(Call \"%s\" [", expr->call_expr->func_name);
+	for (u64 i = 0; i < expr->call_expr->num_args; i++) {
 	    if (i) printf(",");
-	    print_expression(expr->call_expr.args + i);
+	    print_expression(expr->call_expr->args + i);
 	}
 	printf("] ");
-	print_decorated_type(expr->call_expr.result_type);
+	print_decorated_type(expr->call_expr->result_type);
 	printf(")");
 	break;
     }
-    case LVALUE_EXPR: printf("(LValueExpression "); print_lvalue(expr->lvalue_expr.lvalue); printf(")"); break;
-    case ASSIGN_EXPR: printf("(Assign "); print_assign_op(expr->assign_expr.op); printf(" "); print_lvalue(expr->assign_expr.lvalue); printf(" "); print_expression(expr->assign_expr.expr); printf(")"); break;
-    case ADDRESS_EXPR: printf("(Address "); print_lvalue(expr->address_expr.lvalue); printf(")"); break;
+    case LVALUE_EXPR: printf("(LValueExpression "); print_lvalue(expr->lvalue_expr->lvalue); printf(")"); break;
+    case ASSIGN_EXPR: printf("(Assign "); print_assign_op(expr->assign_expr->op); printf(" "); print_lvalue(expr->assign_expr->lvalue); printf(" "); print_expression(expr->assign_expr->expr); printf(")"); break;
+    case ADDRESS_EXPR: printf("(Address "); print_lvalue(expr->address_expr->lvalue); printf(")"); break;
     case UNDEFINED: printf("Undefined"); break;
     default: printf("(INVALID ENUM CODE (print_expression))");
     }
@@ -199,10 +199,10 @@ void print_expression(expression *expr) {
 
 void print_statement(statement *stmt) {
     switch (stmt->type) {
-    case EXPR_STMT: printf("(ExpressionStatement "); print_expression(stmt->expr_stmt.expr); printf(")"); break;
-    case IFELSE_STMT: printf("(IfElseStatement "); print_expression(stmt->ifelse_stmt.cond); printf(" "); print_statement(stmt->ifelse_stmt.pos); printf(" "); print_statement(stmt->ifelse_stmt.neg); printf(")"); break;
-    case DOWHILE_STMT: printf("(DoWhileStatement "); print_expression(stmt->dowhile_stmt.cond); printf(" "); print_statement(stmt->dowhile_stmt.body); printf(")"); break;
-    case RETURN_STMT: printf("(ReturnStatement "); print_expression(stmt->return_stmt.expr); printf(")"); break;
+    case EXPR_STMT: printf("(ExpressionStatement "); print_expression(stmt->expr_stmt->expr); printf(")"); break;
+    case IFELSE_STMT: printf("(IfElseStatement "); print_expression(stmt->ifelse_stmt->cond); printf(" "); print_statement(stmt->ifelse_stmt->pos); printf(" "); print_statement(stmt->ifelse_stmt->neg); printf(")"); break;
+    case DOWHILE_STMT: printf("(DoWhileStatement "); print_expression(stmt->dowhile_stmt->cond); printf(" "); print_statement(stmt->dowhile_stmt->body); printf(")"); break;
+    case RETURN_STMT: printf("(ReturnStatement "); print_expression(stmt->return_stmt->expr); printf(")"); break;
     case BLOCK: {
 	printf("(Block [");
 	for (u64 i = 0; i < stmt->block_size; i++) {
@@ -221,37 +221,37 @@ void print_declaration(declaration *decl) {
     switch (decl->type) {
     case STRUCT_DECL: {
 	printf("(StructDecl (Structure [");
-	for (u64 i = 0; i < decl->struct_decl.num_mods; i++) {
+	for (u64 i = 0; i < decl->struct_decl->num_mods; i++) {
 	    if (i) printf(",");
-	    print_modifier(decl->struct_decl.mods[i]);
+	    print_modifier(decl->struct_decl->mods[i]);
 	}
-	printf("] \"%s\" [", decl->struct_decl.name);
-	for (u64 i = 0; i < decl->struct_decl.num_fields; i++) {
+	printf("] \"%s\" [", decl->struct_decl->name);
+	for (u64 i = 0; i < decl->struct_decl->num_fields; i++) {
 	    if (i) printf(",");
-	    print_decorated_identifier(decl->struct_decl.fields + i);
+	    print_decorated_identifier(decl->struct_decl->fields + i);
 	}
 	printf("]))");
 	break;
     }
     case FUNC_DECL: {
 	printf("(FuncDecl (Function [");
-	for (u64 i = 0; i < decl->func_decl.num_mods; i++) {
+	for (u64 i = 0; i < decl->func_decl->num_mods; i++) {
 	    if (i) printf(",");
-	    print_modifier(decl->func_decl.mods[i]);
+	    print_modifier(decl->func_decl->mods[i]);
 	}
-	printf("] \"%s\" [", decl->func_decl.name);
-	for (u64 i = 0; i < decl->func_decl.num_params; i++) {
+	printf("] \"%s\" [", decl->func_decl->name);
+	for (u64 i = 0; i < decl->func_decl->num_params; i++) {
 	    if (i) printf(",");
-	    print_decorated_identifier(decl->func_decl.params + i);
+	    print_decorated_identifier(decl->func_decl->params + i);
 	}
 	printf("] ");
-	print_decorated_type(decl->func_decl.ret_type);
-	print_statement(decl->func_decl.body);
+	print_decorated_type(decl->func_decl->ret_type);
+	print_statement(decl->func_decl->body);
 	printf("))");
 	break;
     }
-    case VAR_DECL: printf("(VarDecl (VarBinding "); print_decorated_identifier(decl->var_decl.iden); printf(" "); print_expression(decl->var_decl.init); printf("))"); break;
-    case STMT_DECL: printf("(StatementDecl "); print_statement(decl->stmt_decl.stmt); printf(")"); break;
+    case VAR_DECL: printf("(VarDecl (VarBinding "); print_decorated_identifier(decl->var_decl->iden); printf(" "); print_expression(decl->var_decl->init); printf("))"); break;
+    case STMT_DECL: printf("(StatementDecl "); print_statement(decl->stmt_decl->stmt); printf(")"); break;
     default: printf("(INVALID ENUM CODE (print_declaration))");
     }
 }

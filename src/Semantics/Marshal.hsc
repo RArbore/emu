@@ -401,3 +401,32 @@ instance Storable Statement where
     poke ptr EmptyStatement = (#poke statement, type) ptr ((#const EMPTY) :: Word32)
 
 instance Storable Declaration where
+    alignment _ = #alignment declaration
+    sizeOf _ = #size declaration
+    peek ptr = do
+      enum <- (#peek declaration, type) ptr :: IO Word32
+      [let sptr = (#peek declaration, struct_decl) ptr :: IO (Ptr ())
+       in StructDecl <$> (Structure <$> ((map tEnum) <$> (do
+                                                           modsptr <- (#peek struct_decl, mods) =<< sptr
+                                                           num_mods <- (#peek struct_decl, num_mods) =<< sptr :: IO Word64
+                                                           peekArray (fromIntegral num_mods) modsptr))
+                         <*> (T.pack <$> (peekCString =<< (#peek struct_decl, name) =<< sptr))
+                         <*> (do
+                               fsptr <- (#peek struct_decl, fields) =<< sptr
+                               nfs <- (#peek struct_decl, num_fields) =<< sptr :: IO Word64
+                               peekArray (fromIntegral nfs) fsptr)),
+       let fptr = (#peek declaration, func_decl) ptr :: IO (Ptr ())
+       in FuncDecl <$> (Function <$> ((map tEnum) <$> (do
+                                                        modsptr <- (#peek func_decl, mods) =<< fptr
+                                                        num_mods <- (#peek func_decl, num_mods) =<< fptr :: IO Word64
+                                                        peekArray (fromIntegral num_mods) modsptr))
+                       <*> (T.pack <$> (peekCString =<< (#peek func_decl, name) =<< fptr))
+                       <*> (do
+                             psptr <- (#peek func_decl, params) =<< fptr
+                             nps <- (#peek func_decl, num_params) =<< fptr :: IO Word64
+                             peekArray (fromIntegral nps) psptr)
+                       <*> (peek =<< (#peek func_decl, ret_type) =<< fptr)
+                       <*> (peek =<< (#peek func_decl, body) =<< fptr)),
+       let vptr = (#peek declaration, var_decl) ptr :: IO (Ptr ())
+       in VarDecl <$> (VarBinding <$> (peek =<< (#peek var_decl, iden) =<< vptr) <*> (peek =<< (#peek var_decl, init) =<< vptr)),
+       StatementDecl <$> (peek =<< (#peek stmt_decl, stmt) =<< (#peek declaration, stmt_decl) ptr)] !! fromIntegral enum
