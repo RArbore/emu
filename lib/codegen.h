@@ -390,4 +390,11 @@ typedef struct declaration {
 
 void print_declaration(declaration*);
 
+typedef struct sast {
+    declaration *decls;
+    u64 num_decls;
+} sast;
+
+void print_sast(sast*);
+
 #endif

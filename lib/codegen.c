@@ -255,3 +255,12 @@ void print_declaration(declaration *decl) {
     default: printf("(INVALID ENUM CODE (print_declaration))");
     }
 }
+
+void print_sast(sast *sast) {
+    printf("SAST [");
+    for (u64 i = 0; i < sast->num_decls; i++) {
+	if (i) printf(",");
+	print_declaration(sast->decls + i);
+    }
+    printf("]");
+}

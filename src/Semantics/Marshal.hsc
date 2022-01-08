@@ -481,3 +481,16 @@ instance Storable Declaration where
                                 poke sptr s
                                 (#poke stmt_decl, stmt) sdptr sptr
                                 (#poke declaration, stmt_decl) ptr sdptr
+
+instance Storable SAST where
+    alignment _ = #alignment sast
+    sizeOf _ = #size sast
+    peek ptr = do
+      dsptr <- (#peek sast, decls) ptr
+      num_decls <- (#peek sast, num_decls) ptr :: IO Word64
+      SAST <$> peekArray (fromIntegral num_decls) dsptr
+    poke ptr (SAST ds) = do
+                         dsptr <- callocArray $ length ds
+                         pokeArray dsptr ds
+                         (#poke sast, decls) ptr dsptr
+                         (#poke sast, num_decls) ptr (fromIntegral $ length ds :: Word64)
