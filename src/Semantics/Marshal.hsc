@@ -461,8 +461,8 @@ instance Storable Declaration where
                                 (#poke func_decl, name) fdptr cn
                                 (#poke func_decl, params) fdptr disptr
                                 (#poke func_decl, num_params) fdptr (fromIntegral $ length dis :: Word64)
-                                (#poke func_decl, ret_type) fdptr dt
-                                (#poke func_decl, body) fdptr s
+                                (#poke func_decl, ret_type) fdptr dtptr
+                                (#poke func_decl, body) fdptr sptr
                                 (#poke declaration, func_decl) ptr fdptr
     poke ptr (VarDecl (VarBinding di e)) = do
                                 (#poke declaration, type) ptr ((#const VAR_DECL) :: Word32)
