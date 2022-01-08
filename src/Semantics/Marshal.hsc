@@ -430,3 +430,54 @@ instance Storable Declaration where
        let vptr = (#peek declaration, var_decl) ptr :: IO (Ptr ())
        in VarDecl <$> (VarBinding <$> (peek =<< (#peek var_decl, iden) =<< vptr) <*> (peek =<< (#peek var_decl, init) =<< vptr)),
        StatementDecl <$> (peek =<< (#peek stmt_decl, stmt) =<< (#peek declaration, stmt_decl) ptr)] !! fromIntegral enum
+    poke ptr (StructDecl (Structure ms n dis)) = do
+                                (#poke declaration, type) ptr ((#const STRUCT_DECL) :: Word32)
+                                sdptr <- callocBytes (#size struct_decl)
+                                msptr <- callocArray $ length ms
+                                pokeArray msptr (map fEnum ms)
+                                cn <- newCString $ T.unpack n
+                                disptr <- callocArray $ length dis
+                                pokeArray disptr dis
+                                (#poke struct_decl, mods) sdptr msptr
+                                (#poke struct_decl, num_mods) sdptr (fromIntegral $ length ms :: Word64)
+                                (#poke struct_decl, name) sdptr cn
+                                (#poke struct_decl, fields) sdptr disptr
+                                (#poke struct_decl, num_fields) sdptr (fromIntegral $ length dis :: Word64)
+                                (#poke declaration, struct_decl) ptr sdptr
+    poke ptr (FuncDecl (Function ms n dis dt s)) = do
+                                (#poke declaration, type) ptr ((#const FUNC_DECL) :: Word32)
+                                fdptr <- callocBytes (#size func_decl)
+                                msptr <- callocArray $ length ms
+                                pokeArray msptr (map fEnum ms)
+                                cn <- newCString $ T.unpack n
+                                disptr <- callocArray $ length dis
+                                pokeArray disptr dis
+                                dtptr <- calloc
+                                sptr <- calloc
+                                poke dtptr dt
+                                poke sptr s
+                                (#poke func_decl, mods) fdptr msptr
+                                (#poke func_decl, num_mods) fdptr (fromIntegral $ length ms :: Word64)
+                                (#poke func_decl, name) fdptr cn
+                                (#poke func_decl, params) fdptr disptr
+                                (#poke func_decl, num_params) fdptr (fromIntegral $ length dis :: Word64)
+                                (#poke func_decl, ret_type) fdptr dt
+                                (#poke func_decl, body) fdptr s
+                                (#poke declaration, func_decl) ptr fdptr
+    poke ptr (VarDecl (VarBinding di e)) = do
+                                (#poke declaration, type) ptr ((#const VAR_DECL) :: Word32)
+                                vdptr <- callocBytes (#size var_decl)
+                                diptr <- calloc
+                                eptr <- calloc
+                                poke eptr e
+                                poke diptr di
+                                (#poke var_decl, iden) vdptr diptr
+                                (#poke var_decl, init) vdptr eptr
+                                (#poke declaration, var_decl) ptr vdptr
+    poke ptr (StatementDecl s) = do
+                                (#poke declaration, type) ptr ((#const STMT_DECL) :: Word32)
+                                sdptr <- callocBytes (#size stmt_decl)
+                                sptr <- calloc
+                                poke sptr s
+                                (#poke stmt_decl, stmt) sdptr sptr
+                                (#poke declaration, stmt_decl) ptr sdptr
