@@ -338,5 +338,22 @@ instance Storable Expression where
     poke ptr Undefined = (#poke expression, type) ptr ((#const UNDEFINED) :: Word32)
       
 instance Storable Statement where
+    alignment _ = #alignment statement
+    sizeOf _ = #size statement
+    peek ptr = do
+      enum <- (#peek statement, type) ptr :: IO Word32
+      [let ioeptr = (#peek statement, expr_stmt) ptr :: IO (Ptr ())
+       in ExpressionStatement <$> (peek =<< (#peek expr_stmt, expr) =<< ioeptr),
+       let ioieptr = (#peek statement, ifelse_stmt) ptr :: IO (Ptr ())
+       in IfElseStatement <$> (peek =<< (#peek ifelse_stmt, cond) =<< ioieptr) <*> (peek =<< (#peek ifelse_stmt, pos) =<< ioieptr) <*> (peek =<< (#peek ifelse_stmt, neg) =<< ioieptr),
+       let iodwptr = (#peek statement, dowhile_stmt) ptr :: IO (Ptr ())
+       in DoWhileStatement <$> (peek =<< (#peek dowhile_stmt, cond) =<< iodwptr) <*> (peek =<< (#peek dowhile_stmt, body) =<< iodwptr),
+       let iorptr = (#peek statement, return_stmt) ptr :: IO (Ptr ())
+       in ReturnStatement <$> (peek =<< (#peek return_stmt, expr) =<< iorptr),
+       Block <$> (do
+                   blockptr <- (#peek statement, block) ptr
+                   size <- (#peek statement, block_size) ptr
+                   peekArray size blockptr),
+       return EmptyStatement] !! fromIntegral enum
 
 instance Storable Declaration where

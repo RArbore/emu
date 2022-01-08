@@ -61,11 +61,7 @@ data Declaration = StructDecl Structure
 data Statement = ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement
                | DoWhileStatement Expression Statement
-               | SwitchStatement Expression Statement
-               | CaseStatement Expression Statement
                | ReturnStatement Expression
-               | BreakStatement
-               | ContinueStatement
                | Block [Declaration]
                | EmptyStatement deriving (Show, Generic, NFData)
 
