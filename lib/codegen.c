@@ -246,6 +246,7 @@ void print_declaration(declaration *decl) {
 	}
 	printf("] ");
 	print_decorated_type(decl->func_decl->ret_type);
+	printf(" ");
 	print_statement(decl->func_decl->body);
 	printf("))");
 	break;

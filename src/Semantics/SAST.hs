@@ -134,13 +134,13 @@ data BinaryOp = LogicOr
                 
 data UnaryOp = PrePlusPlus
              | PreMinusMinus
+             | PostPlusPlus
+             | PostMinusMinus
              | Plus
              | Minus
              | Excla
              | Tilda
-             | Cast 
-             | PostPlusPlus
-             | PostMinusMinus deriving (Show, Generic, NFData, Eq, Enum)
+             | Cast deriving (Show, Generic, NFData, Eq, Enum)
 
 typeOf :: Expression -> DecoratedType
 typeOf (Binary _ _ _ t) = t
