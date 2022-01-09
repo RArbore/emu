@@ -13,6 +13,11 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -396,5 +401,9 @@ typedef struct sast {
 } sast;
 
 void print_sast(sast*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
