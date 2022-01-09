@@ -28,7 +28,7 @@ import Parser.AST (Type (..), Modifier (..))
     
 import Semantics.SAST
 
-#include "codegen.h"
+#include "lib.h"
 
 simpleTypePoke :: Word32 -> Ptr a -> IO ()
 simpleTypePoke e ptr = do

@@ -39,7 +39,7 @@ import qualified Semantics.Error as SE
 import Semantics.Marshal
 import qualified Semantics.SAST as SA
 
-foreign import capi "codegen.h print_sast" print_sast :: Ptr SA.SAST -> IO ()
+foreign import capi "lib.h print_sast" print_sast :: Ptr SA.SAST -> IO ()
 
 main :: IO ()
 main = do
