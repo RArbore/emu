@@ -16,7 +16,8 @@ executable emu
     other-modules:    Interface.ParseArgs, Parser.Parser, Parser.AST, Semantics.Error, Semantics.SAST, Semantics.Check, Semantics.Marshal
     build-depends:    base, text, bytestring, containers, directory, deepseq, megaparsec, parser-combinators, mtl
     hs-source-dirs:   src
-    include-dirs: ./lib
-    c-sources: lib/entry_point.c, lib/debug.c
-    cxx-sources: lib/codegen.cc
+    include-dirs:     lib
+    c-sources:        lib/entry_point.c, lib/debug.c
+    cxx-sources:      lib/codegen.cc
+    extra-libraries:  LLVM-13
     default-language: Haskell2010
