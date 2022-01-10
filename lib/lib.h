@@ -407,32 +407,6 @@ void cxx_entry_point(sast*);
 
 #ifdef __cplusplus
 }
-
-#include <llvm/ADT/APFixedPoint.h>
-#include <llvm/ADT/STLExtras.h>
-#include <llvm/ADT/APFloat.h>
-
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
-
-Value *binary_expr_codegen(binary_expr*);
-Value *unary_expr_codegen(unary_expr*);
-Value *literal_expr_codegen(literal_expr*);
-Value *array_expr_codegen(array_expr*);
-Value *call_expr_codegen(call_expr*);
-Value *lvalue_expr_codegen(lvalue_expr*);
-Value *assign_expr_codegen(assign_expr*);
-Value *address_expr_codegen(address_expr*);
-Value *undefined_expr_codegen();
-Value *expr_codegen(expression*);
-
 #endif
 
 #endif

@@ -19,5 +19,5 @@ executable emu
     include-dirs:     lib
     c-sources:        lib/entry_point.c, lib/debug.c
     cxx-sources:      lib/codegen.cc
-    extra-libraries:  LLVM-13
+    extra-libraries:  LLVM-13, stdc++
     default-language: Haskell2010

@@ -10,6 +10,20 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
+#include <llvm/ADT/APFixedPoint.h>
+#include <llvm/ADT/STLExtras.h>
+#include <llvm/ADT/APFloat.h>
+
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+
 #include "lib.h"
 
 using namespace llvm;
@@ -18,40 +32,61 @@ static LLVMContext context;
 static IRBuilder<> builder(context);
 static Module *module;
 
-Value *binary_expr_codegen(binary_expr*) {
-
+Type *emu_to_llvm_type(decorated_type *type) {
+    return nullptr;
 }
 
-Value *unary_expr_codegen(unary_expr*) {
-
+Value *binary_expr_codegen(binary_expr *expr) {
+    return nullptr;
 }
 
-Value *literal_expr_codegen(literal_expr*) {
-
+Value *unary_expr_codegen(unary_expr *expr) {
+    return nullptr;
 }
 
-Value *array_expr_codegen(array_expr*) {
-
+Value *literal_expr_codegen(literal_expr *expr) {
+    comptime_value *cv = expr->comptime_value;
+    switch (cv->type) {
+    case CT_PTR: return ConstantExpr::getIntToPtr(ConstantInt::get(context, APInt(64, cv->comptime_ptr, false)), emu_to_llvm_type(cv->ptr_type));
+    case CT_BOOL: return cv->comptime_bool ? ConstantInt::getTrue(context) : ConstantInt::getFalse(context);
+    case CT_U8: return ConstantInt::get(context, APInt(8, cv->comptime_u8, false));
+    case CT_U16: return ConstantInt::get(context, APInt(16, cv->comptime_u16, false));
+    case CT_U32: return ConstantInt::get(context, APInt(32, cv->comptime_u32, false));
+    case CT_U64: return ConstantInt::get(context, APInt(64, cv->comptime_u64, false));
+    case CT_I8: return ConstantInt::get(context, APInt(8, cv->comptime_i8, true));
+    case CT_I16: return ConstantInt::get(context, APInt(16, cv->comptime_i16, true));
+    case CT_I32: return ConstantInt::get(context, APInt(32, cv->comptime_i32, true));
+    case CT_I64: return ConstantInt::get(context, APInt(64, cv->comptime_i64, true));
+    case CT_F32: return ConstantFP::get(context, APFloat(cv->comptime_f32));
+    case CT_F64: return ConstantFP::get(context, APFloat(cv->comptime_f64));
+    case CT_STRUCT:
+    case CT_ARR:
+    default: return nullptr;
+    }
 }
 
-Value *call_expr_codegen(call_expr*) {
-
+Value *array_expr_codegen(array_expr *expr) {
+    return nullptr;
 }
 
-Value *lvalue_expr_codegen(lvalue_expr*) {
-
+Value *call_expr_codegen(call_expr *expr) {
+    return nullptr;
 }
 
-Value *assign_expr_codegen(assign_expr*) {
-
+Value *lvalue_expr_codegen(lvalue_expr *expr) {
+    return nullptr;
 }
 
-Value *address_expr_codegen(address_expr*) {
+Value *assign_expr_codegen(assign_expr *expr) {
+    return nullptr;
+}
 
+Value *address_expr_codegen(address_expr *expr) {
+    return nullptr;
 }
 
 Value *undefined_expr_codegen() {
-
+    return nullptr;
 }
 
 Value *expr_codegen(expression *expr) {
@@ -65,6 +100,7 @@ Value *expr_codegen(expression *expr) {
     case ASSIGN_EXPR: return assign_expr_codegen(expr->assign_expr);
     case ADDRESS_EXPR: return address_expr_codegen(expr->address_expr);
     case UNDEFINED: return undefined_expr_codegen();
+    default: return nullptr;
     }
 }
 
