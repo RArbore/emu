@@ -152,7 +152,7 @@ instance Storable ComptimeValue where
                               peekArray size fields) <*> (T.pack <$> (peekCString =<< (#peek comptime_value, struct_name) ptr)),
        ComptimeArr <$> (do size <- fromIntegral <$> ((#peek comptime_value, size) ptr :: IO Word64)
                            elems <- (#peek comptime_value, elements) ptr
-                           peekArray size elems)] !! fromIntegral enum
+                           peekArray size elems) <*> ((\(ArrayType t _) -> t) <$> (peek =<< (#peek comptime_value, array_type) ptr))] !! fromIntegral enum
     poke ptr (ComptimePointer p dt) = do
                                   (#poke comptime_value, type) ptr ((#const CT_PTR) :: Word32)
                                   (#poke comptime_value, comptime_ptr) ptr p
@@ -178,12 +178,15 @@ instance Storable ComptimeValue where
                                   arrPtr <- callocArray (length cvs)
                                   pokeArray arrPtr cvs
                                   (#poke comptime_value, fields) ptr arrPtr
-    poke ptr (ComptimeArr cvs) = do
+    poke ptr (ComptimeArr cvs dt) = do
                                   (#poke comptime_value, type) ptr ((#const CT_ARR) :: Word32)
                                   (#poke comptime_value, size) ptr (fromIntegral $ length cvs :: Word64)
                                   arrPtr <- callocArray (length cvs)
                                   pokeArray arrPtr cvs
+                                  dtPtr <- calloc
+                                  poke dtPtr (ArrayType dt (fromIntegral $ length cvs))
                                   (#poke comptime_value, elements) ptr arrPtr
+                                  (#poke comptime_value, array_type) ptr dtPtr
 
 instance Storable LValue where
     alignment _ = #alignment lvalue

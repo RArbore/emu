@@ -93,7 +93,7 @@ data ComptimeValue = ComptimePointer Word64 DecoratedType
                    | ComptimeF32 Float 
                    | ComptimeF64 Double
                    | ComptimeStruct [ComptimeValue] Text
-                   | ComptimeArr [ComptimeValue] deriving (Show, Generic, NFData, Eq)
+                   | ComptimeArr [ComptimeValue] DecoratedType deriving (Show, Generic, NFData, Eq)
 
 data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
 data DecoratedType = PureType Type
@@ -158,7 +158,7 @@ typeOf (Literal (ComptimeI64 _)) = PureType I64
 typeOf (Literal (ComptimeF32 _)) = PureType F32
 typeOf (Literal (ComptimeF64 _)) = PureType F64
 typeOf (Literal (ComptimeStruct _ t)) = PureType $ StructType t
-typeOf (Literal (ComptimeArr vals)) = ArrayType (typeOf $ Literal $ head vals) $ fromIntegral $ length vals
+typeOf (Literal (ComptimeArr vals t)) = ArrayType t $ fromIntegral $ length vals
 typeOf (Array x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
 typeOf (Call _ _ t) = t
 typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e

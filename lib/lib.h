@@ -191,6 +191,7 @@ typedef struct comptime_value {
 	struct {
 	    struct comptime_value *elements;
 	    u64 size;
+	    decorated_type *array_type;
 	};
     };
 } comptime_value;

@@ -38,6 +38,16 @@ IRBuilder<> builder(context);
 Module *module;
 std::map<std::string, std::vector<decorated_type*>> defined_structs;
 
+Type *emu_to_llvm_type(decorated_type*);
+
+StructType *struct_name_to_llvm_type(char *cname) {
+    std::string name(cname);
+    auto def_emu = defined_structs.at(name);
+    std::vector<Type*> def_llvm;
+    std::transform(def_emu.begin(), def_emu.end(), def_llvm.begin(), emu_to_llvm_type);
+    return StructType::get(context, def_llvm);
+}
+
 Type *emu_to_llvm_type(decorated_type *dec_type) {
     switch(dec_type->decorated_type_e) {
     case PURE_TYPE: {
@@ -55,13 +65,7 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
 	case I64: Type::getInt64Ty(context);
 	case F32: Type::getFloatTy(context);
 	case F64: Type::getDoubleTy(context);
-	case STRUCT: {
-	    std::string name(pure_type->struct_name);
-	    auto def_emu = defined_structs.at(name);
-	    std::vector<Type*> def_llvm;
-	    std::transform(def_emu.begin(), def_emu.end(), def_llvm.begin(), emu_to_llvm_type);
-	    return StructType::get(context, def_llvm);
-	}
+	case STRUCT: struct_name_to_llvm_type(pure_type->struct_name);
 	default: return nullptr;
 	}
     }
@@ -87,23 +91,38 @@ Value *unary_expr_codegen(unary_expr *expr) {
 
 Value *literal_expr_codegen(literal_expr *expr) {
     comptime_value *cv = expr->comptime_value;
-    switch (cv->type) {
-    case CT_PTR: return ConstantExpr::getIntToPtr(ConstantInt::get(context, APInt(64, cv->comptime_ptr, false)), emu_to_llvm_type(cv->ptr_type));
-    case CT_BOOL: return cv->comptime_bool ? ConstantInt::getTrue(context) : ConstantInt::getFalse(context);
-    case CT_U8: return ConstantInt::get(context, APInt(8, cv->comptime_u8, false));
-    case CT_U16: return ConstantInt::get(context, APInt(16, cv->comptime_u16, false));
-    case CT_U32: return ConstantInt::get(context, APInt(32, cv->comptime_u32, false));
-    case CT_U64: return ConstantInt::get(context, APInt(64, cv->comptime_u64, false));
-    case CT_I8: return ConstantInt::get(context, APInt(8, cv->comptime_i8, true));
-    case CT_I16: return ConstantInt::get(context, APInt(16, cv->comptime_i16, true));
-    case CT_I32: return ConstantInt::get(context, APInt(32, cv->comptime_i32, true));
-    case CT_I64: return ConstantInt::get(context, APInt(64, cv->comptime_i64, true));
-    case CT_F32: return ConstantFP::get(context, APFloat(cv->comptime_f32));
-    case CT_F64: return ConstantFP::get(context, APFloat(cv->comptime_f64));
-    case CT_STRUCT:
-    case CT_ARR:
-    default: return nullptr;
-    }
+    std::function<Constant*(comptime_value*)> lambda = [&](comptime_value *cv) -> Constant* {
+	switch (cv->type) {
+	case CT_PTR: return ConstantExpr::getIntToPtr(ConstantInt::get(context, APInt(64, cv->comptime_ptr, false)), emu_to_llvm_type(cv->ptr_type));
+	case CT_BOOL: return cv->comptime_bool ? ConstantInt::getTrue(context) : ConstantInt::getFalse(context);
+	case CT_U8: return ConstantInt::get(context, APInt(8, cv->comptime_u8, false));
+	case CT_U16: return ConstantInt::get(context, APInt(16, cv->comptime_u16, false));
+	case CT_U32: return ConstantInt::get(context, APInt(32, cv->comptime_u32, false));
+	case CT_U64: return ConstantInt::get(context, APInt(64, cv->comptime_u64, false));
+	case CT_I8: return ConstantInt::get(context, APInt(8, cv->comptime_i8, true));
+	case CT_I16: return ConstantInt::get(context, APInt(16, cv->comptime_i16, true));
+	case CT_I32: return ConstantInt::get(context, APInt(32, cv->comptime_i32, true));
+	case CT_I64: return ConstantInt::get(context, APInt(64, cv->comptime_i64, true));
+	case CT_F32: return ConstantFP::get(context, APFloat(cv->comptime_f32));
+	case CT_F64: return ConstantFP::get(context, APFloat(cv->comptime_f64));
+	case CT_STRUCT: {
+	    std::vector<Constant*> struct_values;
+	    for (u64 i = 0; i < cv->num_fields; i++) {
+		struct_values.push_back(lambda(cv->fields + i));
+	    }
+	    return ConstantStruct::get(struct_name_to_llvm_type(cv->struct_name), struct_values);
+	}
+	case CT_ARR: {
+	    std::vector<Constant*> array_values;
+	    for (u64 i = 0; i < cv->size; i++) {
+		array_values.push_back(lambda(cv->elements + i));
+	    }
+	    return ConstantArray::get(ArrayType::get(emu_to_llvm_type(cv->array_type), cv->size), array_values);
+	}
+	default: return nullptr;
+	};
+    };
+    return lambda(cv);
 }
 
 Value *array_expr_codegen(array_expr *expr) {
