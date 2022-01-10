@@ -24,16 +24,51 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <map>
+
 #include "lib.h"
 
 using namespace llvm;
 
-static LLVMContext context;
-static IRBuilder<> builder(context);
-static Module *module;
+LLVMContext context;
+IRBuilder<> builder(context);
+Module *module;
+std::map<std::string, std::vector<decorated_type*>> defined_structs;
 
-Type *emu_to_llvm_type(decorated_type *type) {
-    return nullptr;
+Type *emu_to_llvm_type(decorated_type *dec_type) {
+    switch(dec_type->decorated_type_e) {
+    case PURE_TYPE: {
+	type *pure_type = dec_type->pure_type;
+	switch (pure_type->type_e) {
+	case VOID: Type::getVoidTy(context);
+	case BOOL: Type::getInt1Ty(context);
+	case U8: Type::getInt8Ty(context);
+	case U16: Type::getInt16Ty(context);
+	case U32: Type::getInt32Ty(context);
+	case U64: Type::getInt64Ty(context);
+	case I8: Type::getInt8Ty(context);
+	case I16: Type::getInt16Ty(context);
+	case I32: Type::getInt32Ty(context);
+	case I64: Type::getInt64Ty(context);
+	case F32: Type::getFloatTy(context);
+	case F64: Type::getDoubleTy(context);
+	case STRUCT: {
+	    std::string name(pure_type->struct_name);
+	    auto def_emu = defined_structs.at(name);
+	    std::vector<Type*> def_llvm;
+	    std::transform(def_emu.begin(), def_emu.end(), def_llvm.begin(), emu_to_llvm_type);
+	    return StructType::get(context, def_llvm);
+	}
+	default: return nullptr;
+	}
+    }
+    case DEREF_TYPE:
+    case ARRAY_TYPE:
+    default: return nullptr;
+    }
 }
 
 Value *binary_expr_codegen(binary_expr *expr) {
