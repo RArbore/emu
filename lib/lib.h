@@ -402,6 +402,9 @@ typedef struct sast {
 
 void print_sast(sast*);
 
+void c_entry_point(sast*);
+void cxx_entry_point(sast*);
+
 #ifdef __cplusplus
 }
 #endif

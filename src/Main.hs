@@ -39,7 +39,7 @@ import qualified Semantics.Error as SE
 import Semantics.Marshal
 import qualified Semantics.SAST as SA
 
-foreign import capi "lib.h print_sast" print_sast :: Ptr SA.SAST -> IO ()
+foreign import capi "lib.h c_entry_point" c_entry_point :: Ptr SA.SAST -> IO ()
 
 main :: IO ()
 main = do
@@ -58,4 +58,4 @@ main = do
         let sast = head $ map (fst . bimap (fromRight undefined) id) checked
         ptr <- callocBytes (sizeOf sast)
         poke ptr sast
-        print_sast ptr
+        c_entry_point ptr
