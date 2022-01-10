@@ -135,7 +135,7 @@ instance Storable ComptimeValue where
     sizeOf _ = #size comptime_value
     peek ptr = do
       enum <- (#peek comptime_value, type) ptr :: IO Word32
-      [ComptimePointer <$> (#peek comptime_value, comptime_ptr) ptr <*> (peek =<< (#peek comptime_value, ptr_type) ptr),
+      [ComptimePointer <$> (#peek comptime_value, comptime_ptr) ptr <*> ((\(DerefType t) -> t) <$> (peek =<< (#peek comptime_value, ptr_type) ptr)),
        ComptimeBool <$> (#peek comptime_value, comptime_bool) ptr,
        ComptimeU8 <$> (#peek comptime_value, comptime_u8) ptr,
        ComptimeU16 <$> (#peek comptime_value, comptime_u16) ptr,
@@ -157,7 +157,7 @@ instance Storable ComptimeValue where
                                   (#poke comptime_value, type) ptr ((#const CT_PTR) :: Word32)
                                   (#poke comptime_value, comptime_ptr) ptr p
                                   decTypePtr <- calloc
-                                  poke decTypePtr dt
+                                  poke decTypePtr $ DerefType dt
                                   (#poke comptime_value, ptr_type) ptr decTypePtr
     poke ptr (ComptimeBool b) = simpleCVPoke (#const CT_BOOL) ptr (#poke comptime_value, comptime_bool) b
     poke ptr (ComptimeU8 u8) = simpleCVPoke (#const CT_U8) ptr (#poke comptime_value, comptime_u8) u8

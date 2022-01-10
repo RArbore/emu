@@ -65,8 +65,14 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
 	default: return nullptr;
 	}
     }
-    case DEREF_TYPE:
-    case ARRAY_TYPE:
+    case DEREF_TYPE: {
+	Type *embed = emu_to_llvm_type(dec_type->deref_type);
+	return PointerType::getUnqual(embed);
+    }
+    case ARRAY_TYPE: {
+	Type *embed = emu_to_llvm_type(dec_type->array_type);
+	return ArrayType::get(embed, dec_type->array_size);
+    }
     default: return nullptr;
     }
 }
