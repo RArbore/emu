@@ -10,35 +10,12 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
-#include <llvm/ADT/APFixedPoint.h>
-#include <llvm/ADT/STLExtras.h>
-#include <llvm/ADT/APFloat.h>
+#include "codegen.h"
 
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
-
-#include <algorithm>
-#include <string>
-#include <vector>
-#include <map>
-
-#include "lib.h"
-
-using namespace llvm;
-
-LLVMContext context;
-IRBuilder<> builder(context);
-Module *module;
-std::map<std::string, std::vector<decorated_type*>> defined_structs;
-
-Type *emu_to_llvm_type(decorated_type*);
+static LLVMContext context;
+static IRBuilder<> builder(context);
+static Module *module;
+static std::map<std::string, std::vector<decorated_type*>> defined_structs;
 
 StructType *struct_name_to_llvm_type(char *cname) {
     std::string name(cname);
@@ -53,19 +30,19 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
     case PURE_TYPE: {
 	type *pure_type = dec_type->pure_type;
 	switch (pure_type->type_e) {
-	case VOID: Type::getVoidTy(context);
-	case BOOL: Type::getInt1Ty(context);
-	case U8: Type::getInt8Ty(context);
-	case U16: Type::getInt16Ty(context);
-	case U32: Type::getInt32Ty(context);
-	case U64: Type::getInt64Ty(context);
-	case I8: Type::getInt8Ty(context);
-	case I16: Type::getInt16Ty(context);
-	case I32: Type::getInt32Ty(context);
-	case I64: Type::getInt64Ty(context);
-	case F32: Type::getFloatTy(context);
-	case F64: Type::getDoubleTy(context);
-	case STRUCT: struct_name_to_llvm_type(pure_type->struct_name);
+	case VOID: return Type::getVoidTy(context);
+	case BOOL: return Type::getInt1Ty(context);
+	case U8: return Type::getInt8Ty(context);
+	case U16: return Type::getInt16Ty(context);
+	case U32: return Type::getInt32Ty(context);
+	case U64: return Type::getInt64Ty(context);
+	case I8: return Type::getInt8Ty(context);
+	case I16: return Type::getInt16Ty(context);
+	case I32: return Type::getInt32Ty(context);
+	case I64: return Type::getInt64Ty(context);
+	case F32: return Type::getFloatTy(context);
+	case F64: return Type::getDoubleTy(context);
+	case STRUCT: return struct_name_to_llvm_type(pure_type->struct_name);
 	default: return nullptr;
 	}
     }
@@ -82,6 +59,8 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
 }
 
 Value *binary_expr_codegen(binary_expr *expr) {
+    Value *v1 = expr_codegen(expr->expr1);
+    Value *v2 = expr_codegen(expr->expr2);
     return nullptr;
 }
 
