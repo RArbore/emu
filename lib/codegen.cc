@@ -72,6 +72,19 @@ Value *binary_expr_codegen(binary_expr *expr) {
 	default: return false;
 	}
     };
+    auto is_signed = [](decorated_type *dt) -> bool {
+	switch (dt->decorated_type_e) {
+	case PURE_TYPE:
+	    switch (dt->pure_type->type_e) {
+	    case I8: return true;
+	    case I16: return true;
+	    case I32: return true;
+	    case I64: return true;
+	    default: return false;
+	    }
+	default: return false;
+	}
+    };
     if (!v1 || !v2) return nullptr;
     switch (expr->op) {
     case LOGIC_OR: return builder.CreateLogicalOr(v1, v2);
@@ -81,18 +94,43 @@ Value *binary_expr_codegen(binary_expr *expr) {
     case BITWISE_XOR: return builder.CreateXor(v1, v2);
     case BITWISE_AND: return builder.CreateAnd(v1, v2);
     case EQUALS_EQUALS: return is_floating(expr->type) ? builder.CreateFCmpOEQ(v1, v2) : builder.CreateICmpEQ(v1, v2);
-    case EXCLA_EQUALS:
-    case GREATER:
-    case LESSER:
-    case GREATER_EQUALS:
-    case LESSER_EQUALS:
-    case LSHIFT:
-    case RSHIFT:
-    case TERM_PLUS:
-    case TERM_MINUS:
-    case FACTOR_STAR:
-    case FACTOR_SLASH:
-    case FACTOR_PERCENT:
+    case EXCLA_EQUALS: return is_floating(expr->type) ? builder.CreateFCmpONE(v1, v2) : builder.CreateICmpNE(v1, v2);
+    case GREATER: return
+	    is_floating(expr->type)
+	    ? builder.CreateFCmpOGT(v1, v2)
+	    : is_signed(expr->type)
+	    ? builder.CreateICmpSGT(v1, v2)
+	    : builder.CreateICmpUGT(v1, v2);
+    case LESSER: return
+	    is_floating(expr->type)
+	    ? builder.CreateFCmpOLT(v1, v2)
+	    : is_signed(expr->type)
+	    ? builder.CreateICmpSLT(v1, v2)
+	    : builder.CreateICmpULT(v1, v2);
+    case GREATER_EQUALS: return
+	    is_floating(expr->type)
+	    ? builder.CreateFCmpOGE(v1, v2)
+	    : is_signed(expr->type)
+	    ? builder.CreateICmpSGE(v1, v2)
+	    : builder.CreateICmpUGE(v1, v2);
+    case LESSER_EQUALS: return
+	    is_floating(expr->type)
+	    ? builder.CreateFCmpOLE(v1, v2)
+	    : is_signed(expr->type)
+	    ? builder.CreateICmpSLE(v1, v2)
+	    : builder.CreateICmpULE(v1, v2);
+    case LSHIFT: return builder.CreateShl(v1, v2);
+    case RSHIFT: return is_signed(expr->type) ? builder.CreateAShr(v1, v2) : builder.CreateLShr(v1, v2);
+    case TERM_PLUS: return is_floating(expr->type) ? builder.CreateFAdd(v1, v2) : builder.CreateAdd(v1, v2);
+    case TERM_MINUS: return is_floating(expr->type) ? builder.CreateFSub(v1, v2) : builder.CreateSub(v1, v2);
+    case FACTOR_STAR: return is_floating(expr->type) ? builder.CreateFMul(v1, v2) : builder.CreateMul(v1, v2);
+    case FACTOR_SLASH: return
+	    is_floating(expr->type)
+	    ? builder.CreateFDiv(v1, v2)
+	    : is_signed(expr->type)
+	    ? builder.CreateSDiv(v1, v2)
+	    : builder.CreateUDiv(v1, v2);
+    case FACTOR_PERCENT: is_signed(expr->type) ? builder.CreateSRem(v1, v2) : builder.CreateURem(v1, v2);
     default: return nullptr;
     }
 }
