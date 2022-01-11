@@ -61,7 +61,40 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
 Value *binary_expr_codegen(binary_expr *expr) {
     Value *v1 = expr_codegen(expr->expr1);
     Value *v2 = expr_codegen(expr->expr2);
-    return nullptr;
+    auto is_floating = [](decorated_type *dt) -> bool {
+	switch (dt->decorated_type_e) {
+	case PURE_TYPE:
+	    switch (dt->pure_type->type_e) {
+	    case F32: return true;
+	    case F64: return true;
+	    default: return false;
+	    }
+	default: return false;
+	}
+    };
+    if (!v1 || !v2) return nullptr;
+    switch (expr->op) {
+    case LOGIC_OR: return builder.CreateLogicalOr(v1, v2);
+    case LOGIC_XOR: return builder.CreateLogicalAnd(builder.CreateLogicalOr(v1, v2), builder.CreateICmpEQ(builder.CreateLogicalAnd(v1, v2), ConstantInt::get(context, APInt())));
+    case LOGIC_AND: return builder.CreateLogicalAnd(v1, v2);
+    case BITWISE_OR: return builder.CreateOr(v1, v2);
+    case BITWISE_XOR: return builder.CreateXor(v1, v2);
+    case BITWISE_AND: return builder.CreateAnd(v1, v2);
+    case EQUALS_EQUALS: return is_floating(expr->type) ? builder.CreateFCmpOEQ(v1, v2) : builder.CreateICmpEQ(v1, v2);
+    case EXCLA_EQUALS:
+    case GREATER:
+    case LESSER:
+    case GREATER_EQUALS:
+    case LESSER_EQUALS:
+    case LSHIFT:
+    case RSHIFT:
+    case TERM_PLUS:
+    case TERM_MINUS:
+    case FACTOR_STAR:
+    case FACTOR_SLASH:
+    case FACTOR_PERCENT:
+    default: return nullptr;
+    }
 }
 
 Value *unary_expr_codegen(unary_expr *expr) {
