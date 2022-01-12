@@ -17,6 +17,32 @@ static IRBuilder<> builder(context);
 static Module *module;
 static std::map<std::string, std::vector<decorated_type*>> defined_structs;
 
+bool is_floating(decorated_type *dt) {
+    switch (dt->decorated_type_e) {
+    case PURE_TYPE:
+	switch (dt->pure_type->type_e) {
+	case F32: return true;
+	case F64: return true;
+	default: return false;
+	}
+    default: return false;
+    }
+}
+
+bool is_signed(decorated_type *dt) {
+    switch (dt->decorated_type_e) {
+    case PURE_TYPE:
+	switch (dt->pure_type->type_e) {
+	case I8: return true;
+	case I16: return true;
+	case I32: return true;
+	case I64: return true;
+	default: return false;
+	}
+    default: return false;
+    }
+}
+
 StructType *struct_name_to_llvm_type(char *cname) {
     std::string name(cname);
     auto def_emu = defined_structs.at(name);
@@ -61,30 +87,6 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
 Value *binary_expr_codegen(binary_expr *expr) {
     Value *v1 = expr_codegen(expr->expr1);
     Value *v2 = expr_codegen(expr->expr2);
-    auto is_floating = [](decorated_type *dt) -> bool {
-	switch (dt->decorated_type_e) {
-	case PURE_TYPE:
-	    switch (dt->pure_type->type_e) {
-	    case F32: return true;
-	    case F64: return true;
-	    default: return false;
-	    }
-	default: return false;
-	}
-    };
-    auto is_signed = [](decorated_type *dt) -> bool {
-	switch (dt->decorated_type_e) {
-	case PURE_TYPE:
-	    switch (dt->pure_type->type_e) {
-	    case I8: return true;
-	    case I16: return true;
-	    case I32: return true;
-	    case I64: return true;
-	    default: return false;
-	    }
-	default: return false;
-	}
-    };
     if (!v1 || !v2) return nullptr;
     switch (expr->op) {
     case LOGIC_OR: return builder.CreateLogicalOr(v1, v2);
@@ -136,7 +138,20 @@ Value *binary_expr_codegen(binary_expr *expr) {
 }
 
 Value *unary_expr_codegen(unary_expr *expr) {
-    return nullptr;
+    Value *v = expr_codegen(expr->expr);
+    if (!v) return nullptr;
+    switch (expr->op) {
+    case PRE_PLUS_PLUS: return nullptr;
+    case PRE_MINUS_MINUS: return nullptr;
+    case POST_PLUS_PLUS: return nullptr;
+    case POST_MINUS_MINUS: return nullptr;
+    case PLUS: return v;
+    case MINUS: return is_floating(expr->type) ? builder.CreateFNeg(v) : builder.CreateNeg(v);
+    case EXCLA: return builder.CreateICmpEQ(v, ConstantInt::get(context, APInt()));
+    case TILDA: return builder.CreateNot(v);
+    case CAST:
+    default: return nullptr;
+    }
 }
 
 Value *literal_expr_codegen(literal_expr *expr) {
