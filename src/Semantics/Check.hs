@@ -65,22 +65,36 @@ checkExplicitCast t1 t2 = checkExplicitCastHelper t1 t2 || checkImplicitCast t1 
           checkExplicitCastHelper (PureType U32) (DerefType _) = True
           checkExplicitCastHelper (PureType U64) (DerefType _) = True
           checkExplicitCastHelper (DerefType _) (PureType U64) = True
-          checkExplicitCastHelper (PureType F32) (PureType U8) = True
-          checkExplicitCastHelper (PureType F64) (PureType U8) = True
-          checkExplicitCastHelper (PureType F32) (PureType U16) = True
-          checkExplicitCastHelper (PureType F64) (PureType U16) = True
-          checkExplicitCastHelper (PureType F32) (PureType U32) = True
-          checkExplicitCastHelper (PureType F64) (PureType U32) = True
-          checkExplicitCastHelper (PureType F32) (PureType U64) = True
-          checkExplicitCastHelper (PureType F64) (PureType U64) = True
-          checkExplicitCastHelper (PureType F32) (PureType I8) = True
-          checkExplicitCastHelper (PureType F64) (PureType I8) = True
-          checkExplicitCastHelper (PureType F32) (PureType I16) = True
-          checkExplicitCastHelper (PureType F64) (PureType I16) = True
-          checkExplicitCastHelper (PureType F32) (PureType I32) = True
-          checkExplicitCastHelper (PureType F64) (PureType I32) = True
-          checkExplicitCastHelper (PureType F32) (PureType I64) = True
-          checkExplicitCastHelper (PureType F64) (PureType I64) = True
+          checkExplicitCastHelper (PureType U8) (PureType Void) = False
+          checkExplicitCastHelper (PureType U16) (PureType Void) = False
+          checkExplicitCastHelper (PureType U32) (PureType Void) = False
+          checkExplicitCastHelper (PureType U64) (PureType Void) = False
+          checkExplicitCastHelper (PureType I8) (PureType Void) = False
+          checkExplicitCastHelper (PureType I16) (PureType Void) = False
+          checkExplicitCastHelper (PureType I32) (PureType Void) = False
+          checkExplicitCastHelper (PureType I64) (PureType Void) = False
+          checkExplicitCastHelper (PureType F32) (PureType Void) = False
+          checkExplicitCastHelper (PureType F64) (PureType Void) = False
+          checkExplicitCastHelper (PureType U8) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType U16) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType U32) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType U64) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType I8) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType I16) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType I32) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType I64) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType F32) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType F64) (PureType (StructType _)) = False
+          checkExplicitCastHelper (PureType U8) (PureType _) = True
+          checkExplicitCastHelper (PureType U16) (PureType _) = True
+          checkExplicitCastHelper (PureType U32) (PureType _) = True
+          checkExplicitCastHelper (PureType U64) (PureType _) = True
+          checkExplicitCastHelper (PureType I8) (PureType _) = True
+          checkExplicitCastHelper (PureType I16) (PureType _) = True
+          checkExplicitCastHelper (PureType I32) (PureType _) = True
+          checkExplicitCastHelper (PureType I64) (PureType _) = True
+          checkExplicitCastHelper (PureType F32) (PureType _) = True
+          checkExplicitCastHelper (PureType F64) (PureType _) = True
           checkExplicitCastHelper (DerefType _) (DerefType _) = True
           checkExplicitCastHelper (ArrayType tt1 s1) (ArrayType tt2 s2) = s1 == s2 && checkExplicitCast tt1 tt2
           checkExplicitCastHelper _ _ = False
@@ -187,9 +201,10 @@ checkDecl ((l, sc, ec), d) = checked
                              st <- checkDecoratedType t
                              when (isTypeVoid st) $ throwError $ SemanticsError l sc ec $ VoidVarDeclaration name
                              sinit <- checkExpr init
+                             when (not ((typeOf sinit) == PureType Void) && (not $ checkImplicitCast (typeOf sinit) st)) $ throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sinit) st
                              let varBind = VarBinding (DecoratedIdentifier mods name st) sinit
-                             checkIfInFunctionAlready <- gets curFuncRetType
-                             if isJust checkIfInFunctionAlready
+                             checkIfInFunction <- gets curFuncRetType
+                             if isJust checkIfInFunction
                              then modify $ \_ -> prevEnv { vars = M.insert (name, Local) varBind boundVars }
                              else modify $ \_ -> prevEnv { vars = M.insert (name, Global) varBind boundVars }
                              return $ VarDecl $ varBind

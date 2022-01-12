@@ -137,7 +137,6 @@ typedef enum unary_op {
     MINUS,
     EXCLA,
     TILDA,
-    CAST,
 } unary_op;
 
 void print_unary_op(unary_op);
@@ -204,6 +203,7 @@ typedef struct literal_expr {
 
 typedef struct array_expr {
     struct expression *elements;
+    decorated_type *element_type;
     u64 size;
 } array_expr;
 

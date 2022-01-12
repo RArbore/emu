@@ -9,8 +9,9 @@ pure inline func fact(n: u32): void {
 */
 
 pure inline func vec_mul(a: f32[16], b: f32[16]): f32[16] {
+     test: f32[2] = {(f32) 0.0, (f32) 1.0};
      c: f32[16] = undefined;
-     for (i: u32 = 0; i < 16; i++) {
+     for (i: u32 = (u32) 0; i < 16; i++) {
      	 c[i] = a[i] * b[i];
      }
      return c;

@@ -96,7 +96,6 @@ void print_unary_op(unary_op uop) {
     case MINUS: printf("Minus"); break;
     case EXCLA: printf("Excla"); break;
     case TILDA: printf("Tilda"); break;
-    case CAST: printf("Cast"); break;
     default: printf("(INVALID ENUM CODE (print_unary_op))");
     }
 }
@@ -175,7 +174,9 @@ void print_expression(expression *expr) {
 	    if (i) printf(",");
 	    print_expression(expr->array_expr->elements + i);
 	}
-	printf("])");
+	printf("] ");
+	print_decorated_type(expr->array_expr->element_type);
+	printf(")");
 	break;
     }
     case CALL_EXPR: {

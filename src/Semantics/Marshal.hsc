@@ -298,8 +298,11 @@ instance Storable Expression where
       (#poke expression, type) ptr ((#const ARRAY_EXPR) :: Word32)
       arptr <- callocBytes (#size array_expr)
       esptr <- callocArray $ length es
+      dtptr <- calloc
       pokeArray esptr es
+      poke dtptr (typeOf $ head es)
       (#poke array_expr, elements) arptr esptr
+      (#poke array_expr, element_type) arptr dtptr
       (#poke array_expr, size) arptr (fromIntegral $ length es :: Word64)
       (#poke expression, array_expr) ptr arptr
     poke ptr (Call n es dt) = (do

@@ -43,6 +43,10 @@ bool is_signed(decorated_type *dt) {
     }
 }
 
+bool is_pointer(decorated_type *dt) {
+    return dt->decorated_type_e == DEREF_TYPE;
+}
+
 StructType *struct_name_to_llvm_type(char *cname) {
     std::string name(cname);
     auto def_emu = defined_structs.at(name);
@@ -149,7 +153,6 @@ Value *unary_expr_codegen(unary_expr *expr) {
     case MINUS: return is_floating(expr->type) ? builder.CreateFNeg(v) : builder.CreateNeg(v);
     case EXCLA: return builder.CreateICmpEQ(v, ConstantInt::get(context, APInt()));
     case TILDA: return builder.CreateNot(v);
-    case CAST:
     default: return nullptr;
     }
 }
@@ -195,6 +198,10 @@ Value *array_expr_codegen(array_expr *expr) {
 }
 
 Value *call_expr_codegen(call_expr *expr) {
+    return nullptr;
+}
+
+Value *cast_expr_codegen(cast_expr *expr) {
     return nullptr;
 }
 
