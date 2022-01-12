@@ -253,6 +253,8 @@ instance Storable Expression where
                 num_args <- (#peek call_expr, num_args) =<< iocptr
                 args <- (#peek call_expr, args) =<< iocptr
                 peekArray num_args args) <*> (peek =<< (#peek call_expr, result_type) =<< iocptr),
+       let iocptr = (#peek expression, cast_expr) ptr :: IO (Ptr ())
+       in Cast <$> (peek =<< (#peek cast_expr, expr) =<< iocptr) <*> (peek =<< (#peek cast_expr, out_type) =<< iocptr),
        let iolvptr = (#peek expression, lvalue_expr) ptr :: IO (Ptr ())
        in LValueExpression <$> (peek =<< (#peek lvalue_expr, lvalue) =<< iolvptr),
        let ioasptr = (#peek expression, assign_expr) ptr :: IO (Ptr ())
@@ -313,6 +315,19 @@ instance Storable Expression where
                                 (#poke call_expr, num_args) cptr (fromIntegral $ length es :: Word64)
                                 (#poke call_expr, result_type) cptr dtptr
                                 (#poke expression, call_expr) ptr cptr)
+    poke ptr (Cast e dt) = do
+      (#poke expression, type) ptr ((#const CAST_EXPR) :: Word32)
+      ceptr <- callocBytes (#size cast_expr)
+      eptr <- calloc
+      idtptr <- calloc
+      odtptr <- calloc
+      poke eptr e
+      poke idtptr (typeOf e)
+      poke odtptr dt
+      (#poke cast_expr, expr) ceptr eptr
+      (#poke cast_expr, in_type) ceptr idtptr
+      (#poke cast_expr, out_type) ceptr odtptr
+      (#poke expression, cast_expr) ptr ceptr
     poke ptr (LValueExpression lv) = do
                                (#poke expression, type) ptr ((#const LVALUE_EXPR) :: Word32)
                                lveptr <- callocBytes (#size lvalue_expr)

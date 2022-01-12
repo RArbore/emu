@@ -56,7 +56,7 @@ uniform [] = True
 uniform (x:xs) = all (== x) xs
 
 implicitlyConvert :: Expression -> DecoratedType -> Either (Expression, DecoratedType) Expression
-implicitlyConvert e t = if checkImplicitCast (typeOf e) t then if typeOf e == t then Right e else Right (Unary Cast e t) else Left (e, t)
+implicitlyConvert e t = if checkImplicitCast (typeOf e) t then if typeOf e == t then Right e else Right (Cast e t) else Left (e, t)
 
 checkExplicitCast :: DecoratedType -> DecoratedType -> Bool
 checkExplicitCast t1 t2 = checkExplicitCastHelper t1 t2 || checkImplicitCast t1 t2
@@ -342,7 +342,7 @@ checkExpr ((l, sc, ec), e) = checked
                                           _ -> throwError $ SemanticsError l sc ec AddressError
                                A.Cast astDecType -> do
                                            t <- checkDecoratedType astDecType
-                                           if checkExplicitCast (typeOf sexpr) t then return $ Unary Cast sexpr t else throwError $ SemanticsError l sc ec $ CastError (typeOf sexpr) t
+                                           if checkExplicitCast (typeOf sexpr) t then return $ Cast sexpr t else throwError $ SemanticsError l sc ec $ CastError (typeOf sexpr) t
                                A.Index exprs -> case sexpr of
                                                   LValueExpression lval -> do
                                                              sexprs <- mapM checkExpr exprs
@@ -406,8 +406,8 @@ checkExpr ((l, sc, ec), e) = checked
                                      _ -> throwError $ SemanticsError l sc ec NonStructFieldAccessError
                                _ -> throwError $ SemanticsError l sc ec LValueAccessError
           typeReconciliation sexpr1 sexpr2 = if typeOf sexpr1 == typeOf sexpr2 then Right (sexpr1, sexpr2, typeOf sexpr1)
-                                             else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Unary Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
-                                                  else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Unary Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
+                                             else if checkImplicitCast (typeOf sexpr1) (typeOf sexpr2) then Right (Cast sexpr1 $ typeOf sexpr2, sexpr2, typeOf sexpr2)
+                                                  else if checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then Right (sexpr1, Cast sexpr2 $ typeOf sexpr1, typeOf sexpr1)
                                                        else Left $ SemanticsError l sc ec $ TypeReconcileError (typeOf sexpr1) (typeOf sexpr2)
           createCheckedOperand :: (DecoratedType -> Bool) -> (DecoratedType -> Bool) -> BinaryOp -> Either SemanticsError (Expression, Expression, DecoratedType) -> (DecoratedType -> SemanticsErrorType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression
           createCheckedOperand _ _ _ (Left s) _ _ = throwError s

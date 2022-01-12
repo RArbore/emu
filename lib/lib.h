@@ -214,6 +214,12 @@ typedef struct call_expr {
     decorated_type *result_type;
 } call_expr;
 
+typedef struct cast_expr {
+    struct expression *expr;
+    decorated_type *in_type;
+    decorated_type *out_type;
+} cast_expr;
+
 typedef enum lvalue_type {
     DEREF = 0,
     ACCESS,
@@ -280,6 +286,7 @@ typedef enum expression_type {
     LITERAL_EXPR,
     ARRAY_EXPR,
     CALL_EXPR,
+    CAST_EXPR,
     LVALUE_EXPR,
     ASSIGN_EXPR,
     ADDRESS_EXPR,
@@ -294,6 +301,7 @@ typedef struct expression {
 	literal_expr *literal_expr;
 	array_expr *array_expr;
 	call_expr *call_expr;
+	cast_expr *cast_expr;
 	lvalue_expr *lvalue_expr;
 	assign_expr *assign_expr;
 	address_expr *address_expr;

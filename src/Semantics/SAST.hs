@@ -70,6 +70,7 @@ data Expression = Binary BinaryOp Expression Expression DecoratedType
                 | Literal ComptimeValue
                 | Array [Expression]
                 | Call Text [Expression] DecoratedType
+                | Cast Expression DecoratedType
                 | LValueExpression LValue
                 | Assign AssignOp LValue Expression
                 | Address LValue
@@ -139,8 +140,7 @@ data UnaryOp = PrePlusPlus
              | Plus
              | Minus
              | Excla
-             | Tilda
-             | Cast deriving (Show, Generic, NFData, Eq, Enum)
+             | Tilda deriving (Show, Generic, NFData, Eq, Enum)
 
 typeOf :: Expression -> DecoratedType
 typeOf (Binary _ _ _ t) = t
@@ -161,6 +161,7 @@ typeOf (Literal (ComptimeStruct _ t)) = PureType $ StructType t
 typeOf (Literal (ComptimeArr vals t)) = ArrayType t $ fromIntegral $ length vals
 typeOf (Array x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
 typeOf (Call _ _ t) = t
+typeOf (Cast _ t) = t
 typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
 typeOf (LValueExpression (Access _ _ t)) = t
 typeOf (LValueExpression (Index _ _ t)) = t

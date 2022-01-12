@@ -189,6 +189,16 @@ void print_expression(expression *expr) {
 	printf(")");
 	break;
     }
+    case CAST_EXPR: {
+	printf("(Cast ");
+	print_expression(expr->cast_expr->expr);
+	printf(" ");
+	print_decorated_type(expr->cast_expr->in_type);
+	printf(" ");
+	print_decorated_type(expr->cast_expr->out_type);
+	printf(")");
+	break;
+    }
     case LVALUE_EXPR: printf("(LValueExpression "); print_lvalue(expr->lvalue_expr->lvalue); printf(")"); break;
     case ASSIGN_EXPR: printf("(Assign "); print_assign_op(expr->assign_expr->op); printf(" "); print_lvalue(expr->assign_expr->lvalue); printf(" "); print_expression(expr->assign_expr->expr); printf(")"); break;
     case ADDRESS_EXPR: printf("(Address "); print_lvalue(expr->address_expr->lvalue); printf(")"); break;
