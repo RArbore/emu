@@ -231,16 +231,16 @@ const static Instruction::CastOps simple_cast_rules[STRUCT][STRUCT] = {
     
     /*                VOID      BOOL      U8        U16       U32       U64       I8        I16       I32       I64       F32       F64  */
     /*     VOID*/    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , BITCAST },
-    /*     BOOL*/    {TRUNC   , BITCAST , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U8*/      {TRUNC   , TRUNC   , BITCAST , ZEXT    , ZEXT    , ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U16*/     {TRUNC   , TRUNC   , TRUNC   , BITCAST , ZEXT    , ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U32*/     {TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , UITOFP  , UITOFP  },
+    /*     BOOL*/    {ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*     U8*/      {ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*     U16*/     {ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*     U32*/     {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , UITOFP  , UITOFP  },
     /*FROM U64*/     {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , UITOFP  },
-    /*     I8*/      {TRUNC   , TRUNC   , BITCAST , SEXT    , SEXT    , SEXT    , BITCAST , SEXT    , SEXT    , SEXT    , UITOFP  , SITOFP  },
-    /*     I16*/     {TRUNC   , TRUNC   , TRUNC   , BITCAST , SEXT    , SEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , UITOFP  , SITOFP  },
-    /*     I32*/     {TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , SEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , UITOFP  , SITOFP  },
+    /*     I8*/      {ZEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , SEXT    , BITCAST , SEXT    , SEXT    , SEXT    , UITOFP  , SITOFP  },
+    /*     I16*/     {ZEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , SEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , UITOFP  , SITOFP  },
+    /*     I32*/     {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , SEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , UITOFP  , SITOFP  },
     /*     I64*/     {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , SITOFP  },
-    /*     F32*/     {TRUNC   , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , BITCAST , FPEXT   },
+    /*     F32*/     {ZEXT    , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , BITCAST , FPEXT   },
     /*     F64*/     {BITCAST , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTRUNC , BITCAST },
 };
 
