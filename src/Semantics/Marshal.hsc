@@ -193,10 +193,10 @@ instance Storable LValue where
     sizeOf _ = #size lvalue
     peek ptr = do
       enum <- (#peek lvalue, type) ptr :: IO Word32
-      [Dereference <$> (peek =<< (#peek lvalue, dereferenced) ptr) <*> (peek =<< (#peek lvalue, deref_result_type) ptr),
-       Access <$> (peek =<< (#peek lvalue, accessed) ptr) <*> (#peek lvalue, offset) ptr <*> (peek =<< (#peek lvalue, access_result_type) ptr),
-       Index <$> (peek =<< (#peek lvalue, indexed) ptr) <*> (peek =<< (#peek lvalue, index) ptr) <*> (peek =<< (#peek lvalue, index_result_type) ptr),
-       Identifier <$> (T.pack <$> (peekCString =<< (#peek lvalue, name) ptr)) <*> (peek =<< (#peek lvalue, iden_type) ptr)] !! fromIntegral enum
+      [Dereference <$> (peek =<< (#peek lvalue, dereferenced) ptr) <*> (peek =<< (#peek lvalue, decorated_type) ptr),
+       Access <$> (peek =<< (#peek lvalue, accessed) ptr) <*> (#peek lvalue, offset) ptr <*> (peek =<< (#peek lvalue, decorated_type) ptr),
+       Index <$> (peek =<< (#peek lvalue, indexed) ptr) <*> (peek =<< (#peek lvalue, index) ptr) <*> (peek =<< (#peek lvalue, decorated_type) ptr),
+       Identifier <$> (T.pack <$> (peekCString =<< (#peek lvalue, name) ptr)) <*> (peek =<< (#peek lvalue, decorated_type) ptr)] !! fromIntegral enum
     poke ptr (Dereference e dt) = do
                            (#poke lvalue, type) ptr ((#const DEREF) :: Word32)
                            ePtr <- calloc
@@ -204,7 +204,7 @@ instance Storable LValue where
                            poke ePtr e
                            poke dtPtr dt
                            (#poke lvalue, dereferenced) ptr ePtr
-                           (#poke lvalue, deref_result_type) ptr dtPtr
+                           (#poke lvalue, decorated_type) ptr dtPtr
     poke ptr (Access lv w dt) = do
                            (#poke lvalue, type) ptr ((#const ACCESS) :: Word32)
                            (#poke lvalue, offset) ptr w
@@ -213,7 +213,7 @@ instance Storable LValue where
                            poke lvPtr lv
                            poke dtPtr dt
                            (#poke lvalue, accessed) ptr lvPtr
-                           (#poke lvalue, access_result_type) ptr dtPtr
+                           (#poke lvalue, decorated_type) ptr dtPtr
     poke ptr (Index lv e dt) = do
                            (#poke lvalue, type) ptr ((#const INDEX) :: Word32)
                            lvPtr <- calloc
@@ -224,14 +224,14 @@ instance Storable LValue where
                            poke dtPtr dt
                            (#poke lvalue, indexed) ptr lvPtr
                            (#poke lvalue, index) ptr ePtr
-                           (#poke lvalue, index_result_type) ptr dtPtr
+                           (#poke lvalue, decorated_type) ptr dtPtr
     poke ptr (Identifier n dt) = do
                            (#poke lvalue, type) ptr ((#const IDENTIFIER) :: Word32)
                            cn <- newCString $ T.unpack n
                            dtPtr <- calloc
                            poke dtPtr dt
                            (#poke lvalue, name) ptr cn
-                           (#poke lvalue, iden_type) ptr dtPtr
+                           (#poke lvalue, decorated_type) ptr dtPtr
 
 instance Storable Expression where
     alignment _ = #alignment expression

@@ -230,25 +230,18 @@ typedef enum lvalue_type {
 typedef struct lvalue {
     lvalue_type type;
     union {
-	struct {
-	    struct expression *dereferenced;
-	    decorated_type *deref_result_type;
-	};
+	struct expression *dereferenced;
 	struct {
 	    struct lvalue *accessed;
 	    u64 offset;
-	    decorated_type *access_result_type;
 	};
 	struct {
 	    struct lvalue *indexed;
 	    struct expression *index;
-	    decorated_type *index_result_type;
 	};
-	struct {
-	    char *name;
-	    decorated_type *iden_type;
-	};
+	char *name;
     };
+    decorated_type *decorated_type;
 } lvalue;
 
 void print_lvalue(lvalue*);

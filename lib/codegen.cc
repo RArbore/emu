@@ -259,14 +259,17 @@ Value *cast_expr_codegen(cast_expr *expr) {
 }
 
 Value *lvalue_expr_codegen(lvalue_expr *expr) {
-    lvalue *lvalue = expr->lvalue;
-    switch (lvalue->type) {
-    case DEREF: return builder.CreateLoad(emu_to_llvm_type(lvalue->deref_result_type), expr_codegen(lvalue->dereferenced));
-    case ACCESS:
-    case INDEX:
-    case IDENTIFIER:
-    default: return nullptr;
-    }
+    lvalue *lval = expr->lvalue;
+    std::function<Value*(lvalue*)> lambda = [&](lvalue *lvalue) -> Value* {
+	switch (lvalue->type) {
+	case DEREF: return builder.CreateLoad(emu_to_llvm_type(lvalue->decorated_type), expr_codegen(lvalue->dereferenced));
+	case ACCESS: return builder.CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lambda(lvalue->accessed), lvalue->offset);
+	case INDEX:
+	case IDENTIFIER:
+	default: return nullptr;
+	}
+    };
+    return builder.CreateLoad(emu_to_llvm_type(lval->decorated_type), lambda(lval));
 }
 
 Value *assign_expr_codegen(assign_expr *expr) {

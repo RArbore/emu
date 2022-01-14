@@ -544,7 +544,7 @@ getPosInStruct :: (Int, Int, Int) -> Text -> Structure -> Word64 -> Semantics (W
 getPosInStruct (l, sc, ec) search (Structure _ structName []) _ = throwError $ SemanticsError l sc ec $ FieldAccessError structName search
 getPosInStruct errPos search (Structure mods structName ((DecoratedIdentifier _ fieldName t):dis)) pos
     | search == fieldName = return (pos, t)
-    | otherwise = sizeOf t >>= (\x -> getPosInStruct errPos search (Structure mods structName dis) (pos + x))
+    | otherwise = sizeOf t >>= (\x -> getPosInStruct errPos search (Structure mods structName dis) (pos + 1))
 
 isTypeVoid :: DecoratedType -> Bool
 isTypeVoid (PureType Void) = True

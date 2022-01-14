@@ -138,10 +138,10 @@ void print_comptime_value(comptime_value *cv) {
 
 void print_lvalue(lvalue *lv) {
     switch (lv->type) {
-    case DEREF: printf("(Dereference "); print_expression(lv->dereferenced); printf(")"); break;
-    case ACCESS: printf("(Access "); print_lvalue(lv->accessed); printf(" %lu ", lv->offset); print_decorated_type(lv->access_result_type); printf(")"); break;
-    case INDEX: printf("(Index "); print_lvalue(lv->indexed); printf(" "); print_expression(lv->index); printf(" "); print_decorated_type(lv->index_result_type); printf(")"); break;
-    case IDENTIFIER: printf("(Identifier \"%s\" ", lv->name); print_decorated_type(lv->iden_type); printf(")"); break;
+    case DEREF: printf("(Dereference "); print_expression(lv->dereferenced); printf(" "); print_decorated_type(lv->decorated_type); printf(")"); break;
+    case ACCESS: printf("(Access "); print_lvalue(lv->accessed); printf(" %lu ", lv->offset); print_decorated_type(lv->decorated_type); printf(")"); break;
+    case INDEX: printf("(Index "); print_lvalue(lv->indexed); printf(" "); print_expression(lv->index); printf(" "); print_decorated_type(lv->decorated_type); printf(")"); break;
+    case IDENTIFIER: printf("(Identifier \"%s\" ", lv->name); print_decorated_type(lv->decorated_type); printf(")"); break;
     default: printf("(INVALID ENUM CODE (print_lvalue))");
     }
 }
