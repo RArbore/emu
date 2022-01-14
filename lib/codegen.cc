@@ -214,6 +214,36 @@ Value *call_expr_codegen(call_expr *expr) {
     return builder.CreateCall(to_call, args);
 }
 
+#define TRUNC Instruction::Trunc // Truncate integers
+#define ZEXT Instruction::ZExt // Zero extend integers
+#define SEXT Instruction::SExt // Sign extend integers
+#define FPTOUI Instruction::FPToUI // floating point -> UInt
+#define FPTOSI Instruction::FPToSI // floating point -> SInt
+#define UITOFP Instruction::UIToFP // UInt -> floating point
+#define SITOFP Instruction::SIToFP // SInt -> floating point
+#define FPTRUNC Instruction::FPTrunc // Truncate floating point
+#define FPEXT Instruction::FPExt // Extend floating point
+#define PTRTOINT Instruction::PtrToInt // Pointer -> Integer
+#define INTTOPTR Instruction::IntToPtr // Integer -> Pointer
+#define BITCAST Instruction::BitCast // Type cast
+const static Instruction::CastOps simple_cast_rules[STRUCT][STRUCT] = {
+    /*                                                           TO                                       */
+    
+    /*                VOID      BOOL      U8        U16       U32       U64       I8        I16       I32       I64       F32       F64  */
+    /*     VOID*/    {BITCAST , BITCAST , BITCAST , BITCAST , BITCAST , BITCAST , BITCAST , BITCAST , BITCAST , BITCAST , BITCAST , BITCAST },
+    /*     BOOL*/    {BITCAST , BITCAST , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*     U8*/      {BITCAST ,},
+    /*     U16*/     {BITCAST ,},
+    /*     U32*/     {BITCAST ,},
+    /*FROM U64*/     {BITCAST ,},
+    /*     I8*/      {BITCAST ,},
+    /*     I16*/     {BITCAST ,},
+    /*     I32*/     {BITCAST ,},
+    /*     I64*/     {BITCAST ,},
+    /*     F32*/     {BITCAST ,},
+    /*     F64*/     {BITCAST ,},
+};
+
 Value *cast_expr_codegen(cast_expr *expr) {
     return nullptr;
 }
@@ -231,7 +261,7 @@ Value *address_expr_codegen(address_expr *expr) {
 }
 
 Value *undefined_expr_codegen() {
-    return nullptr;
+    return UndefValue::get(Type::getInt64Ty(context));
 }
 
 Value *expr_codegen(expression *expr) {
