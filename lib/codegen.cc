@@ -194,7 +194,13 @@ Value *literal_expr_codegen(literal_expr *expr) {
 }
 
 Value *array_expr_codegen(array_expr *expr) {
-    return nullptr;
+    ArrayType *array_type = ArrayType::get(emu_to_llvm_type(expr->element_type), expr->size);
+    AllocaInst *alloca = builder.CreateAlloca(array_type, ConstantInt::get(context, APInt(64, expr->size, false)));
+    for(size_t i = 0; i < expr->size; i++) {
+	Value *element = expr_codegen(expr->elements + i);
+	builder.CreateInsertElement(alloca, element, i);
+    }
+    return alloca;
 }
 
 Value *call_expr_codegen(call_expr *expr) {
