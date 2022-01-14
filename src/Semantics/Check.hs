@@ -351,7 +351,7 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Minus -> if numeric $ typeOf sexpr then return $ Unary Minus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
                                A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf sexpr
                                A.Tilda -> if singletonNonVoid $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec PointerTypeError
-                               A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr $ DerefType $ typeOf sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
+                               A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr $ typeOf sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                                A.And -> case sexpr of
                                           LValueExpression lval -> return $ Address lval
                                           _ -> throwError $ SemanticsError l sc ec AddressError
