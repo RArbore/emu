@@ -232,19 +232,30 @@ const static Instruction::CastOps simple_cast_rules[STRUCT][STRUCT] = {
     /*                VOID      BOOL      U8        U16       U32       U64       I8        I16       I32       I64       F32       F64  */
     /*     VOID*/    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , BITCAST },
     /*     BOOL*/    {ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U8*/      {ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U16*/     {ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U32*/     {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , UITOFP  , UITOFP  },
-    /*FROM U64*/     {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , UITOFP  },
-    /*     I8*/      {ZEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , SEXT    , BITCAST , SEXT    , SEXT    , SEXT    , UITOFP  , SITOFP  },
-    /*     I16*/     {ZEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , SEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , UITOFP  , SITOFP  },
-    /*     I32*/     {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , SEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , UITOFP  , SITOFP  },
-    /*     I64*/     {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , SITOFP  },
-    /*     F32*/     {ZEXT    , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , BITCAST , FPEXT   },
-    /*     F64*/     {BITCAST , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTRUNC , BITCAST },
+    /*     U8  */    {ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*     U16 */    {ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*     U32 */    {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , UITOFP  , UITOFP  },
+    /*FROM U64 */    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , UITOFP  },
+    /*     I8  */    {ZEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , SEXT    , BITCAST , SEXT    , SEXT    , SEXT    , UITOFP  , SITOFP  },
+    /*     I16 */    {ZEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , SEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , UITOFP  , SITOFP  },
+    /*     I32 */    {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , SEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , UITOFP  , SITOFP  },
+    /*     I64 */    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , SITOFP  },
+    /*     F32 */    {ZEXT    , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , BITCAST , FPEXT   },
+    /*     F64 */    {BITCAST , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTRUNC , BITCAST },
 };
 
 Value *cast_expr_codegen(cast_expr *expr) {
+    if (is_pointer(expr->in_type) && is_pointer(expr->out_type))
+	return builder.CreateCast(BITCAST, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
+    if (expr->in_type->decorated_type_e == PURE_TYPE && expr->out_type->decorated_type_e == PURE_TYPE
+	&& expr->in_type->pure_type->type_e != STRUCT && expr->out_type->pure_type->type_e != STRUCT)
+	return builder.CreateCast(simple_cast_rules[expr->in_type->pure_type->type_e][expr->out_type->pure_type->type_e],
+				  expr_codegen(expr->expr),
+				  emu_to_llvm_type(expr->out_type));
+    if (expr->in_type->decorated_type_e == DEREF_TYPE && expr->out_type->decorated_type_e == PURE_TYPE)
+	return builder.CreateCast(PTRTOINT, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
+    if (expr->in_type->decorated_type_e == PURE_TYPE && expr->out_type->decorated_type_e == DEREF_TYPE)
+	return builder.CreateCast(INTTOPTR, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
     return nullptr;
 }
 
