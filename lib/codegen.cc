@@ -204,7 +204,14 @@ Value *array_expr_codegen(array_expr *expr) {
 }
 
 Value *call_expr_codegen(call_expr *expr) {
-    return nullptr;
+    Function *to_call = module->getFunction(expr->func_name);
+    std::vector<Value*> args;
+    for (size_t i = 0; i < expr->num_args; i++) {
+	Value *arg = expr_codegen(expr->args + i);
+	if (!arg) return nullptr;
+	args.push_back(arg);
+    }
+    return builder.CreateCall(to_call, args);
 }
 
 Value *cast_expr_codegen(cast_expr *expr) {
