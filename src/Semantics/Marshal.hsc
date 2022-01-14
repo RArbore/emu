@@ -193,15 +193,18 @@ instance Storable LValue where
     sizeOf _ = #size lvalue
     peek ptr = do
       enum <- (#peek lvalue, type) ptr :: IO Word32
-      [Dereference <$> (peek =<< (#peek lvalue, dereferenced) ptr),
+      [Dereference <$> (peek =<< (#peek lvalue, dereferenced) ptr) <*> (peek =<< (#peek lvalue, deref_result_type) ptr),
        Access <$> (peek =<< (#peek lvalue, accessed) ptr) <*> (#peek lvalue, offset) ptr <*> (peek =<< (#peek lvalue, access_result_type) ptr),
        Index <$> (peek =<< (#peek lvalue, indexed) ptr) <*> (peek =<< (#peek lvalue, index) ptr) <*> (peek =<< (#peek lvalue, index_result_type) ptr),
        Identifier <$> (T.pack <$> (peekCString =<< (#peek lvalue, name) ptr)) <*> (peek =<< (#peek lvalue, iden_type) ptr)] !! fromIntegral enum
-    poke ptr (Dereference e) = do
+    poke ptr (Dereference e dt) = do
                            (#poke lvalue, type) ptr ((#const DEREF) :: Word32)
                            ePtr <- calloc
+                           dtPtr <- calloc
                            poke ePtr e
+                           poke dtPtr dt
                            (#poke lvalue, dereferenced) ptr ePtr
+                           (#poke lvalue, deref_result_type) ptr dtPtr
     poke ptr (Access lv w dt) = do
                            (#poke lvalue, type) ptr ((#const ACCESS) :: Word32)
                            (#poke lvalue, offset) ptr w

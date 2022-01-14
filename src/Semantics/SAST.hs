@@ -76,7 +76,7 @@ data Expression = Binary BinaryOp Expression Expression DecoratedType
                 | Address LValue
                 | Undefined deriving (Show, Generic, NFData, Eq)
 
-data LValue = Dereference Expression
+data LValue = Dereference Expression DecoratedType
             | Access LValue Word64 DecoratedType
             | Index LValue Expression DecoratedType
             | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq)
@@ -162,7 +162,7 @@ typeOf (Literal (ComptimeArr vals t)) = ArrayType t $ fromIntegral $ length vals
 typeOf (Array x) = ArrayType (typeOf $ head x) (fromIntegral $ length x)
 typeOf (Call _ _ t) = t
 typeOf (Cast _ t) = t
-typeOf (LValueExpression (Dereference e)) = DerefType $ typeOf e
+typeOf (LValueExpression (Dereference _ t)) = t
 typeOf (LValueExpression (Access _ _ t)) = t
 typeOf (LValueExpression (Index _ _ t)) = t
 typeOf (LValueExpression (Identifier _ t)) = t

@@ -227,21 +227,20 @@ Value *call_expr_codegen(call_expr *expr) {
 #define INTTOPTR Instruction::IntToPtr // Integer -> Pointer
 #define BITCAST Instruction::BitCast // Type cast
 const static Instruction::CastOps simple_cast_rules[STRUCT][STRUCT] = {
-    /*                                                           TO                                       */
-    
-    /*                VOID      BOOL      U8        U16       U32       U64       I8        I16       I32       I64       F32       F64  */
-    /*     VOID*/    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , BITCAST },
-    /*     BOOL*/    {ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U8  */    {ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U16 */    {ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
-    /*     U32 */    {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , UITOFP  , UITOFP  },
-    /*FROM U64 */    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , UITOFP  },
-    /*     I8  */    {ZEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , SEXT    , BITCAST , SEXT    , SEXT    , SEXT    , UITOFP  , SITOFP  },
-    /*     I16 */    {ZEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , SEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , UITOFP  , SITOFP  },
-    /*     I32 */    {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , SEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , UITOFP  , SITOFP  },
-    /*     I64 */    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , SITOFP  },
-    /*     F32 */    {ZEXT    , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , BITCAST , FPEXT   },
-    /*     F64 */    {BITCAST , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTRUNC , BITCAST },
+    /*                                                                    TO                                                                  */
+    /*                  VOID      BOOL      U8        U16       U32       U64       I8        I16       I32       I64       F32       F64     */
+    /*      VOID */    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , BITCAST },
+    /*      BOOL */    {ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*      U8   */    {ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , ZEXT    , BITCAST , ZEXT    , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*      U16  */    {ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , ZEXT    , TRUNC   , BITCAST , ZEXT    , ZEXT    , UITOFP  , UITOFP  },
+    /*      U32  */    {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , ZEXT    , TRUNC   , TRUNC   , BITCAST , ZEXT    , UITOFP  , UITOFP  },
+    /* FROM U64  */    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , UITOFP  },
+    /*      I8   */    {ZEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , SEXT    , BITCAST , SEXT    , SEXT    , SEXT    , UITOFP  , SITOFP  },
+    /*      I16  */    {ZEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , SEXT    , TRUNC   , BITCAST , SEXT    , SEXT    , UITOFP  , SITOFP  },
+    /*      I32  */    {ZEXT    , TRUNC   , TRUNC   , TRUNC   , BITCAST , SEXT    , TRUNC   , TRUNC   , BITCAST , SEXT    , UITOFP  , SITOFP  },
+    /*      I64  */    {BITCAST , TRUNC   , TRUNC   , TRUNC   , TRUNC   , BITCAST , TRUNC   , TRUNC   , TRUNC   , BITCAST , UITOFP  , SITOFP  },
+    /*      F32  */    {ZEXT    , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , BITCAST , FPEXT   },
+    /*      F64  */    {BITCAST , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTRUNC , BITCAST },
 };
 
 Value *cast_expr_codegen(cast_expr *expr) {
@@ -260,7 +259,14 @@ Value *cast_expr_codegen(cast_expr *expr) {
 }
 
 Value *lvalue_expr_codegen(lvalue_expr *expr) {
-    return nullptr;
+    lvalue *lvalue = expr->lvalue;
+    switch (lvalue->type) {
+    case DEREF: return builder.CreateLoad(emu_to_llvm_type(lvalue->deref_result_type), expr_codegen(lvalue->dereferenced));
+    case ACCESS:
+    case INDEX:
+    case IDENTIFIER:
+    default: return nullptr;
+    }
 }
 
 Value *assign_expr_codegen(assign_expr *expr) {
