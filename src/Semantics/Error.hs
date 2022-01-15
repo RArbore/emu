@@ -142,6 +142,6 @@ show'' F64 = "f64"
 show'' (StructType t) = T.unpack t
 
 show' :: DecoratedType -> String
-show' (PureType t) = show t
-show' (DerefType t) = '*':(show t)
-show' (ArrayType t w) = (show t) ++ "[" ++ show w ++ "]"
+show' (PureType t) = show'' t
+show' (DerefType t) = '*':(show' t)
+show' (ArrayType t w) = (show' t) ++ "[" ++ show w ++ "]"

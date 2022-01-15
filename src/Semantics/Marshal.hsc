@@ -353,10 +353,16 @@ instance Storable Expression where
                                (#poke assign_expr, op) asptr $ fEnum op
                                lvptr <- calloc
                                eptr <- calloc
+                               ldtptr <- calloc
+                               rdtptr <- calloc
                                poke lvptr lv
                                poke eptr e
+                               poke ldtptr $ typeOf $ LValueExpression lv
+                               poke rdtptr $ typeOf e
                                (#poke assign_expr, lvalue) asptr lvptr
                                (#poke assign_expr, expr) asptr eptr
+                               (#poke assign_expr, left_type) asptr ldtptr 
+                               (#poke assign_expr, right_type) asptr rdtptr 
                                (#poke expression, assign_expr) ptr asptr
     poke ptr (Address lv) = do
       (#poke expression, type) ptr ((#const ADDRESS_EXPR) :: Word32)

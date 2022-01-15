@@ -295,7 +295,35 @@ Value *lvalue_expr_codegen(lvalue_expr *expr) {
 }
 
 Value *assign_expr_codegen(assign_expr *expr) {
-    return nullptr;
+    Value *left = lvalue_codegen(expr->lvalue);
+    Value *right = expr_codegen(expr->expr);
+    Value *result;
+
+#define CREATE_BINARY(bop) {						\
+	lvalue_expr lvalue = {.lvalue = expr->lvalue};			\
+	expression lvalue_expr = {.type = LVALUE_EXPR, .lvalue_expr = &lvalue}; \
+	binary_expr binary = {.op = bop, .expr1 = &lvalue_expr, .expr2 = expr->expr, .type = expr->left_type, .left_type = expr->left_type, .right_type = expr->right_type}; \
+	result = binary_expr_codegen(&binary);				\
+	break;								\
+    }
+
+    switch (expr->op) {
+    case EQUALS: {
+	result = right;
+	break;
+    }
+    case PLUS_EQUALS: CREATE_BINARY(TERM_PLUS);
+    case MINUS_EQUALS: CREATE_BINARY(TERM_MINUS);
+    case STAR_EQUALS: CREATE_BINARY(FACTOR_STAR);
+    case SLASH_EQUALS: CREATE_BINARY(FACTOR_SLASH);
+    case PERCENT_EQUALS: CREATE_BINARY(FACTOR_PERCENT);
+    case LSHIFT_EQUALS: CREATE_BINARY(LSHIFT);
+    case RSHIFT_EQUALS: CREATE_BINARY(RSHIFT);
+    case HAT_EQUALS: CREATE_BINARY(BITWISE_XOR);
+    case BAR_EQUALS: CREATE_BINARY(BITWISE_OR);
+    case AND_EQUALS: CREATE_BINARY(BITWISE_AND);
+    }
+    return builder.CreateStore(result, left);
 }
 
 Value *address_expr_codegen(address_expr *expr) {

@@ -272,6 +272,8 @@ typedef struct assign_expr {
     assign_op op;
     lvalue *lvalue;
     struct expression *expr;
+    decorated_type *left_type;
+    decorated_type *right_type;
 } assign_expr;
 
 typedef struct address_expr {

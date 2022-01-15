@@ -201,7 +201,7 @@ void print_expression(expression *expr) {
 	break;
     }
     case LVALUE_EXPR: printf("(LValueExpression "); print_lvalue(expr->lvalue_expr->lvalue); printf(")"); break;
-    case ASSIGN_EXPR: printf("(Assign "); print_assign_op(expr->assign_expr->op); printf(" "); print_lvalue(expr->assign_expr->lvalue); printf(" "); print_expression(expr->assign_expr->expr); printf(")"); break;
+    case ASSIGN_EXPR: printf("(Assign "); print_assign_op(expr->assign_expr->op); printf(" "); print_lvalue(expr->assign_expr->lvalue); printf(" "); print_expression(expr->assign_expr->expr); printf(" "); print_decorated_type(expr->assign_expr->left_type); printf(" "); print_decorated_type(expr->assign_expr->right_type); printf(")"); break;
     case ADDRESS_EXPR: printf("(Address "); print_lvalue(expr->address_expr->lvalue); printf(")"); break;
     case UNDEFINED: printf("Undefined"); break;
     default: printf("(INVALID ENUM CODE (print_expression))");
