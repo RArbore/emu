@@ -327,7 +327,7 @@ Value *assign_expr_codegen(assign_expr *expr) {
 }
 
 Value *address_expr_codegen(address_expr *expr) {
-    return nullptr;
+    return lvalue_codegen(expr->lvalue);
 }
 
 Value *undefined_expr_codegen() {
