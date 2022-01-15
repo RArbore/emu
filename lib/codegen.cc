@@ -261,15 +261,21 @@ const static Instruction::CastOps simple_cast_rules[STRUCT][STRUCT] = {
 Value *cast_expr_codegen(cast_expr *expr) {
     if (is_pointer(expr->in_type) && is_pointer(expr->out_type))
 	return builder.CreateCast(BITCAST, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
-    if (expr->in_type->decorated_type_e == PURE_TYPE && expr->out_type->decorated_type_e == PURE_TYPE
-	&& expr->in_type->pure_type->type_e != STRUCT && expr->out_type->pure_type->type_e != STRUCT)
-	return builder.CreateCast(simple_cast_rules[expr->in_type->pure_type->type_e][expr->out_type->pure_type->type_e],
-				  expr_codegen(expr->expr),
-				  emu_to_llvm_type(expr->out_type));
     if (expr->in_type->decorated_type_e == DEREF_TYPE && expr->out_type->decorated_type_e == PURE_TYPE)
 	return builder.CreateCast(PTRTOINT, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
     if (expr->in_type->decorated_type_e == PURE_TYPE && expr->out_type->decorated_type_e == DEREF_TYPE)
 	return builder.CreateCast(INTTOPTR, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
+    if (expr->in_type->decorated_type_e == PURE_TYPE && expr->out_type->decorated_type_e == PURE_TYPE
+	&& expr->in_type->pure_type->type_e != STRUCT && expr->out_type->pure_type->type_e != STRUCT) {
+	if (expr->in_type->pure_type->type_e > BOOL && expr->out_type->pure_type->type_e == BOOL)
+	    return builder.CreateNot(builder.CreateICmpEQ(builder.CreateCast(ZEXT,
+									     expr_codegen(expr->expr),
+									     Type::getInt64Ty(context)),
+							  ConstantInt::get(context, APInt())));
+	return builder.CreateCast(simple_cast_rules[expr->in_type->pure_type->type_e][expr->out_type->pure_type->type_e],
+				  expr_codegen(expr->expr),
+				  emu_to_llvm_type(expr->out_type));
+    }
     return nullptr;
 }
 
