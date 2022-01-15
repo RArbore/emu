@@ -73,4 +73,6 @@ Value *block_codegen(declaration *body, u64 block_size);
 
 Value *empty_codegen();
 
+Value *stmt_codegen(statement *stmt);
+
 void cxx_entry_point(sast *sast);

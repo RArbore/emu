@@ -350,11 +350,34 @@ Value *expr_codegen(expression *expr) {
 }
 
 Value *expr_stmt_codegen(expr_stmt *stmt) {
-
+    return expr_codegen(stmt->expr);
 }
 
 Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
-
+    Value *cond = expr_codegen(stmt->cond);
+    if (!cond) return nullptr;
+    Function *cur_function = builder.GetInsertBlock()->getParent();
+    BasicBlock *thenBB = BasicBlock::Create(context, "", cur_function);
+    BasicBlock *elseBB = BasicBlock::Create(context);
+    BasicBlock *mergeBB = BasicBlock::Create(context);
+    builder.CreateCondBr(cond, thenBB, elseBB);
+    builder.SetInsertPoint(thenBB);
+    Value *pos = stmt_codegen(stmt->pos);
+    if (!pos) return nullptr;
+    builder.CreateBr(mergeBB);
+    thenBB = builder.GetInsertBlock();
+    cur_function->getBasicBlockList().push_back(elseBB);
+    builder.SetInsertPoint(elseBB);
+    Value *neg = stmt_codegen(stmt->neg);
+    if (!neg) return nullptr;
+    builder.CreateBr(mergeBB);
+    elseBB = builder.GetInsertBlock();
+    cur_function->getBasicBlockList().push_back(mergeBB);
+    builder.SetInsertPoint(mergeBB);
+    PHINode *pn = builder.CreatePHI(Type::getVoidTy(context), 2);
+    pn->addIncoming(pos, thenBB);
+    pn->addIncoming(neg, elseBB);
+    return pn;
 }
 
 Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
