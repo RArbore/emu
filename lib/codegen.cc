@@ -128,8 +128,22 @@ Value *binary_expr_codegen(binary_expr *expr) {
 	    : builder.CreateICmpULE(v1, v2);
     case LSHIFT: return builder.CreateShl(v1, v2);
     case RSHIFT: return is_signed(expr->type) ? builder.CreateAShr(v1, v2) : builder.CreateLShr(v1, v2);
-    case TERM_PLUS: return is_floating(expr->type) ? builder.CreateFAdd(v1, v2) : builder.CreateAdd(v1, v2);
-    case TERM_MINUS: return is_floating(expr->type) ? builder.CreateFSub(v1, v2) : builder.CreateSub(v1, v2);
+    case TERM_PLUS: return
+	    is_floating(expr->type)
+	    ? builder.CreateFAdd(v1, v2)
+	    : is_pointer(expr->left_type)
+	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v1, v2)
+	    : is_pointer(expr->right_type)
+	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v2, v1)
+	    : builder.CreateAdd(v1, v2);
+    case TERM_MINUS: return
+	    is_floating(expr->type)
+	    ? builder.CreateFSub(v1, v2)
+	    : is_pointer(expr->left_type)
+	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v1, v2)
+	    : is_pointer(expr->right_type)
+	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v2, v1)
+	    : builder.CreateSub(v1, v2);
     case FACTOR_STAR: return is_floating(expr->type) ? builder.CreateFMul(v1, v2) : builder.CreateMul(v1, v2);
     case FACTOR_SLASH: return
 	    is_floating(expr->type)

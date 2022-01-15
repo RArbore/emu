@@ -126,6 +126,8 @@ typedef struct binary_expr {
     struct expression *expr1;
     struct expression *expr2;
     decorated_type *type;
+    decorated_type *left_type;
+    decorated_type *right_type;
 } binary_expr;
 
 typedef enum unary_op {

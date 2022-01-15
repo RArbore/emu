@@ -271,13 +271,19 @@ instance Storable Expression where
                                e1ptr <- calloc
                                e2ptr <- calloc
                                dtptr <- calloc
+                               ldtptr <- calloc
+                               rdtptr <- calloc
                                (#poke binary_expr, op) bptr $ fEnum op
                                poke e1ptr e1
                                poke e2ptr e2
                                poke dtptr dt
+                               poke ldtptr $ typeOf e1
+                               poke rdtptr $ typeOf e2
                                (#poke binary_expr, expr1) bptr e1ptr
                                (#poke binary_expr, expr2) bptr e2ptr
                                (#poke binary_expr, type) bptr dtptr
+                               (#poke binary_expr, left_type) bptr ldtptr
+                               (#poke binary_expr, right_type) bptr rdtptr
                                (#poke expression, binary_expr) ptr bptr
     poke ptr (Unary op e dt) = do
                                (#poke expression, type) ptr ((#const UNARY_EXPR) :: Word32)
