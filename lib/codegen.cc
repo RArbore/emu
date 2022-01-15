@@ -16,6 +16,7 @@ static LLVMContext context;
 static IRBuilder<> builder(context);
 static Module *module;
 static std::map<std::string, std::vector<decorated_type*>> defined_structs;
+static std::map<std::string, AllocaInst*> bound_named_allocas;
 
 bool is_floating(decorated_type *dt) {
     switch (dt->decorated_type_e) {
@@ -258,18 +259,19 @@ Value *cast_expr_codegen(cast_expr *expr) {
     return nullptr;
 }
 
+Value *lvalue_codegen(lvalue *lvalue) {
+    switch (lvalue->type) {
+    case DEREF: return expr_codegen(lvalue->dereferenced);
+    case ACCESS: return builder.CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
+    case INDEX: return builder.CreateGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
+    case IDENTIFIER: return bound_named_allocas.at(std::string(lvalue->name));
+    default: return nullptr;
+    }
+}
+
 Value *lvalue_expr_codegen(lvalue_expr *expr) {
     lvalue *lval = expr->lvalue;
-    std::function<Value*(lvalue*)> lambda = [&](lvalue *lvalue) -> Value* {
-	switch (lvalue->type) {
-	case DEREF: return builder.CreateLoad(emu_to_llvm_type(lvalue->decorated_type), expr_codegen(lvalue->dereferenced));
-	case ACCESS: return builder.CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lambda(lvalue->accessed), lvalue->offset);
-	case INDEX:
-	case IDENTIFIER:
-	default: return nullptr;
-	}
-    };
-    return builder.CreateLoad(emu_to_llvm_type(lval->decorated_type), lambda(lval));
+    return builder.CreateLoad(emu_to_llvm_type(lval->decorated_type), lvalue_codegen(lval));
 }
 
 Value *assign_expr_codegen(assign_expr *expr) {

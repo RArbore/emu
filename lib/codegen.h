@@ -49,6 +49,8 @@ Value *call_expr_codegen(call_expr *expr);
 
 Value *cast_expr_codegen(cast_expr *expr);
 
+Value *lvalue_codegen(lvalue *lvalue);
+
 Value *lvalue_expr_codegen(lvalue_expr *expr);
 
 Value *assign_expr_codegen(assign_expr *expr);
