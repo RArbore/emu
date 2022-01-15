@@ -61,4 +61,16 @@ Value *undefined_expr_codegen();
 
 Value *expr_codegen(expression *expr);
 
+Value *expr_stmt_codegen(expr_stmt *stmt);
+
+Value *ifelse_stmt_codegen(ifelse_stmt *stmt);
+
+Value *dowhile_stmt_codegen(dowhile_stmt *stmt);
+
+Value *return_stmt_codegen(return_stmt *stmt);
+
+Value *block_codegen(declaration *body, u64 block_size);
+
+Value *empty_codegen();
+
 void cxx_entry_point(sast *sast);

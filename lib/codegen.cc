@@ -349,6 +349,42 @@ Value *expr_codegen(expression *expr) {
     }
 }
 
+Value *expr_stmt_codegen(expr_stmt *stmt) {
+
+}
+
+Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
+
+}
+
+Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
+
+}
+
+Value *return_stmt_codegen(return_stmt *stmt) {
+
+}
+
+Value *block_codegen(declaration *body, u64 block_size) {
+
+}
+
+Value *empty_codegen() {
+
+}
+
+Value *stmt_codegen(statement *stmt) {
+    switch (stmt->type) {
+    case EXPR_STMT: return expr_stmt_codegen(stmt->expr_stmt);
+    case IFELSE_STMT: return ifelse_stmt_codegen(stmt->ifelse_stmt);
+    case DOWHILE_STMT: return dowhile_stmt_codegen(stmt->dowhile_stmt);
+    case RETURN_STMT: return return_stmt_codegen(stmt->return_stmt);
+    case BLOCK: return block_codegen(stmt->block, stmt->block_size);
+    case EMPTY: return empty_codegen();
+    default: return nullptr;
+    }
+}
+
 void cxx_entry_point(sast *sast) {
     print_sast(sast);
 }
