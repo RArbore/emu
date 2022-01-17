@@ -326,6 +326,97 @@ Value *address_expr_codegen(address_expr *expr) {
     return lvalue_codegen(expr->lvalue);
 }
 
+Value *crement_expr_codegen(crement_expr *expr) {
+    Value *lval = lvalue_codegen(expr->lvalue);
+    if (!lval) return nullptr;
+    Type *term_type = emu_to_llvm_type(expr->type);
+    switch (expr->op) {
+    case PRE_PLUS_PLUS: {
+	if (expr->type->decorated_type_e == DEREF_TYPE) {
+	    return builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	}
+	Value *load = builder.CreateLoad(term_type, lval);
+	switch (expr->type->pure_type->type_e) {
+	case U8: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
+	case U16: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
+	case U32: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
+	case U64: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	case I8: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
+	case I16: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
+	case I32: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
+	case I64: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
+	case F32: return builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval); 
+	case F64: return builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	default: return nullptr;
+	}
+    }
+    case PRE_MINUS_MINUS: {
+	if (expr->type->decorated_type_e == DEREF_TYPE) {
+	    return builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, -1, false))), lval);
+	}
+	Value *load = builder.CreateLoad(term_type, lval);
+	switch (expr->type->pure_type->type_e) {
+	case U8: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
+	case U16: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
+	case U32: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
+	case U64: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	case I8: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
+	case I16: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
+	case I32: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
+	case I64: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
+	case F32: return builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval); 
+	case F64: return builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	default: return nullptr;
+	}
+    }
+    case POST_PLUS_PLUS: {
+	Value *load = builder.CreateLoad(term_type, lval);
+	if (expr->type->decorated_type_e == DEREF_TYPE) {
+	    builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	}
+	else {
+	    switch (expr->type->pure_type->type_e) {
+	    case U8: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
+	    case U16: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
+	    case U32: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
+	    case U64: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	    case I8: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
+	    case I16: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
+	    case I32: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
+	    case I64: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
+	    case F32: builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval); 
+	    case F64: builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	    default: return nullptr;
+	    }
+	}
+	return load;
+    }
+    case POST_MINUS_MINUS: {
+	Value *load = builder.CreateLoad(term_type, lval);
+	if (expr->type->decorated_type_e == DEREF_TYPE) {
+	    builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, -1, false))), lval);
+	}
+	else {
+	switch (expr->type->pure_type->type_e) {
+	    case U8: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
+	    case U16: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
+	    case U32: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
+	    case U64: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	    case I8: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
+	    case I16: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
+	    case I32: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
+	    case I64: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
+	    case F32: builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval); 
+	    case F64: builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	    default: return nullptr;
+	    }
+	}
+	return load;
+    }
+    default: return nullptr;
+    }
+}
+
 Value *undefined_expr_codegen() {
     return UndefValue::get(Type::getInt64Ty(context));
 }
@@ -377,19 +468,19 @@ Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
 }
 
 Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
-
+    return nullptr;
 }
 
 Value *return_stmt_codegen(return_stmt *stmt) {
-
+    return nullptr;
 }
 
 Value *block_codegen(declaration *body, u64 block_size) {
-
+    return nullptr;
 }
 
 Value *empty_codegen() {
-
+    return nullptr;
 }
 
 Value *stmt_codegen(statement *stmt) {

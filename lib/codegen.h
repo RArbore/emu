@@ -57,6 +57,8 @@ Value *assign_expr_codegen(assign_expr *expr);
 
 Value *address_expr_codegen(address_expr *expr);
 
+Value *crement_expr_codegen(crement_expr *expr);
+
 Value *undefined_expr_codegen();
 
 Value *expr_codegen(expression *expr);
