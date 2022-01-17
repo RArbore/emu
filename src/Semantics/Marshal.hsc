@@ -264,6 +264,8 @@ instance Storable Expression where
        in Assign <$> (tEnum <$> ((#peek assign_expr, op) =<< ioasptr)) <*> (peek =<< (#peek assign_expr, lvalue) =<< ioasptr) <*> (peek =<< (#peek assign_expr, expr) =<< ioasptr),
        let ioadptr = (#peek expression, address_expr) ptr :: IO (Ptr ())
        in Address <$> (peek =<< (#peek address_expr, lvalue) =<< ioadptr),
+       let iocrptr = (#peek expression, crement_expr) ptr :: IO (Ptr ())
+       in Crement <$> (tEnum <$> ((#peek crement_expr, op) =<< iocrptr)) <*> (peek =<< (#peek crement_expr, lvalue) =<< iocrptr) <*> (peek =<< (#peek crement_expr, type) =<< iocrptr),
        return Undefined] !! fromIntegral enum
     poke ptr (Binary op e1 e2 dt) = do
                                (#poke expression, type) ptr ((#const BINARY_EXPR) :: Word32)
@@ -371,6 +373,17 @@ instance Storable Expression where
       poke lvptr lv
       (#poke address_expr, lvalue) adptr lvptr
       (#poke expression, address_expr) ptr adptr
+    poke ptr (Crement op lv dt) = do
+                               (#poke expression, type) ptr ((#const CREMENT_EXPR) :: Word32)
+                               crptr <- callocBytes (#size crement_expr)
+                               lvptr <- calloc
+                               dtptr <- calloc
+                               (#poke crement_expr, op) crptr $ fEnum op
+                               poke lvptr lv
+                               poke dtptr dt
+                               (#poke crement_expr, lvalue) crptr lvptr
+                               (#poke crement_expr, type) crptr dtptr
+                               (#poke expression, crement_expr) ptr crptr
     poke ptr Undefined = (#poke expression, type) ptr ((#const UNDEFINED) :: Word32)
       
 instance Storable Statement where

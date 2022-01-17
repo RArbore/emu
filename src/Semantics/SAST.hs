@@ -29,6 +29,7 @@ module Semantics.SAST
      AssignOp  (..),
      BinaryOp  (..),
      UnaryOp  (..),
+     CrementOp  (..),
 
      typeOf
      
@@ -74,6 +75,7 @@ data Expression = Binary BinaryOp Expression Expression DecoratedType
                 | LValueExpression LValue
                 | Assign AssignOp LValue Expression
                 | Address LValue
+                | Crement CrementOp LValue DecoratedType
                 | Undefined deriving (Show, Generic, NFData, Eq)
 
 data LValue = Dereference Expression DecoratedType
@@ -133,18 +135,20 @@ data BinaryOp = LogicOr
               | FactorSlash
               | FactorPercent deriving (Show, Generic, NFData, Eq, Enum)
                 
-data UnaryOp = PrePlusPlus
-             | PreMinusMinus
-             | PostPlusPlus
-             | PostMinusMinus
-             | Plus
+data UnaryOp = Plus
              | Minus
              | Excla
              | Tilda deriving (Show, Generic, NFData, Eq, Enum)
 
+data CrementOp = PrePlusPlus
+               | PreMinusMinus
+               | PostPlusPlus
+               | PostMinusMinus deriving (Show, Generic, NFData, Eq, Enum)
+
 typeOf :: Expression -> DecoratedType
 typeOf (Binary _ _ _ t) = t
 typeOf (Unary _ _ t) = t
+typeOf (Crement _ _ t) = t
 typeOf (Literal (ComptimePointer _ t)) = DerefType t
 typeOf (Literal (ComptimeBool _)) = PureType Bool
 typeOf (Literal (ComptimeU8 _)) = PureType U8

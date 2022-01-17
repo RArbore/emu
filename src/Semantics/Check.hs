@@ -347,21 +347,49 @@ checkExpr ((l, sc, ec), e) = checked
                       A.Unary op expr -> do
                              sexpr <- checkExpr expr
                              case op of
-                               A.PrePlusPlus -> if canIncDec $ typeOf sexpr then return $ Unary PrePlusPlus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
-                               A.PreMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PreMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
-                               A.PostPlusPlus -> if canIncDec $ typeOf sexpr then return $ Unary PostPlusPlus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
-                               A.PostMinusMinus -> if canIncDec $ typeOf sexpr then return $ Unary PostMinusMinus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
-                               A.Plus -> if numeric $ typeOf sexpr then return $ Unary Plus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
-                               A.Minus -> if numeric $ typeOf sexpr then return $ Unary Minus sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
-                               A.Excla -> if boolean $ typeOf sexpr then return $ Unary Excla sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf sexpr
-                               A.Tilda -> if singletonNonVoid $ typeOf sexpr then return $ Unary Tilda sexpr (typeOf sexpr) else throwError $ SemanticsError l sc ec PointerTypeError
-                               A.Star -> if canDeref $ typeOf sexpr then return $ LValueExpression $ Dereference sexpr $ typeOf sexpr else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
+                               A.PrePlusPlus -> if canIncDec $ typeOf sexpr
+                                                then case sexpr of
+                                                       LValueExpression lval -> return $ Crement PrePlusPlus lval (typeOf sexpr)
+                                                       _ -> throwError $ SemanticsError l sc ec $ LValueCrementError
+                                                else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.PreMinusMinus -> if canIncDec $ typeOf sexpr
+                                                  then case sexpr of
+                                                         LValueExpression lval -> return $ Crement PreMinusMinus lval (typeOf sexpr)
+                                                         _ -> throwError $ SemanticsError l sc ec $ LValueCrementError
+                                                  else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.PostPlusPlus -> if canIncDec $ typeOf sexpr
+                                                 then case sexpr of
+                                                        LValueExpression lval -> return $ Crement PostPlusPlus lval (typeOf sexpr)
+                                                        _ -> throwError $ SemanticsError l sc ec $ LValueCrementError
+                                                 else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.PostMinusMinus -> if canIncDec $ typeOf sexpr
+                                                   then case sexpr of
+                                                          LValueExpression lval -> return $ Crement PostMinusMinus lval (typeOf sexpr)
+                                                          _ -> throwError $ SemanticsError l sc ec $ LValueCrementError
+                                                   else throwError $ SemanticsError l sc ec $ IncDecError $ typeOf sexpr
+                               A.Plus -> if numeric $ typeOf sexpr
+                                         then return $ Unary Plus sexpr (typeOf sexpr)
+                                         else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
+                               A.Minus -> if numeric $ typeOf sexpr
+                                          then return $ Unary Minus sexpr (typeOf sexpr)
+                                          else throwError $ SemanticsError l sc ec $ NumericError $ typeOf sexpr
+                               A.Excla -> if boolean $ typeOf sexpr
+                                          then return $ Unary Excla sexpr (typeOf sexpr)
+                                          else throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf sexpr
+                               A.Tilda -> if singletonNonVoid $ typeOf sexpr
+                                          then return $ Unary Tilda sexpr (typeOf sexpr)
+                                          else throwError $ SemanticsError l sc ec PointerTypeError
+                               A.Star -> if canDeref $ typeOf sexpr
+                                         then return $ LValueExpression $ Dereference sexpr $ typeOf sexpr
+                                         else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                                A.And -> case sexpr of
                                           LValueExpression lval -> return $ Address lval
                                           _ -> throwError $ SemanticsError l sc ec AddressError
                                A.Cast astDecType -> do
                                            t <- checkDecoratedType astDecType
-                                           if checkExplicitCast (typeOf sexpr) t then return $ Cast sexpr t else throwError $ SemanticsError l sc ec $ CastError (typeOf sexpr) t
+                                           if checkExplicitCast (typeOf sexpr) t
+                                           then return $ Cast sexpr t
+                                           else throwError $ SemanticsError l sc ec $ CastError (typeOf sexpr) t
                                A.Index exprs -> case sexpr of
                                                   LValueExpression lval -> do
                                                              sexprs <- mapM checkExpr exprs

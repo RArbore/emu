@@ -160,10 +160,6 @@ Value *unary_expr_codegen(unary_expr *expr) {
     Value *v = expr_codegen(expr->expr);
     if (!v) return nullptr;
     switch (expr->op) {
-    case PRE_PLUS_PLUS: return nullptr;
-    case PRE_MINUS_MINUS: return nullptr;
-    case POST_PLUS_PLUS: return nullptr;
-    case POST_MINUS_MINUS: return nullptr;
     case PLUS: return v;
     case MINUS: return is_floating(expr->type) ? builder.CreateFNeg(v) : builder.CreateNeg(v);
     case EXCLA: return builder.CreateICmpEQ(v, ConstantInt::get(context, APInt()));

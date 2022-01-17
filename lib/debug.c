@@ -88,10 +88,6 @@ void print_binary_op(binary_op bop) {
 
 void print_unary_op(unary_op uop) {
     switch (uop) {
-    case PRE_PLUS_PLUS: printf("PrePlusPlus"); break;
-    case PRE_MINUS_MINUS: printf("PreMinusMinus"); break;
-    case POST_PLUS_PLUS: printf("PostPlusPlus"); break;
-    case POST_MINUS_MINUS: printf("PostMinusMinus"); break;
     case PLUS: printf("Plus"); break;
     case MINUS: printf("Minus"); break;
     case EXCLA: printf("Excla"); break;
@@ -163,6 +159,16 @@ void print_assign_op(assign_op aop) {
     }
 }
 
+void print_crement_op(crement_op cop) {
+    switch (cop) {
+    case PRE_PLUS_PLUS: printf("PrePlusPlus"); break;
+    case PRE_MINUS_MINUS: printf("PreMinusMinus"); break;
+    case POST_PLUS_PLUS: printf("PostPlusPlus"); break;
+    case POST_MINUS_MINUS: printf("PostMinusMinus"); break;
+    default: printf("(INVALID ENUM CODE (print_crement_op))");
+    }
+}
+
 void print_expression(expression *expr) {
     switch (expr->type) {
     case BINARY_EXPR: printf("(Binary "); print_binary_op(expr->binary_expr->op); printf(" "); print_expression(expr->binary_expr->expr1); printf(" "); print_expression(expr->binary_expr->expr2); printf(" "); print_decorated_type(expr->binary_expr->type); printf(")"); break; 
@@ -203,6 +209,7 @@ void print_expression(expression *expr) {
     case LVALUE_EXPR: printf("(LValueExpression "); print_lvalue(expr->lvalue_expr->lvalue); printf(")"); break;
     case ASSIGN_EXPR: printf("(Assign "); print_assign_op(expr->assign_expr->op); printf(" "); print_lvalue(expr->assign_expr->lvalue); printf(" "); print_expression(expr->assign_expr->expr); printf(" "); print_decorated_type(expr->assign_expr->left_type); printf(" "); print_decorated_type(expr->assign_expr->right_type); printf(")"); break;
     case ADDRESS_EXPR: printf("(Address "); print_lvalue(expr->address_expr->lvalue); printf(")"); break;
+    case CREMENT_EXPR: printf("(Crement "); print_crement_op(expr->crement_expr->op); printf(" "); print_lvalue(expr->crement_expr->lvalue); printf(" "); print_decorated_type(expr->crement_expr->type); printf(")"); break;  
     case UNDEFINED: printf("Undefined"); break;
     default: printf("(INVALID ENUM CODE (print_expression))");
     }

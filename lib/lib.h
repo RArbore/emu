@@ -131,11 +131,7 @@ typedef struct binary_expr {
 } binary_expr;
 
 typedef enum unary_op {
-    PRE_PLUS_PLUS = 0,
-    PRE_MINUS_MINUS,
-    POST_PLUS_PLUS,
-    POST_MINUS_MINUS,
-    PLUS,
+    PLUS = 0,
     MINUS,
     EXCLA,
     TILDA,
@@ -280,6 +276,21 @@ typedef struct address_expr {
     lvalue *lvalue;
 } address_expr;
 
+typedef enum crement_op {
+    PRE_PLUS_PLUS = 0,
+    PRE_MINUS_MINUS,
+    POST_PLUS_PLUS,
+    POST_MINUS_MINUS,
+} crement_op;
+
+void print_crement_op(crement_op);
+
+typedef struct crement_expr {
+    crement_op op;
+    lvalue *lvalue;
+    decorated_type *type;
+} crement_expr;
+
 typedef enum expression_type {
     BINARY_EXPR = 0,
     UNARY_EXPR,
@@ -290,6 +301,7 @@ typedef enum expression_type {
     LVALUE_EXPR,
     ASSIGN_EXPR,
     ADDRESS_EXPR,
+    CREMENT_EXPR,
     UNDEFINED,
 } expression_type;
 
@@ -305,6 +317,7 @@ typedef struct expression {
 	lvalue_expr *lvalue_expr;
 	assign_expr *assign_expr;
 	address_expr *address_expr;
+	crement_expr *crement_expr;
     };
 } expression;
 
