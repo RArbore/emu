@@ -431,6 +431,7 @@ Value *expr_codegen(expression *expr) {
     case LVALUE_EXPR: return lvalue_expr_codegen(expr->lvalue_expr);
     case ASSIGN_EXPR: return assign_expr_codegen(expr->assign_expr);
     case ADDRESS_EXPR: return address_expr_codegen(expr->address_expr);
+    case CREMENT_EXPR: return crement_expr_codegen(expr->crement_expr);
     case UNDEFINED: return undefined_expr_codegen();
     default: return nullptr;
     }
@@ -461,14 +462,23 @@ Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
     elseBB = builder.GetInsertBlock();
     cur_function->getBasicBlockList().push_back(mergeBB);
     builder.SetInsertPoint(mergeBB);
-    PHINode *pn = builder.CreatePHI(Type::getVoidTy(context), 2);
-    pn->addIncoming(pos, thenBB);
-    pn->addIncoming(neg, elseBB);
-    return pn;
+    return Constant::getNullValue(Type::getVoidTy(context));;
 }
 
 Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
-    return nullptr;
+    Function *cur_function = builder.GetInsertBlock()->getParent();
+    BasicBlock *whileBB = BasicBlock::Create(context, "", cur_function);
+    BasicBlock *mergeBB = BasicBlock::Create(context);
+    builder.CreateBr(whileBB);
+    builder.SetInsertPoint(whileBB);
+    Value *body = stmt_codegen(stmt->body);
+    if (!body) return nullptr;
+    Value *cond = expr_codegen(stmt->cond);
+    builder.CreateCondBr(cond, whileBB, mergeBB);
+    whileBB = builder.GetInsertBlock();
+    cur_function->getBasicBlockList().push_back(mergeBB);
+    builder.SetInsertPoint(mergeBB);
+    return Constant::getNullValue(Type::getVoidTy(context));;
 }
 
 Value *return_stmt_codegen(return_stmt *stmt) {
