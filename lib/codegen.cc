@@ -482,7 +482,10 @@ Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
 }
 
 Value *return_stmt_codegen(return_stmt *stmt) {
-    return nullptr;
+    if (stmt->expr->type == UNDEFINED) return builder.CreateRetVoid();
+    Value *ret = expr_codegen(stmt->expr);
+    if (ret->getType()->isVoidTy()) return builder.CreateRetVoid();
+    else return builder.CreateRet(ret);
 }
 
 Value *block_codegen(declaration *body, u64 block_size) {
