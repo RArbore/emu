@@ -509,6 +509,32 @@ Value *stmt_codegen(statement *stmt) {
     }
 }
 
+Value *struct_decl_codegen(struct_decl *decl) {
+
+}
+
+Value *func_decl_codegen(func_decl *decl) {
+
+}
+
+Value *var_decl_codegen(var_decl *decl) {
+
+}
+
+Value *stmt_decl_codegen(stmt_decl *decl) {
+    return stmt_codegen(decl->stmt);
+}
+
+Value *decl_codegen(declaration *decl) {
+    switch (decl->type) {
+    case STRUCT_DECL: struct_decl_codegen(decl->struct_decl);
+    case FUNC_DECL: func_decl_codegen(decl->func_decl);
+    case VAR_DECL: var_decl_codegen(decl->var_decl);
+    case STMT_DECL: stmt_decl_codegen(decl->stmt_decl);
+    default: return nullptr;
+    }
+}
+
 void cxx_entry_point(sast *sast) {
     print_sast(sast);
 }

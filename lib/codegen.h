@@ -77,4 +77,14 @@ Value *empty_codegen();
 
 Value *stmt_codegen(statement *stmt);
 
+Value *struct_decl_codegen(struct_decl *decl);
+
+Value *func_decl_codegen(func_decl *decl);
+
+Value *var_decl_codegen(var_decl *decl);
+
+Value *stmt_decl_codegen(stmt_decl *decl);
+
+Value *decl_codegen(declaration *decl);
+
 void cxx_entry_point(sast *sast);
