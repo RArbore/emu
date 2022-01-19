@@ -53,7 +53,7 @@ void print_modifier(modifier mod) {
 
 void print_decorated_identifier(decorated_identifier *dec_iden) {
     printf("DecoratedIdentifier [");
-    for (u64 i = 0; i < dec_iden->num_mods; i++) {
+    for (u64 i = 0; i < dec_iden->num_mods; ++i) {
 	if (i) printf(",");
 	print_modifier(dec_iden->mods[i]);
     }
@@ -112,7 +112,7 @@ void print_comptime_value(comptime_value *cv) {
     case CT_F64: printf("(ComptimeF64 %f)", cv->comptime_f64); break;
     case CT_STRUCT: {
 	printf("(ComptimeStruct [");
-	for (u64 i = 0; i < cv->num_fields; i++) {
+	for (u64 i = 0; i < cv->num_fields; ++i) {
 	    if (i) printf(",");
 	    print_comptime_value(cv->fields + i);
 	}
@@ -121,7 +121,7 @@ void print_comptime_value(comptime_value *cv) {
     }
     case CT_ARR: {
 	printf("(ComptimeArr [");
-	for (u64 i = 0; i < cv->size; i++) {
+	for (u64 i = 0; i < cv->size; ++i) {
 	    if (i) printf(",");
 	    print_comptime_value(cv->elements + i);
 	}
@@ -176,7 +176,7 @@ void print_expression(expression *expr) {
     case LITERAL_EXPR: printf("(Literal "); print_comptime_value(expr->literal_expr->comptime_value); printf(")"); break;
     case ARRAY_EXPR: {
 	printf("(Array [");
-	for (u64 i = 0; i < expr->array_expr->size; i++) {
+	for (u64 i = 0; i < expr->array_expr->size; ++i) {
 	    if (i) printf(",");
 	    print_expression(expr->array_expr->elements + i);
 	}
@@ -187,7 +187,7 @@ void print_expression(expression *expr) {
     }
     case CALL_EXPR: {
 	printf("(Call \"%s\" [", expr->call_expr->func_name);
-	for (u64 i = 0; i < expr->call_expr->num_args; i++) {
+	for (u64 i = 0; i < expr->call_expr->num_args; ++i) {
 	    if (i) printf(",");
 	    print_expression(expr->call_expr->args + i);
 	}
@@ -223,7 +223,7 @@ void print_statement(statement *stmt) {
     case RETURN_STMT: printf("(ReturnStatement "); print_expression(stmt->return_stmt->expr); printf(")"); break;
     case BLOCK: {
 	printf("(Block [");
-	for (u64 i = 0; i < stmt->block_size; i++) {
+	for (u64 i = 0; i < stmt->block_size; ++i) {
 	    if (i) printf(",");
 	    print_declaration(stmt->block + i);
 	}
@@ -239,12 +239,12 @@ void print_declaration(declaration *decl) {
     switch (decl->type) {
     case STRUCT_DECL: {
 	printf("(StructDecl (Structure [");
-	for (u64 i = 0; i < decl->struct_decl->num_mods; i++) {
+	for (u64 i = 0; i < decl->struct_decl->num_mods; ++i) {
 	    if (i) printf(",");
 	    print_modifier(decl->struct_decl->mods[i]);
 	}
 	printf("] \"%s\" [", decl->struct_decl->name);
-	for (u64 i = 0; i < decl->struct_decl->num_fields; i++) {
+	for (u64 i = 0; i < decl->struct_decl->num_fields; ++i) {
 	    if (i) printf(",");
 	    print_decorated_identifier(decl->struct_decl->fields + i);
 	}
@@ -253,12 +253,12 @@ void print_declaration(declaration *decl) {
     }
     case FUNC_DECL: {
 	printf("(FuncDecl (Function [");
-	for (u64 i = 0; i < decl->func_decl->num_mods; i++) {
+	for (u64 i = 0; i < decl->func_decl->num_mods; ++i) {
 	    if (i) printf(",");
 	    print_modifier(decl->func_decl->mods[i]);
 	}
 	printf("] \"%s\" [", decl->func_decl->name);
-	for (u64 i = 0; i < decl->func_decl->num_params; i++) {
+	for (u64 i = 0; i < decl->func_decl->num_params; ++i) {
 	    if (i) printf(",");
 	    print_decorated_identifier(decl->func_decl->params + i);
 	}
@@ -277,7 +277,7 @@ void print_declaration(declaration *decl) {
 
 void print_sast(sast *sast) {
     printf("SAST [");
-    for (u64 i = 0; i < sast->num_decls; i++) {
+    for (u64 i = 0; i < sast->num_decls; ++i) {
 	if (i) printf(",");
 	print_declaration(sast->decls + i);
     }

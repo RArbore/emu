@@ -186,14 +186,14 @@ Value *literal_expr_codegen(literal_expr *expr) {
 	case CT_F64: return ConstantFP::get(context, APFloat(cv->comptime_f64));
 	case CT_STRUCT: {
 	    std::vector<Constant*> struct_values;
-	    for (u64 i = 0; i < cv->num_fields; i++) {
+	    for (u64 i = 0; i < cv->num_fields; ++i) {
 		struct_values.push_back(lambda(cv->fields + i));
 	    }
 	    return ConstantStruct::get(struct_name_to_llvm_type(cv->struct_name), struct_values);
 	}
 	case CT_ARR: {
 	    std::vector<Constant*> array_values;
-	    for (u64 i = 0; i < cv->size; i++) {
+	    for (u64 i = 0; i < cv->size; ++i) {
 		array_values.push_back(lambda(cv->elements + i));
 	    }
 	    return ConstantArray::get(ArrayType::get(emu_to_llvm_type(cv->array_type), cv->size), array_values);
@@ -207,7 +207,7 @@ Value *literal_expr_codegen(literal_expr *expr) {
 Value *array_expr_codegen(array_expr *expr) {
     ArrayType *array_type = ArrayType::get(emu_to_llvm_type(expr->element_type), expr->size);
     AllocaInst *alloca = builder.CreateAlloca(array_type, ConstantInt::get(context, APInt(64, expr->size, false)));
-    for(size_t i = 0; i < expr->size; i++) {
+    for(size_t i = 0; i < expr->size; ++i) {
 	Value *element = expr_codegen(expr->elements + i);
 	builder.CreateInsertElement(alloca, element, i);
     }
@@ -217,7 +217,7 @@ Value *array_expr_codegen(array_expr *expr) {
 Value *call_expr_codegen(call_expr *expr) {
     Function *to_call = module->getFunction(expr->func_name);
     std::vector<Value*> args;
-    for (size_t i = 0; i < expr->num_args; i++) {
+    for (size_t i = 0; i < expr->num_args; ++i) {
 	Value *arg = expr_codegen(expr->args + i);
 	if (!arg) return nullptr;
 	args.push_back(arg);
@@ -489,11 +489,12 @@ Value *return_stmt_codegen(return_stmt *stmt) {
 }
 
 Value *block_codegen(declaration *body, u64 block_size) {
-    return nullptr;
+    for (size_t i = 0; i < block_size; ++i) decl_codegen(body + i);
+    return undefined_expr_codegen();
 }
 
 Value *empty_codegen() {
-    return nullptr;
+    return undefined_expr_codegen();
 }
 
 Value *stmt_codegen(statement *stmt) {
