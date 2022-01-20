@@ -95,6 +95,7 @@ void clear_recent_locals() {
     u64 scoped_name_index = local_names.size() - 1;
     while (local_names.size() > 0 && std::get<1>(local_names.at(scoped_name_index)) == scope_level) {
 	bound_named_allocas[std::get<0>(local_names.at(scoped_name_index))] = nullptr;
+	local_names.pop_back();
 	if (scoped_name_index == 0) break;
 	--scoped_name_index;
     }
