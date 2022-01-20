@@ -17,6 +17,8 @@ static IRBuilder<> builder(context);
 static Module *module;
 static std::map<std::string, std::vector<decorated_type*>> defined_structs;
 static std::map<std::string, AllocaInst*> bound_named_allocas;
+static std::vector<std::pair<std::string, u64>> local_names;
+static u64 scope_level = 0;
 
 bool is_floating(decorated_type *dt) {
     switch (dt->decorated_type_e) {
@@ -86,6 +88,15 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
 	return ArrayType::get(embed, dec_type->array_size);
     }
     default: return nullptr;
+    }
+}
+
+void clear_recent_locals() {
+    u64 scoped_name_index = local_names.size() - 1;
+    while (local_names.size() > 0 && std::get<1>(local_names.at(scoped_name_index)) == scope_level) {
+	bound_named_allocas[std::get<0>(local_names.at(scoped_name_index))] = nullptr;
+	if (scoped_name_index == 0) break;
+	--scoped_name_index;
     }
 }
 
@@ -207,7 +218,7 @@ Value *literal_expr_codegen(literal_expr *expr) {
 Value *array_expr_codegen(array_expr *expr) {
     ArrayType *array_type = ArrayType::get(emu_to_llvm_type(expr->element_type), expr->size);
     AllocaInst *alloca = builder.CreateAlloca(array_type, ConstantInt::get(context, APInt(64, expr->size, false)));
-    for(size_t i = 0; i < expr->size; ++i) {
+    for(u64 i = 0; i < expr->size; ++i) {
 	Value *element = expr_codegen(expr->elements + i);
 	builder.CreateInsertElement(alloca, element, i);
     }
@@ -217,7 +228,7 @@ Value *array_expr_codegen(array_expr *expr) {
 Value *call_expr_codegen(call_expr *expr) {
     Function *to_call = module->getFunction(expr->func_name);
     std::vector<Value*> args;
-    for (size_t i = 0; i < expr->num_args; ++i) {
+    for (u64 i = 0; i < expr->num_args; ++i) {
 	Value *arg = expr_codegen(expr->args + i);
 	if (!arg) return nullptr;
 	args.push_back(arg);
@@ -489,7 +500,10 @@ Value *return_stmt_codegen(return_stmt *stmt) {
 }
 
 Value *block_codegen(declaration *body, u64 block_size) {
-    for (size_t i = 0; i < block_size; ++i) decl_codegen(body + i);
+    ++scope_level;
+    for (u64 i = 0; i < block_size; ++i) decl_codegen(body + i);
+    clear_recent_locals();
+    --scope_level;
     return undefined_expr_codegen();
 }
 
@@ -510,15 +524,20 @@ Value *stmt_codegen(statement *stmt) {
 }
 
 Value *struct_decl_codegen(struct_decl *decl) {
-
+    return nullptr;
 }
 
 Value *func_decl_codegen(func_decl *decl) {
-
+    return nullptr;
 }
 
 Value *var_decl_codegen(var_decl *decl) {
-
+    AllocaInst *alloca = builder.CreateAlloca(emu_to_llvm_type(decl->iden->type), ConstantInt::get(context, APInt(64, 1, false)));
+    local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
+    bound_named_allocas[std::string(decl->iden->name)] = alloca;
+    Value *expr_v = expr_codegen(decl->init);
+    if (!expr_v) return nullptr;
+    return builder.CreateStore(expr_v, alloca);
 }
 
 Value *stmt_decl_codegen(stmt_decl *decl) {
