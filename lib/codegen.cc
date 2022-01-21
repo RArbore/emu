@@ -12,8 +12,8 @@
 
 #include "codegen.h"
 
-static LLVMContext context;
-static IRBuilder<> builder(context);
+static std::unique_ptr<LLVMContext> context;
+static std::unique_ptr<IRBuilder<>> builder;
 static std::unique_ptr<Module> module;
 static std::map<std::string, std::vector<decorated_type*>> defined_structs;
 static std::map<std::string, AllocaInst*> bound_named_allocas;
@@ -55,7 +55,7 @@ StructType *struct_name_to_llvm_type(char *cname) {
     auto def_emu = defined_structs.at(name);
     std::vector<Type*> def_llvm;
     std::transform(def_emu.begin(), def_emu.end(), def_llvm.begin(), emu_to_llvm_type);
-    return StructType::get(context, def_llvm);
+    return StructType::get(*context, def_llvm);
 }
 
 Type *emu_to_llvm_type(decorated_type *dec_type) {
@@ -63,18 +63,18 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
     case PURE_TYPE: {
 	type *pure_type = dec_type->pure_type;
 	switch (pure_type->type_e) {
-	case VOID: return Type::getVoidTy(context);
-	case BOOL: return Type::getInt1Ty(context);
-	case U8: return Type::getInt8Ty(context);
-	case U16: return Type::getInt16Ty(context);
-	case U32: return Type::getInt32Ty(context);
-	case U64: return Type::getInt64Ty(context);
-	case I8: return Type::getInt8Ty(context);
-	case I16: return Type::getInt16Ty(context);
-	case I32: return Type::getInt32Ty(context);
-	case I64: return Type::getInt64Ty(context);
-	case F32: return Type::getFloatTy(context);
-	case F64: return Type::getDoubleTy(context);
+	case VOID: return Type::getVoidTy(*context);
+	case BOOL: return Type::getInt1Ty(*context);
+	case U8: return Type::getInt8Ty(*context);
+	case U16: return Type::getInt16Ty(*context);
+	case U32: return Type::getInt32Ty(*context);
+	case U64: return Type::getInt64Ty(*context);
+	case I8: return Type::getInt8Ty(*context);
+	case I16: return Type::getInt16Ty(*context);
+	case I32: return Type::getInt32Ty(*context);
+	case I64: return Type::getInt64Ty(*context);
+	case F32: return Type::getFloatTy(*context);
+	case F64: return Type::getDoubleTy(*context);
 	case STRUCT: return struct_name_to_llvm_type(pure_type->struct_name);
 	default: return nullptr;
 	}
@@ -106,64 +106,64 @@ Value *binary_expr_codegen(binary_expr *expr) {
     Value *v2 = expr_codegen(expr->expr2);
     if (!v1 || !v2) return nullptr;
     switch (expr->op) {
-    case LOGIC_OR: return builder.CreateLogicalOr(v1, v2);
-    case LOGIC_XOR: return builder.CreateLogicalAnd(builder.CreateLogicalOr(v1, v2), builder.CreateICmpEQ(builder.CreateLogicalAnd(v1, v2), ConstantInt::get(context, APInt())));
-    case LOGIC_AND: return builder.CreateLogicalAnd(v1, v2);
-    case BITWISE_OR: return builder.CreateOr(v1, v2);
-    case BITWISE_XOR: return builder.CreateXor(v1, v2);
-    case BITWISE_AND: return builder.CreateAnd(v1, v2);
-    case EQUALS_EQUALS: return is_floating(expr->type) ? builder.CreateFCmpOEQ(v1, v2) : builder.CreateICmpEQ(v1, v2);
-    case EXCLA_EQUALS: return is_floating(expr->type) ? builder.CreateFCmpONE(v1, v2) : builder.CreateICmpNE(v1, v2);
+    case LOGIC_OR: return builder->CreateLogicalOr(v1, v2);
+    case LOGIC_XOR: return builder->CreateLogicalAnd(builder->CreateLogicalOr(v1, v2), builder->CreateICmpEQ(builder->CreateLogicalAnd(v1, v2), ConstantInt::get(*context, APInt())));
+    case LOGIC_AND: return builder->CreateLogicalAnd(v1, v2);
+    case BITWISE_OR: return builder->CreateOr(v1, v2);
+    case BITWISE_XOR: return builder->CreateXor(v1, v2);
+    case BITWISE_AND: return builder->CreateAnd(v1, v2);
+    case EQUALS_EQUALS: return is_floating(expr->type) ? builder->CreateFCmpOEQ(v1, v2) : builder->CreateICmpEQ(v1, v2);
+    case EXCLA_EQUALS: return is_floating(expr->type) ? builder->CreateFCmpONE(v1, v2) : builder->CreateICmpNE(v1, v2);
     case GREATER: return
 	    is_floating(expr->type)
-	    ? builder.CreateFCmpOGT(v1, v2)
+	    ? builder->CreateFCmpOGT(v1, v2)
 	    : is_signed(expr->type)
-	    ? builder.CreateICmpSGT(v1, v2)
-	    : builder.CreateICmpUGT(v1, v2);
+	    ? builder->CreateICmpSGT(v1, v2)
+	    : builder->CreateICmpUGT(v1, v2);
     case LESSER: return
 	    is_floating(expr->type)
-	    ? builder.CreateFCmpOLT(v1, v2)
+	    ? builder->CreateFCmpOLT(v1, v2)
 	    : is_signed(expr->type)
-	    ? builder.CreateICmpSLT(v1, v2)
-	    : builder.CreateICmpULT(v1, v2);
+	    ? builder->CreateICmpSLT(v1, v2)
+	    : builder->CreateICmpULT(v1, v2);
     case GREATER_EQUALS: return
 	    is_floating(expr->type)
-	    ? builder.CreateFCmpOGE(v1, v2)
+	    ? builder->CreateFCmpOGE(v1, v2)
 	    : is_signed(expr->type)
-	    ? builder.CreateICmpSGE(v1, v2)
-	    : builder.CreateICmpUGE(v1, v2);
+	    ? builder->CreateICmpSGE(v1, v2)
+	    : builder->CreateICmpUGE(v1, v2);
     case LESSER_EQUALS: return
 	    is_floating(expr->type)
-	    ? builder.CreateFCmpOLE(v1, v2)
+	    ? builder->CreateFCmpOLE(v1, v2)
 	    : is_signed(expr->type)
-	    ? builder.CreateICmpSLE(v1, v2)
-	    : builder.CreateICmpULE(v1, v2);
-    case LSHIFT: return builder.CreateShl(v1, v2);
-    case RSHIFT: return is_signed(expr->type) ? builder.CreateAShr(v1, v2) : builder.CreateLShr(v1, v2);
+	    ? builder->CreateICmpSLE(v1, v2)
+	    : builder->CreateICmpULE(v1, v2);
+    case LSHIFT: return builder->CreateShl(v1, v2);
+    case RSHIFT: return is_signed(expr->type) ? builder->CreateAShr(v1, v2) : builder->CreateLShr(v1, v2);
     case TERM_PLUS: return
 	    is_floating(expr->type)
-	    ? builder.CreateFAdd(v1, v2)
+	    ? builder->CreateFAdd(v1, v2)
 	    : is_pointer(expr->left_type)
-	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v1, v2)
+	    ? builder->CreateGEP(emu_to_llvm_type(expr->type->deref_type), v1, v2)
 	    : is_pointer(expr->right_type)
-	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v2, v1)
-	    : builder.CreateAdd(v1, v2);
+	    ? builder->CreateGEP(emu_to_llvm_type(expr->type->deref_type), v2, v1)
+	    : builder->CreateAdd(v1, v2);
     case TERM_MINUS: return
 	    is_floating(expr->type)
-	    ? builder.CreateFSub(v1, v2)
+	    ? builder->CreateFSub(v1, v2)
 	    : is_pointer(expr->left_type)
-	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v1, v2)
+	    ? builder->CreateGEP(emu_to_llvm_type(expr->type->deref_type), v1, v2)
 	    : is_pointer(expr->right_type)
-	    ? builder.CreateGEP(emu_to_llvm_type(expr->type->deref_type), v2, v1)
-	    : builder.CreateSub(v1, v2);
-    case FACTOR_STAR: return is_floating(expr->type) ? builder.CreateFMul(v1, v2) : builder.CreateMul(v1, v2);
+	    ? builder->CreateGEP(emu_to_llvm_type(expr->type->deref_type), v2, v1)
+	    : builder->CreateSub(v1, v2);
+    case FACTOR_STAR: return is_floating(expr->type) ? builder->CreateFMul(v1, v2) : builder->CreateMul(v1, v2);
     case FACTOR_SLASH: return
 	    is_floating(expr->type)
-	    ? builder.CreateFDiv(v1, v2)
+	    ? builder->CreateFDiv(v1, v2)
 	    : is_signed(expr->type)
-	    ? builder.CreateSDiv(v1, v2)
-	    : builder.CreateUDiv(v1, v2);
-    case FACTOR_PERCENT: is_signed(expr->type) ? builder.CreateSRem(v1, v2) : builder.CreateURem(v1, v2);
+	    ? builder->CreateSDiv(v1, v2)
+	    : builder->CreateUDiv(v1, v2);
+    case FACTOR_PERCENT: is_signed(expr->type) ? builder->CreateSRem(v1, v2) : builder->CreateURem(v1, v2);
     default: return nullptr;
     }
 }
@@ -173,9 +173,9 @@ Value *unary_expr_codegen(unary_expr *expr) {
     if (!v) return nullptr;
     switch (expr->op) {
     case PLUS: return v;
-    case MINUS: return is_floating(expr->type) ? builder.CreateFNeg(v) : builder.CreateNeg(v);
-    case EXCLA: return builder.CreateICmpEQ(v, ConstantInt::get(context, APInt()));
-    case TILDA: return builder.CreateNot(v);
+    case MINUS: return is_floating(expr->type) ? builder->CreateFNeg(v) : builder->CreateNeg(v);
+    case EXCLA: return builder->CreateICmpEQ(v, ConstantInt::get(*context, APInt()));
+    case TILDA: return builder->CreateNot(v);
     default: return nullptr;
     }
 }
@@ -184,18 +184,18 @@ Value *literal_expr_codegen(literal_expr *expr) {
     comptime_value *cv = expr->comptime_value;
     std::function<Constant*(comptime_value*)> lambda = [&](comptime_value *cv) -> Constant* {
 	switch (cv->type) {
-	case CT_PTR: return ConstantExpr::getIntToPtr(ConstantInt::get(context, APInt(64, cv->comptime_ptr, false)), emu_to_llvm_type(cv->ptr_type));
-	case CT_BOOL: return cv->comptime_bool ? ConstantInt::getTrue(context) : ConstantInt::getFalse(context);
-	case CT_U8: return ConstantInt::get(context, APInt(8, cv->comptime_u8, false));
-	case CT_U16: return ConstantInt::get(context, APInt(16, cv->comptime_u16, false));
-	case CT_U32: return ConstantInt::get(context, APInt(32, cv->comptime_u32, false));
-	case CT_U64: return ConstantInt::get(context, APInt(64, cv->comptime_u64, false));
-	case CT_I8: return ConstantInt::get(context, APInt(8, cv->comptime_i8, true));
-	case CT_I16: return ConstantInt::get(context, APInt(16, cv->comptime_i16, true));
-	case CT_I32: return ConstantInt::get(context, APInt(32, cv->comptime_i32, true));
-	case CT_I64: return ConstantInt::get(context, APInt(64, cv->comptime_i64, true));
-	case CT_F32: return ConstantFP::get(context, APFloat(cv->comptime_f32));
-	case CT_F64: return ConstantFP::get(context, APFloat(cv->comptime_f64));
+	case CT_PTR: return ConstantExpr::getIntToPtr(ConstantInt::get(*context, APInt(64, cv->comptime_ptr, false)), emu_to_llvm_type(cv->ptr_type));
+	case CT_BOOL: return cv->comptime_bool ? ConstantInt::getTrue(*context) : ConstantInt::getFalse(*context);
+	case CT_U8: return ConstantInt::get(*context, APInt(8, cv->comptime_u8, false));
+	case CT_U16: return ConstantInt::get(*context, APInt(16, cv->comptime_u16, false));
+	case CT_U32: return ConstantInt::get(*context, APInt(32, cv->comptime_u32, false));
+	case CT_U64: return ConstantInt::get(*context, APInt(64, cv->comptime_u64, false));
+	case CT_I8: return ConstantInt::get(*context, APInt(8, cv->comptime_i8, true));
+	case CT_I16: return ConstantInt::get(*context, APInt(16, cv->comptime_i16, true));
+	case CT_I32: return ConstantInt::get(*context, APInt(32, cv->comptime_i32, true));
+	case CT_I64: return ConstantInt::get(*context, APInt(64, cv->comptime_i64, true));
+	case CT_F32: return ConstantFP::get(*context, APFloat(cv->comptime_f32));
+	case CT_F64: return ConstantFP::get(*context, APFloat(cv->comptime_f64));
 	case CT_STRUCT: {
 	    std::vector<Constant*> struct_values;
 	    for (u64 i = 0; i < cv->num_fields; ++i) {
@@ -218,10 +218,10 @@ Value *literal_expr_codegen(literal_expr *expr) {
 
 Value *array_expr_codegen(array_expr *expr) {
     ArrayType *array_type = ArrayType::get(emu_to_llvm_type(expr->element_type), expr->size);
-    AllocaInst *alloca = builder.CreateAlloca(array_type, ConstantInt::get(context, APInt(64, expr->size, false)));
+    AllocaInst *alloca = builder->CreateAlloca(array_type, ConstantInt::get(*context, APInt(64, expr->size, false)));
     for(u64 i = 0; i < expr->size; ++i) {
 	Value *element = expr_codegen(expr->elements + i);
-	builder.CreateInsertElement(alloca, element, i);
+	builder->CreateInsertElement(alloca, element, i);
     }
     return alloca;
 }
@@ -234,7 +234,7 @@ Value *call_expr_codegen(call_expr *expr) {
 	if (!arg) return nullptr;
 	args.push_back(arg);
     }
-    return builder.CreateCall(to_call, args);
+    return builder->CreateCall(to_call, args);
 }
 
 #define TRUNC Instruction::Trunc // Truncate integers
@@ -268,19 +268,19 @@ const static Instruction::CastOps simple_cast_rules[STRUCT][STRUCT] = {
 
 Value *cast_expr_codegen(cast_expr *expr) {
     if (is_pointer(expr->in_type) && is_pointer(expr->out_type))
-	return builder.CreateCast(BITCAST, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
+	return builder->CreateCast(BITCAST, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
     if (expr->in_type->decorated_type_e == DEREF_TYPE && expr->out_type->decorated_type_e == PURE_TYPE)
-	return builder.CreateCast(PTRTOINT, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
+	return builder->CreateCast(PTRTOINT, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
     if (expr->in_type->decorated_type_e == PURE_TYPE && expr->out_type->decorated_type_e == DEREF_TYPE)
-	return builder.CreateCast(INTTOPTR, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
+	return builder->CreateCast(INTTOPTR, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
     if (expr->in_type->decorated_type_e == PURE_TYPE && expr->out_type->decorated_type_e == PURE_TYPE
 	&& expr->in_type->pure_type->type_e != STRUCT && expr->out_type->pure_type->type_e != STRUCT) {
 	if (expr->in_type->pure_type->type_e > BOOL && expr->out_type->pure_type->type_e == BOOL)
-	    return builder.CreateNot(builder.CreateICmpEQ(builder.CreateCast(ZEXT,
+	    return builder->CreateNot(builder->CreateICmpEQ(builder->CreateCast(ZEXT,
 									     expr_codegen(expr->expr),
-									     Type::getInt64Ty(context)),
-							  ConstantInt::get(context, APInt())));
-	return builder.CreateCast(simple_cast_rules[expr->in_type->pure_type->type_e][expr->out_type->pure_type->type_e],
+									     Type::getInt64Ty(*context)),
+							  ConstantInt::get(*context, APInt())));
+	return builder->CreateCast(simple_cast_rules[expr->in_type->pure_type->type_e][expr->out_type->pure_type->type_e],
 				  expr_codegen(expr->expr),
 				  emu_to_llvm_type(expr->out_type));
     }
@@ -290,8 +290,8 @@ Value *cast_expr_codegen(cast_expr *expr) {
 Value *lvalue_codegen(lvalue *lvalue) {
     switch (lvalue->type) {
     case DEREF: return expr_codegen(lvalue->dereferenced);
-    case ACCESS: return builder.CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
-    case INDEX: return builder.CreateGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
+    case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
+    case INDEX: return builder->CreateGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
     case IDENTIFIER: return bound_named_allocas.at(std::string(lvalue->name));
     default: return nullptr;
     }
@@ -299,7 +299,7 @@ Value *lvalue_codegen(lvalue *lvalue) {
 
 Value *lvalue_expr_codegen(lvalue_expr *expr) {
     lvalue *lval = expr->lvalue;
-    return builder.CreateLoad(emu_to_llvm_type(lval->decorated_type), lvalue_codegen(lval));
+    return builder->CreateLoad(emu_to_llvm_type(lval->decorated_type), lvalue_codegen(lval));
 }
 
 Value *assign_expr_codegen(assign_expr *expr) {
@@ -331,7 +331,7 @@ Value *assign_expr_codegen(assign_expr *expr) {
     case BAR_EQUALS: CREATE_BINARY(BITWISE_OR);
     case AND_EQUALS: CREATE_BINARY(BITWISE_AND);
     }
-    return builder.CreateStore(result, left);
+    return builder->CreateStore(result, left);
 }
 
 Value *address_expr_codegen(address_expr *expr) {
@@ -345,81 +345,81 @@ Value *crement_expr_codegen(crement_expr *expr) {
     switch (expr->op) {
     case PRE_PLUS_PLUS: {
 	if (expr->type->decorated_type_e == DEREF_TYPE) {
-	    return builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	    return builder->CreateStore(builder->CreateGEP(term_type, lval, ConstantInt::get(*context, APInt(64, 1, false))), lval);
 	}
-	Value *load = builder.CreateLoad(term_type, lval);
+	Value *load = builder->CreateLoad(term_type, lval);
 	switch (expr->type->pure_type->type_e) {
-	case U8: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
-	case U16: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
-	case U32: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
-	case U64: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
-	case I8: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
-	case I16: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
-	case I32: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
-	case I64: return builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
-	case F32: return builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval); 
-	case F64: return builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	case U8: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
+	case U16: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
+	case U32: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
+	case U64: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
+	case I8: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
+	case I16: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
+	case I32: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
+	case I64: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
+	case F32: return builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
+	case F64: return builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval);
 	default: return nullptr;
 	}
     }
     case PRE_MINUS_MINUS: {
 	if (expr->type->decorated_type_e == DEREF_TYPE) {
-	    return builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, -1, false))), lval);
+	    return builder->CreateStore(builder->CreateGEP(term_type, lval, ConstantInt::get(*context, APInt(64, -1, false))), lval);
 	}
-	Value *load = builder.CreateLoad(term_type, lval);
+	Value *load = builder->CreateLoad(term_type, lval);
 	switch (expr->type->pure_type->type_e) {
-	case U8: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
-	case U16: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
-	case U32: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
-	case U64: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
-	case I8: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
-	case I16: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
-	case I32: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
-	case I64: return builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
-	case F32: return builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval); 
-	case F64: return builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	case U8: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
+	case U16: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
+	case U32: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
+	case U64: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
+	case I8: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
+	case I16: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
+	case I32: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
+	case I64: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
+	case F32: return builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
+	case F64: return builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval);
 	default: return nullptr;
 	}
     }
     case POST_PLUS_PLUS: {
-	Value *load = builder.CreateLoad(term_type, lval);
+	Value *load = builder->CreateLoad(term_type, lval);
 	if (expr->type->decorated_type_e == DEREF_TYPE) {
-	    builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, 1, false))), lval);
+	    builder->CreateStore(builder->CreateGEP(term_type, lval, ConstantInt::get(*context, APInt(64, 1, false))), lval);
 	}
 	else {
 	    switch (expr->type->pure_type->type_e) {
-	    case U8: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
-	    case U16: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
-	    case U32: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
-	    case U64: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
-	    case I8: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
-	    case I16: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
-	    case I32: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
-	    case I64: builder.CreateStore(builder.CreateAdd(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
-	    case F32: builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval); 
-	    case F64: builder.CreateStore(builder.CreateFAdd(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	    case U8: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
+	    case U16: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
+	    case U32: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
+	    case U64: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
+	    case I8: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
+	    case I16: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
+	    case I32: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
+	    case I64: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
+	    case F32: builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
+	    case F64: builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval);
 	    default: return nullptr;
 	    }
 	}
 	return load;
     }
     case POST_MINUS_MINUS: {
-	Value *load = builder.CreateLoad(term_type, lval);
+	Value *load = builder->CreateLoad(term_type, lval);
 	if (expr->type->decorated_type_e == DEREF_TYPE) {
-	    builder.CreateStore(builder.CreateGEP(term_type, lval, ConstantInt::get(context, APInt(64, -1, false))), lval);
+	    builder->CreateStore(builder->CreateGEP(term_type, lval, ConstantInt::get(*context, APInt(64, -1, false))), lval);
 	}
 	else {
 	switch (expr->type->pure_type->type_e) {
-	    case U8: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, false))), lval);
-	    case U16: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, false))), lval);
-	    case U32: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, false))), lval);
-	    case U64: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, false))), lval);
-	    case I8: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(8, 1, true))), lval);
-	    case I16: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(16, 1, true))), lval);
-	    case I32: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(32, 1, true))), lval);
-	    case I64: builder.CreateStore(builder.CreateSub(load, ConstantInt::get(context, APInt(64, 1, true))), lval);
-	    case F32: builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval); 
-	    case F64: builder.CreateStore(builder.CreateFSub(load, ConstantFP::get(context, APFloat(1.0))), lval);
+	    case U8: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
+	    case U16: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
+	    case U32: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
+	    case U64: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
+	    case I8: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
+	    case I16: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
+	    case I32: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
+	    case I64: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
+	    case F32: builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
+	    case F64: builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval);
 	    default: return nullptr;
 	    }
 	}
@@ -430,7 +430,7 @@ Value *crement_expr_codegen(crement_expr *expr) {
 }
 
 Value *undefined_expr_codegen() {
-    return UndefValue::get(Type::getInt64Ty(context));
+    return UndefValue::get(Type::getInt64Ty(*context));
 }
 
 Value *expr_codegen(expression *expr) {
@@ -456,48 +456,48 @@ Value *expr_stmt_codegen(expr_stmt *stmt) {
 Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
     Value *cond = expr_codegen(stmt->cond);
     if (!cond) return nullptr;
-    Function *cur_function = builder.GetInsertBlock()->getParent();
-    BasicBlock *thenBB = BasicBlock::Create(context, "", cur_function);
-    BasicBlock *elseBB = BasicBlock::Create(context);
-    BasicBlock *mergeBB = BasicBlock::Create(context);
-    builder.CreateCondBr(cond, thenBB, elseBB);
-    builder.SetInsertPoint(thenBB);
+    Function *cur_function = builder->GetInsertBlock()->getParent();
+    BasicBlock *thenBB = BasicBlock::Create(*context, "", cur_function);
+    BasicBlock *elseBB = BasicBlock::Create(*context);
+    BasicBlock *mergeBB = BasicBlock::Create(*context);
+    builder->CreateCondBr(cond, thenBB, elseBB);
+    builder->SetInsertPoint(thenBB);
     Value *pos = stmt_codegen(stmt->pos);
     if (!pos) return nullptr;
-    builder.CreateBr(mergeBB);
-    thenBB = builder.GetInsertBlock();
+    builder->CreateBr(mergeBB);
+    thenBB = builder->GetInsertBlock();
     cur_function->getBasicBlockList().push_back(elseBB);
-    builder.SetInsertPoint(elseBB);
+    builder->SetInsertPoint(elseBB);
     Value *neg = stmt_codegen(stmt->neg);
     if (!neg) return nullptr;
-    builder.CreateBr(mergeBB);
-    elseBB = builder.GetInsertBlock();
+    builder->CreateBr(mergeBB);
+    elseBB = builder->GetInsertBlock();
     cur_function->getBasicBlockList().push_back(mergeBB);
-    builder.SetInsertPoint(mergeBB);
-    return Constant::getNullValue(Type::getVoidTy(context));;
+    builder->SetInsertPoint(mergeBB);
+    return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
 Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
-    Function *cur_function = builder.GetInsertBlock()->getParent();
-    BasicBlock *whileBB = BasicBlock::Create(context, "", cur_function);
-    BasicBlock *mergeBB = BasicBlock::Create(context);
-    builder.CreateBr(whileBB);
-    builder.SetInsertPoint(whileBB);
+    Function *cur_function = builder->GetInsertBlock()->getParent();
+    BasicBlock *whileBB = BasicBlock::Create(*context, "", cur_function);
+    BasicBlock *mergeBB = BasicBlock::Create(*context);
+    builder->CreateBr(whileBB);
+    builder->SetInsertPoint(whileBB);
     Value *body = stmt_codegen(stmt->body);
     if (!body) return nullptr;
     Value *cond = expr_codegen(stmt->cond);
-    builder.CreateCondBr(cond, whileBB, mergeBB);
-    whileBB = builder.GetInsertBlock();
+    builder->CreateCondBr(cond, whileBB, mergeBB);
+    whileBB = builder->GetInsertBlock();
     cur_function->getBasicBlockList().push_back(mergeBB);
-    builder.SetInsertPoint(mergeBB);
-    return Constant::getNullValue(Type::getVoidTy(context));;
+    builder->SetInsertPoint(mergeBB);
+    return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
 Value *return_stmt_codegen(return_stmt *stmt) {
-    if (stmt->expr->type == UNDEFINED) return builder.CreateRetVoid();
+    if (stmt->expr->type == UNDEFINED) return builder->CreateRetVoid();
     Value *ret = expr_codegen(stmt->expr);
-    if (ret->getType()->isVoidTy()) return builder.CreateRetVoid();
-    else return builder.CreateRet(ret);
+    if (ret->getType()->isVoidTy()) return builder->CreateRetVoid();
+    else return builder->CreateRet(ret);
 }
 
 Value *block_codegen(declaration *body, u64 block_size) {
@@ -530,7 +530,7 @@ Value *struct_decl_codegen(struct_decl *decl) {
 	fields.push_back((decl->fields + i)->type);
     }
     defined_structs[std::string(decl->name)] = fields;
-    return Constant::getNullValue(Type::getVoidTy(context));;
+    return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
 Function *func_decl_codegen(func_decl *decl) {
@@ -543,17 +543,17 @@ Function *func_decl_codegen(func_decl *decl) {
     u64 i = 0;
     for (auto &arg : f->args()) arg.setName(std::string((decl->params + i++)->name));
 
-    BasicBlock *bb = BasicBlock::Create(context, "", f);
-    builder.SetInsertPoint(bb);
+    BasicBlock *bb = BasicBlock::Create(*context, "", f);
+    builder->SetInsertPoint(bb);
     ++scope_level;
     i = 0;
     for (auto &arg : f->args()) {
-	AllocaInst *alloca = builder.CreateAlloca(args_llvm.at(i), nullptr, (decl->params + i)->name);
-	builder.CreateStore(&arg, alloca);
+	AllocaInst *alloca = builder->CreateAlloca(args_llvm.at(i), nullptr, (decl->params + i)->name);
+	builder->CreateStore(&arg, alloca);
 	bound_named_allocas[std::string((decl->params + i)->name)] = alloca;
     }
     if (Value *ret = stmt_codegen(decl->body)) {
-	if (decl->ret_type->decorated_type_e != PURE_TYPE || decl->ret_type->pure_type->type_e != VOID) builder.CreateRet(ret);
+	if (decl->ret_type->decorated_type_e != PURE_TYPE || decl->ret_type->pure_type->type_e != VOID) builder->CreateRet(ret);
 	verifyFunction(*f);
     }
     clear_recent_locals();
@@ -563,12 +563,15 @@ Function *func_decl_codegen(func_decl *decl) {
 }
 
 Value *var_decl_codegen(var_decl *decl) {
-    AllocaInst *alloca = builder.CreateAlloca(emu_to_llvm_type(decl->iden->type));
+    Type *tt = emu_to_llvm_type(decl->iden->type);
+    std::cout << "Hello" << std::endl;
+    AllocaInst *alloca = builder->CreateAlloca(tt);
+    std::cout << "Hello" << std::endl;
     local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
     bound_named_allocas[std::string(decl->iden->name)] = alloca;
     Value *expr_v = expr_codegen(decl->init);
     if (!expr_v) return nullptr;
-    return builder.CreateStore(expr_v, alloca);
+    return builder->CreateStore(expr_v, alloca);
 }
 
 Value *stmt_decl_codegen(stmt_decl *decl) {
@@ -577,16 +580,18 @@ Value *stmt_decl_codegen(stmt_decl *decl) {
 
 Value *decl_codegen(declaration *decl) {
     switch (decl->type) {
-    case STRUCT_DECL: struct_decl_codegen(decl->struct_decl);
-    case FUNC_DECL: func_decl_codegen(decl->func_decl);
-    case VAR_DECL: var_decl_codegen(decl->var_decl);
-    case STMT_DECL: stmt_decl_codegen(decl->stmt_decl);
+    case STRUCT_DECL: return struct_decl_codegen(decl->struct_decl);
+    case FUNC_DECL: return func_decl_codegen(decl->func_decl);
+    case VAR_DECL: return var_decl_codegen(decl->var_decl);
+    case STMT_DECL: return stmt_decl_codegen(decl->stmt_decl);
     default: return nullptr;
     }
 }
 
 void cxx_entry_point(sast *sast) {
-    module = std::make_unique<Module>("module", context);
+    context = std::make_unique<LLVMContext>();
+    module = std::make_unique<Module>("module", *context);
+    builder = std::make_unique<IRBuilder<>>(*context);
     for (u64 i = 0; i < sast->num_decls; i++) {
 	decl_codegen(sast->decls + i);
     }

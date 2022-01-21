@@ -25,6 +25,7 @@
 #include <llvm/IR/Type.h>
 
 #include <algorithm>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
