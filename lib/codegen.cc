@@ -533,8 +533,19 @@ Value *struct_decl_codegen(struct_decl *decl) {
     return Constant::getNullValue(Type::getVoidTy(context));;
 }
 
-Value *func_decl_codegen(func_decl *decl) {
-    return nullptr;
+Function *func_decl_codegen(func_decl *decl) {
+    std::vector<Type*> args_llvm;
+    for (u64 i = 0; i < decl->num_params; ++i) {
+	args_llvm.push_back(emu_to_llvm_type((decl->params + i)->type));
+    }
+    FunctionType *ft = FunctionType::get(emu_to_llvm_type(decl->ret_type), args_llvm, false);
+    Function *f = Function::Create(ft, Function::ExternalLinkage, std::string(decl->name), module);
+    u64 i = 0;
+    for (auto &arg : f->args()) arg.setName(std::string((decl->params + i++)->name));
+
+    
+    
+    return f;
 }
 
 Value *var_decl_codegen(var_decl *decl) {

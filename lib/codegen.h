@@ -79,7 +79,7 @@ Value *stmt_codegen(statement *stmt);
 
 Value *struct_decl_codegen(struct_decl *decl);
 
-Value *func_decl_codegen(func_decl *decl);
+Function *func_decl_codegen(func_decl *decl);
 
 Value *var_decl_codegen(var_decl *decl);
 
