@@ -525,7 +525,12 @@ Value *stmt_codegen(statement *stmt) {
 }
 
 Value *struct_decl_codegen(struct_decl *decl) {
-    return nullptr;
+    std::vector<decorated_type*> fields;
+    for (u64 i = 0; i < decl->num_fields; ++i) {
+	fields.push_back((decl->fields + i)->type);
+    }
+    defined_structs[std::string(decl->name)] = fields;
+    return Constant::getNullValue(Type::getVoidTy(context));;
 }
 
 Value *func_decl_codegen(func_decl *decl) {
