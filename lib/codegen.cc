@@ -14,7 +14,7 @@
 
 static LLVMContext context;
 static IRBuilder<> builder(context);
-static Module *module;
+static std::unique_ptr<Module> module;
 static std::map<std::string, std::vector<decorated_type*>> defined_structs;
 static std::map<std::string, AllocaInst*> bound_named_allocas;
 static std::vector<std::pair<std::string, u64>> local_names;
@@ -539,7 +539,7 @@ Function *func_decl_codegen(func_decl *decl) {
 	args_llvm.push_back(emu_to_llvm_type((decl->params + i)->type));
     }
     FunctionType *ft = FunctionType::get(emu_to_llvm_type(decl->ret_type), args_llvm, false);
-    Function *f = Function::Create(ft, Function::ExternalLinkage, std::string(decl->name), module);
+    Function *f = Function::Create(ft, Function::ExternalLinkage, std::string(decl->name), *module);
     u64 i = 0;
     for (auto &arg : f->args()) arg.setName(std::string((decl->params + i++)->name));
 
@@ -586,5 +586,10 @@ Value *decl_codegen(declaration *decl) {
 }
 
 void cxx_entry_point(sast *sast) {
+    module = std::make_unique<Module>("module", context);
+    for (u64 i = 0; i < sast->num_decls; i++) {
+	decl_codegen(sast->decls + i);
+    }
+    module->print(errs(), nullptr);
     print_sast(sast);
 }
