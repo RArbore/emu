@@ -563,14 +563,12 @@ Function *func_decl_codegen(func_decl *decl) {
 }
 
 Value *var_decl_codegen(var_decl *decl) {
-    Type *tt = emu_to_llvm_type(decl->iden->type);
-    std::cout << "Hello" << std::endl;
-    AllocaInst *alloca = builder->CreateAlloca(tt);
-    std::cout << "Hello" << std::endl;
-    local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
-    bound_named_allocas[std::string(decl->iden->name)] = alloca;
     Value *expr_v = expr_codegen(decl->init);
     if (!expr_v) return nullptr;
+    Type *tt = emu_to_llvm_type(decl->iden->type);
+    AllocaInst *alloca = builder->CreateAlloca(tt);
+    local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
+    bound_named_allocas[std::string(decl->iden->name)] = alloca;
     return builder->CreateStore(expr_v, alloca);
 }
 
