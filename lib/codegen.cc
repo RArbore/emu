@@ -543,13 +543,27 @@ Function *func_decl_codegen(func_decl *decl) {
     u64 i = 0;
     for (auto &arg : f->args()) arg.setName(std::string((decl->params + i++)->name));
 
-    
+    BasicBlock *bb = BasicBlock::Create(context, "", f);
+    builder.SetInsertPoint(bb);
+    ++scope_level;
+    i = 0;
+    for (auto &arg : f->args()) {
+	AllocaInst *alloca = builder.CreateAlloca(args_llvm.at(i), nullptr, (decl->params + i)->name);
+	builder.CreateStore(&arg, alloca);
+	bound_named_allocas[std::string((decl->params + i)->name)] = alloca;
+    }
+    if (Value *ret = stmt_codegen(decl->body)) {
+	if (decl->ret_type->decorated_type_e != PURE_TYPE || decl->ret_type->pure_type->type_e != VOID) builder.CreateRet(ret);
+	verifyFunction(*f);
+    }
+    clear_recent_locals();
+    --scope_level;
     
     return f;
 }
 
 Value *var_decl_codegen(var_decl *decl) {
-    AllocaInst *alloca = builder.CreateAlloca(emu_to_llvm_type(decl->iden->type), ConstantInt::get(context, APInt(64, 1, false)));
+    AllocaInst *alloca = builder.CreateAlloca(emu_to_llvm_type(decl->iden->type));
     local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
     bound_named_allocas[std::string(decl->iden->name)] = alloca;
     Value *expr_v = expr_codegen(decl->init);
