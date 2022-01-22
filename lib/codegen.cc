@@ -15,8 +15,9 @@
 static std::unique_ptr<LLVMContext> context;
 static std::unique_ptr<IRBuilder<>> builder;
 static std::unique_ptr<Module> module;
+static std::unique_ptr<legacy::FunctionPassManager> fpm;
 static std::map<std::string, std::vector<decorated_type*>> defined_structs;
-static std::map<std::string, std::variant<AllocaInst*, GlobalVariable*>> bound_named_allocas;
+static std::map<std::string, Value*> bound_named_allocas;
 static std::vector<std::pair<std::string, u64>> local_names;
 static u64 scope_level = 0;
 static bool inside_function = false;
@@ -293,10 +294,7 @@ Value *lvalue_codegen(lvalue *lvalue) {
     case DEREF: return expr_codegen(lvalue->dereferenced);
     case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
     case INDEX: return builder->CreateGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
-    case IDENTIFIER: {
-	AllocaInst **alloca = std::get_if<AllocaInst*>(&bound_named_allocas.at(std::string(lvalue->name)));
-	return alloca ? static_cast<Value*>(*alloca) : std::get<GlobalVariable*>(bound_named_allocas.at(std::string(lvalue->name))); 
-    }
+    case IDENTIFIER: return bound_named_allocas.at(std::string(lvalue->name));
     default: return nullptr;
     }
 }
@@ -566,6 +564,7 @@ Function *func_decl_codegen(func_decl *decl) {
     }
     stmt_codegen(decl->body);
     verifyFunction(*f);
+    fpm->run(*f);
     clear_recent_locals();
     --scope_level;
     
@@ -609,6 +608,14 @@ int cxx_entry_point(sast *sast) {
     context = std::make_unique<LLVMContext>();
     module = std::make_unique<Module>("module", *context);
     builder = std::make_unique<IRBuilder<>>(*context);
+    fpm = std::make_unique<legacy::FunctionPassManager>(module.get());
+
+    fpm->add(createPromoteMemoryToRegisterPass());
+    fpm->add(createInstructionCombiningPass());
+    fpm->add(createReassociatePass());
+    fpm->add(createGVNPass());
+    fpm->add(createCFGSimplificationPass());
+    fpm->doInitialization();
 
     for (u64 i = 0; i < sast->num_decls; i++) {
 	decl_codegen(sast->decls + i);

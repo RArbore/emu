@@ -10,6 +10,11 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Utils.h"
+
 #include <llvm/Analysis/LoopAnalysisManager.h>
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/Analysis/AliasAnalysis.h>
@@ -42,7 +47,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <variant>
 #include <string>
 #include <vector>
 #include <map>
