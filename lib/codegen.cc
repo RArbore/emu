@@ -444,6 +444,7 @@ Value *expr_codegen(expression *expr) {
     case LITERAL_EXPR: return literal_expr_codegen(expr->literal_expr);
     case ARRAY_EXPR: return array_expr_codegen(expr->array_expr);
     case CALL_EXPR: return call_expr_codegen(expr->call_expr);
+    case CAST_EXPR: return cast_expr_codegen(expr->cast_expr);
     case LVALUE_EXPR: return lvalue_expr_codegen(expr->lvalue_expr);
     case ASSIGN_EXPR: return assign_expr_codegen(expr->assign_expr);
     case ADDRESS_EXPR: return address_expr_codegen(expr->address_expr);
@@ -458,6 +459,7 @@ Value *expr_stmt_codegen(expr_stmt *stmt) {
 }
 
 Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
+    ++scope_level;
     Value *cond = expr_codegen(stmt->cond);
     if (!cond) return nullptr;
     Function *cur_function = builder->GetInsertBlock()->getParent();
@@ -478,10 +480,13 @@ Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
     elseBB = builder->GetInsertBlock();
     cur_function->getBasicBlockList().push_back(mergeBB);
     builder->SetInsertPoint(mergeBB);
+    clear_recent_locals();
+    --scope_level;
     return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
 Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
+    ++scope_level;
     Function *cur_function = builder->GetInsertBlock()->getParent();
     BasicBlock *whileBB = BasicBlock::Create(*context, "", cur_function);
     BasicBlock *mergeBB = BasicBlock::Create(*context);
@@ -494,6 +499,8 @@ Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
     whileBB = builder->GetInsertBlock();
     cur_function->getBasicBlockList().push_back(mergeBB);
     builder->SetInsertPoint(mergeBB);
+    clear_recent_locals();
+    --scope_level;
     return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
