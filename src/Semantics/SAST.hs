@@ -18,6 +18,7 @@ module Semantics.SAST
      SAST (..),
      Structure  (..),
      Function  (..),
+     FunctionSignature  (..),
      VarBinding  (..),
      Declaration  (..),
      Statement  (..),
@@ -50,7 +51,8 @@ newtype SAST = SAST [Declaration] deriving (Show, Generic, NFData)
 
 data Structure = Structure [Modifier] Text [DecoratedIdentifier] deriving (Show, Generic, NFData)
 
-data Function = Function [Modifier] Text [DecoratedIdentifier] DecoratedType Statement deriving (Show, Generic, NFData)
+data Function = Function FunctionSignature Statement deriving (Show, Generic, NFData)
+data FunctionSignature = FunctionSignature [Modifier] Text [DecoratedIdentifier] DecoratedType deriving (Show, Generic, NFData)
 
 data VarBinding = VarBinding DecoratedIdentifier Expression deriving (Show, Generic, NFData)
 

@@ -47,7 +47,7 @@ type Structures = M.Map Text Structure
 data Environment = Environment { vars :: Variables,
                                  funcs :: Functions,
                                  structs :: Structures,
-                                 curFuncRetType :: Maybe DecoratedType } deriving Show
+                                 curFuncSignature :: Maybe FunctionSignature } deriving Show
 
 type Semantics = ExceptT SemanticsError (State Environment)
 
@@ -149,7 +149,7 @@ checkDecl :: A.Declaration -> Semantics Declaration
 checkDecl ((l, sc, ec), d) = checked
     where checked = case d of
                       A.StructDecl mods name fields -> do
-                             checkIfInFunctionAlready <- gets curFuncRetType
+                             checkIfInFunctionAlready <- gets curFuncSignature
                              when (isJust checkIfInFunctionAlready) $ throwError $ SemanticsError l sc ec NestedDeclarationError
                              when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
@@ -168,7 +168,7 @@ checkDecl ((l, sc, ec), d) = checked
                              modify $ \env -> env { structs = M.insert name struct boundStructs }
                              return $ StructDecl $ struct
                       A.FuncDecl mods name args retType body -> do
-                             checkIfInFunctionAlready <- gets curFuncRetType
+                             checkIfInFunctionAlready <- gets curFuncSignature
                              when (isJust checkIfInFunctionAlready) $ throwError $ SemanticsError l sc ec NestedDeclarationError
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
@@ -186,9 +186,10 @@ checkDecl ((l, sc, ec), d) = checked
                                                                                     then throwError $ SemanticsError l sc ec $ VoidVarDeclaration varName
                                                                                     else modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
                              sretType <- checkDecoratedType retType
-                             modify $ \env -> env { curFuncRetType = Just sretType }
+                             let sig = FunctionSignature mods name sargs sretType
+                             modify $ \env -> env { curFuncSignature = Just sig }
                              sbody <- checkStmt body
-                             let func = Function mods name sargs sretType sbody
+                             let func = Function sig sbody
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              return $ FuncDecl $ func
                       A.VarDecl (A.DecoratedIdentifier mods name t) init -> do
@@ -207,13 +208,13 @@ checkDecl ((l, sc, ec), d) = checked
                              sinit <- checkExpr init
                              when (not ((typeOf sinit) == PureType Void) && (not $ checkImplicitCast (typeOf sinit) st)) $ throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sinit) st
                              let varBind = VarBinding (DecoratedIdentifier mods name st) sinit
-                             checkIfInFunction <- gets curFuncRetType
+                             checkIfInFunction <- gets curFuncSignature
                              if isJust checkIfInFunction
                              then modify $ \_ -> prevEnv { vars = M.insert (name, Local) varBind boundVars }
                              else modify $ \_ -> prevEnv { vars = M.insert (name, Global) varBind boundVars }
                              return $ VarDecl $ varBind
                       A.StatementDecl stmt -> do
-                             checkIfInFunctionAlready <- gets curFuncRetType
+                             checkIfInFunctionAlready <- gets curFuncSignature
                              when (isNothing checkIfInFunctionAlready) $ throwError $ SemanticsError l sc ec StatementOutsideDeclarationError
                              StatementDecl <$> checkStmt stmt
 
@@ -288,11 +289,11 @@ checkStmt ((l, sc, ec), s) = checked
                       A.CaseStatement _ _ -> undefined
                       A.ReturnStatement expr -> do
                              sexpr <- checkExpr expr
-                             mretType <- gets curFuncRetType
-                             case mretType of
-                               Just retType -> case implicitlyConvert sexpr retType of
-                                               Right conv -> return $ ReturnStatement conv
-                                               Left _ -> throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
+                             msig <- gets curFuncSignature
+                             case msig of
+                               Just (FunctionSignature _ _ _ retType) -> case implicitlyConvert sexpr retType of
+                                                                            Right conv -> return $ ReturnStatement conv
+                                                                            Left _ -> throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
                                Nothing -> throwError $ SemanticsError l sc ec ReturnNotInFunctionError
                       A.BreakStatement -> undefined
                       A.ContinueStatement -> undefined
@@ -335,15 +336,21 @@ checkExpr ((l, sc, ec), e) = checked
                       A.Call f args -> do
                              boundFuncs <- gets funcs
                              let lookup = M.lookup f boundFuncs
+                             let checkCallFromSig sig = let (idens, retType) = (\(FunctionSignature _ _ idens retType) -> (idens, retType)) sig
+                                                        in if length idens /= length args then throwError $ SemanticsError l sc ec $ CallError f (length idens) (length args)
+                                                           else do
+                                                             sargs <- mapM checkExpr args
+                                                             let converts = zipWith implicitlyConvert sargs (map (\(DecoratedIdentifier _ _ t) -> t) idens)
+                                                             if all isRight converts then return $ Call f (map (fromRight undefined) converts) retType
+                                                             else let mismatch = fromLeft undefined $ head $ filter isLeft converts in throwError $ SemanticsError l sc ec $ TypeError (snd $ mismatch) (typeOf $ fst $ mismatch)
                              case lookup of
-                               Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier f
-                               Just df -> let (idens, retType) = (\(Function _ _ idens retType _) -> (idens, retType)) df
-                                          in if length idens /= length args then throwError $ SemanticsError l sc ec $ CallError f (length idens) (length args)
-                                          else do
-                                            sargs <- mapM checkExpr args
-                                            let converts = zipWith implicitlyConvert sargs (map (\(DecoratedIdentifier _ _ t) -> t) idens)
-                                            if all isRight converts then return $ Call f (map (fromRight undefined) converts) retType
-                                            else let mismatch = fromLeft undefined $ head $ filter isLeft converts in throwError $ SemanticsError l sc ec $ TypeError (snd $ mismatch) (typeOf $ fst $ mismatch)
+                               Nothing -> do
+                                           curSig <- gets curFuncSignature
+                                           case curSig of
+                                             Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier f
+                                             Just sig@(FunctionSignature _ name _ _) -> if name == f then checkCallFromSig sig
+                                                                                        else throwError $ SemanticsError l sc ec $ UndefinedIdentifier f
+                               Just df -> checkCallFromSig $ (\(Function sig _) -> sig) df
                       A.Unary op expr -> do
                              sexpr <- checkExpr expr
                              case op of

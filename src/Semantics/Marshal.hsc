@@ -465,7 +465,7 @@ instance Storable Declaration where
                                nfs <- (#peek struct_decl, num_fields) =<< sptr :: IO Word64
                                peekArray (fromIntegral nfs) fsptr)),
        let fptr = (#peek declaration, func_decl) ptr :: IO (Ptr ())
-       in FuncDecl <$> (Function <$> ((map tEnum) <$> (do
+       in FuncDecl <$> (Function <$> (FunctionSignature <$> ((map tEnum) <$> (do
                                                         modsptr <- (#peek func_decl, mods) =<< fptr
                                                         num_mods <- (#peek func_decl, num_mods) =<< fptr :: IO Word64
                                                         peekArray (fromIntegral num_mods) modsptr))
@@ -474,7 +474,7 @@ instance Storable Declaration where
                              psptr <- (#peek func_decl, params) =<< fptr
                              nps <- (#peek func_decl, num_params) =<< fptr :: IO Word64
                              peekArray (fromIntegral nps) psptr)
-                       <*> (peek =<< (#peek func_decl, ret_type) =<< fptr)
+                       <*> (peek =<< (#peek func_decl, ret_type) =<< fptr))
                        <*> (peek =<< (#peek func_decl, body) =<< fptr)),
        let vptr = (#peek declaration, var_decl) ptr :: IO (Ptr ())
        in VarDecl <$> (VarBinding <$> (peek =<< (#peek var_decl, iden) =<< vptr) <*> (peek =<< (#peek var_decl, init) =<< vptr)),
@@ -493,7 +493,7 @@ instance Storable Declaration where
                                 (#poke struct_decl, fields) sdptr disptr
                                 (#poke struct_decl, num_fields) sdptr (fromIntegral $ length dis :: Word64)
                                 (#poke declaration, struct_decl) ptr sdptr
-    poke ptr (FuncDecl (Function ms n dis dt s)) = do
+    poke ptr (FuncDecl (Function (FunctionSignature ms n dis dt) s)) = do
                                 (#poke declaration, type) ptr ((#const FUNC_DECL) :: Word32)
                                 fdptr <- callocBytes (#size func_decl)
                                 msptr <- callocArray $ length ms

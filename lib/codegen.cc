@@ -562,7 +562,8 @@ Function *func_decl_codegen(func_decl *decl) {
 	builder->CreateStore(&arg, alloca);
 	bound_named_allocas[std::string((decl->params + i)->name)] = alloca;
     }
-    stmt_codegen(decl->body);
+    Value *body = stmt_codegen(decl->body);
+    if (!body) return nullptr;
     verifyFunction(*f);
     fpm->run(*f);
     clear_recent_locals();
@@ -621,7 +622,7 @@ int cxx_entry_point(sast *sast) {
 	decl_codegen(sast->decls + i);
     }
 
-    //module->print(errs(), nullptr);
+    module->print(errs(), nullptr);
     //print_sast(sast);
     auto targetTriple = getDefaultTargetTriple();
     InitializeAllTargetInfos();
