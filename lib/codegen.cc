@@ -605,13 +605,72 @@ Value *decl_codegen(declaration *decl) {
     }
 }
 
-void cxx_entry_point(sast *sast) {
+int cxx_entry_point(sast *sast) {
     context = std::make_unique<LLVMContext>();
     module = std::make_unique<Module>("module", *context);
     builder = std::make_unique<IRBuilder<>>(*context);
+
     for (u64 i = 0; i < sast->num_decls; i++) {
 	decl_codegen(sast->decls + i);
     }
-    module->print(errs(), nullptr);
-    print_sast(sast);
+
+    //module->print(errs(), nullptr);
+    //print_sast(sast);
+    auto targetTriple = getDefaultTargetTriple();
+    InitializeAllTargetInfos();
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmParsers();
+    InitializeAllAsmPrinters();
+
+    std::string error;
+    auto target = TargetRegistry::lookupTarget(targetTriple, error);
+    if (!target) {
+	errs() << error;
+	return 1;
+    }
+    auto cpu = "generic";
+    auto features = "";
+    TargetOptions opt;
+    auto rm = Optional<Reloc::Model>();
+    auto targetMachine = target->createTargetMachine(targetTriple, cpu, features, opt, rm);
+
+    module->setDataLayout(targetMachine->createDataLayout());
+    module->setTargetTriple(targetTriple);
+
+    auto filename = "out.o";
+    std::error_code ec;
+    raw_fd_ostream dest(filename, ec, fs::OF_None);
+
+    if (ec) {
+	errs() << "Could not open file: " << ec.message();
+	return 1;
+    }
+
+    LoopAnalysisManager lam;
+    FunctionAnalysisManager fam;
+    CGSCCAnalysisManager cgam;
+    ModuleAnalysisManager mam;
+    PassBuilder pb(targetMachine);
+
+    fam.registerPass([&] { return pb.buildDefaultAAPipeline(); });
+    pb.registerModuleAnalyses(mam);
+    pb.registerCGSCCAnalyses(cgam);
+    pb.registerFunctionAnalyses(fam);
+    pb.registerLoopAnalyses(lam);
+    pb.crossRegisterProxies(lam, fam, cgam, mam);
+    ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(PassBuilder::OptimizationLevel::O2);
+    mpm.run(*module, mam);
+
+    legacy::PassManager pass;
+    auto fileType = CGFT_ObjectFile;
+
+    if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
+	errs() << "TargetMachine can't emit a file of this type";
+	return 1;
+    }
+    pass.run(*module);
+    dest.flush();
+    
+    return 0;
 }

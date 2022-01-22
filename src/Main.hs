@@ -23,6 +23,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
 import Foreign
+import Foreign.C.Types
 import Foreign.Marshal.Alloc
 
 import System.Environment
@@ -39,7 +40,7 @@ import qualified Semantics.Error as SE
 import Semantics.Marshal
 import qualified Semantics.SAST as SA
 
-foreign import capi "lib.h c_entry_point" c_entry_point :: Ptr SA.SAST -> IO ()
+foreign import capi "lib.h c_entry_point" c_entry_point :: Ptr SA.SAST -> IO (CInt)
 
 main :: IO ()
 main = do
@@ -57,4 +58,5 @@ main = do
         let sast = head $ map (fst . bimap (fromRight undefined) id) checked
         ptr <- callocBytes (sizeOf sast)
         poke ptr sast
-        c_entry_point ptr
+        retStatus <- c_entry_point ptr
+        return ()

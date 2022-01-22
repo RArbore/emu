@@ -12,6 +12,6 @@
 
 #include "lib.h"
 
-void c_entry_point(sast *sast) {
-    cxx_entry_point(sast);
+int c_entry_point(sast *sast) {
+    return cxx_entry_point(sast);
 }

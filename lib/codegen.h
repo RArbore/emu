@@ -10,10 +10,26 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
+#include <llvm/Analysis/LoopAnalysisManager.h>
+#include <llvm/Analysis/CGSCCPassManager.h>
+#include <llvm/Analysis/AliasAnalysis.h>
+
+#include <llvm/Support/TargetRegistry.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Host.h>
+
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+
+#include <llvm/Passes/PassBuilder.h>
+
 #include <llvm/ADT/APFixedPoint.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/APFloat.h>
 
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/BasicBlock.h>
@@ -34,6 +50,7 @@
 #include "lib.h"
 
 using namespace llvm;
+using namespace llvm::sys;
 
 StructType *struct_name_to_llvm_type(char *cname);
 
@@ -89,4 +106,4 @@ Value *stmt_decl_codegen(stmt_decl *decl);
 
 Value *decl_codegen(declaration *decl);
 
-void cxx_entry_point(sast *sast);
+int cxx_entry_point(sast *sast);
