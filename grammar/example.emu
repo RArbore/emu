@@ -1,7 +1,9 @@
 // Here is some example code written in Emu. This particular example is mainly used for fleshing out the grammar of the language.
 
-func f (): void {
+y: i64 = 0;
+func f (a: u32): void {
      x: i64 = 0;
+     y = 2;
 }
 
 /*

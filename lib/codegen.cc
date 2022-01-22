@@ -16,9 +16,10 @@ static std::unique_ptr<LLVMContext> context;
 static std::unique_ptr<IRBuilder<>> builder;
 static std::unique_ptr<Module> module;
 static std::map<std::string, std::vector<decorated_type*>> defined_structs;
-static std::map<std::string, AllocaInst*> bound_named_allocas;
+static std::map<std::string, std::variant<AllocaInst*, GlobalVariable*>> bound_named_allocas;
 static std::vector<std::pair<std::string, u64>> local_names;
 static u64 scope_level = 0;
+static bool inside_function = false;
 
 bool is_floating(decorated_type *dt) {
     switch (dt->decorated_type_e) {
@@ -94,7 +95,7 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
 void clear_recent_locals() {
     u64 scoped_name_index = local_names.size() - 1;
     while (local_names.size() > 0 && std::get<1>(local_names.at(scoped_name_index)) == scope_level) {
-	bound_named_allocas[std::get<0>(local_names.at(scoped_name_index))] = nullptr;
+	bound_named_allocas.erase(bound_named_allocas.find(std::get<0>(local_names.at(scoped_name_index))));
 	local_names.pop_back();
 	if (scoped_name_index == 0) break;
 	--scoped_name_index;
@@ -163,7 +164,7 @@ Value *binary_expr_codegen(binary_expr *expr) {
 	    : is_signed(expr->type)
 	    ? builder->CreateSDiv(v1, v2)
 	    : builder->CreateUDiv(v1, v2);
-    case FACTOR_PERCENT: is_signed(expr->type) ? builder->CreateSRem(v1, v2) : builder->CreateURem(v1, v2);
+    case FACTOR_PERCENT: return is_signed(expr->type) ? builder->CreateSRem(v1, v2) : builder->CreateURem(v1, v2);
     default: return nullptr;
     }
 }
@@ -180,7 +181,7 @@ Value *unary_expr_codegen(unary_expr *expr) {
     }
 }
 
-Value *literal_expr_codegen(literal_expr *expr) {
+Constant *literal_expr_codegen(literal_expr *expr) {
     comptime_value *cv = expr->comptime_value;
     std::function<Constant*(comptime_value*)> lambda = [&](comptime_value *cv) -> Constant* {
 	switch (cv->type) {
@@ -292,7 +293,10 @@ Value *lvalue_codegen(lvalue *lvalue) {
     case DEREF: return expr_codegen(lvalue->dereferenced);
     case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
     case INDEX: return builder->CreateGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
-    case IDENTIFIER: return bound_named_allocas.at(std::string(lvalue->name));
+    case IDENTIFIER: {
+	AllocaInst **alloca = std::get_if<AllocaInst*>(&bound_named_allocas.at(std::string(lvalue->name)));
+	return alloca ? static_cast<Value*>(*alloca) : std::get<GlobalVariable*>(bound_named_allocas.at(std::string(lvalue->name))); 
+    }
     default: return nullptr;
     }
 }
@@ -388,16 +392,16 @@ Value *crement_expr_codegen(crement_expr *expr) {
 	}
 	else {
 	    switch (expr->type->pure_type->type_e) {
-	    case U8: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
-	    case U16: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
-	    case U32: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
-	    case U64: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
-	    case I8: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
-	    case I16: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
-	    case I32: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
-	    case I64: builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
-	    case F32: builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
-	    case F64: builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval);
+	    case U8: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
+	    case U16: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
+	    case U32: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
+	    case U64: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
+	    case I8: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
+	    case I16: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
+	    case I32: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
+	    case I64: return builder->CreateStore(builder->CreateAdd(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
+	    case F32: return builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
+	    case F64: return builder->CreateStore(builder->CreateFAdd(load, ConstantFP::get(*context, APFloat(1.0))), lval);
 	    default: return nullptr;
 	    }
 	}
@@ -410,16 +414,16 @@ Value *crement_expr_codegen(crement_expr *expr) {
 	}
 	else {
 	switch (expr->type->pure_type->type_e) {
-	    case U8: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
-	    case U16: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
-	    case U32: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
-	    case U64: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
-	    case I8: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
-	    case I16: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
-	    case I32: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
-	    case I64: builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
-	    case F32: builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
-	    case F64: builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval);
+	    case U8: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, false))), lval);
+	    case U16: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, false))), lval);
+	    case U32: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, false))), lval);
+	    case U64: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, false))), lval);
+	    case I8: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(8, 1, true))), lval);
+	    case I16: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(16, 1, true))), lval);
+	    case I32: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(32, 1, true))), lval);
+	    case I64: return builder->CreateStore(builder->CreateSub(load, ConstantInt::get(*context, APInt(64, 1, true))), lval);
+	    case F32: return builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval); 
+	    case F64: return builder->CreateStore(builder->CreateFSub(load, ConstantFP::get(*context, APFloat(1.0))), lval);
 	    default: return nullptr;
 	    }
 	}
@@ -534,6 +538,7 @@ Value *struct_decl_codegen(struct_decl *decl) {
 }
 
 Function *func_decl_codegen(func_decl *decl) {
+    inside_function = true;
     std::vector<Type*> args_llvm;
     for (u64 i = 0; i < decl->num_params; ++i) {
 	args_llvm.push_back(emu_to_llvm_type((decl->params + i)->type));
@@ -559,17 +564,26 @@ Function *func_decl_codegen(func_decl *decl) {
     clear_recent_locals();
     --scope_level;
     
+    inside_function = false;
     return f;
 }
 
 Value *var_decl_codegen(var_decl *decl) {
-    Value *expr_v = expr_codegen(decl->init);
-    if (!expr_v) return nullptr;
-    Type *tt = emu_to_llvm_type(decl->iden->type);
-    AllocaInst *alloca = builder->CreateAlloca(tt);
-    local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
-    bound_named_allocas[std::string(decl->iden->name)] = alloca;
-    return builder->CreateStore(expr_v, alloca);
+    if (inside_function) {
+	Value *expr_v = expr_codegen(decl->init);
+	if (!expr_v) return nullptr;
+	AllocaInst *alloca = builder->CreateAlloca(emu_to_llvm_type(decl->iden->type));
+	local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
+	bound_named_allocas[std::string(decl->iden->name)] = alloca;
+	return builder->CreateStore(expr_v, alloca);
+    }
+    else {
+	Constant *expr_c = literal_expr_codegen(decl->init->literal_expr);
+	if (!expr_c) return nullptr;
+	GlobalVariable *gv = new GlobalVariable(*module, emu_to_llvm_type(decl->iden->type), false, GlobalValue::InternalLinkage, expr_c);
+	bound_named_allocas[std::string(decl->iden->name)] = gv;
+	return gv;
+    }
 }
 
 Value *stmt_decl_codegen(stmt_decl *decl) {

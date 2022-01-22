@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <variant>
 #include <string>
 #include <vector>
 #include <map>
@@ -42,7 +43,7 @@ Value *binary_expr_codegen(binary_expr *expr);
 
 Value *unary_expr_codegen(unary_expr *expr);
 
-Value *literal_expr_codegen(literal_expr *expr);
+Constant *literal_expr_codegen(literal_expr *expr);
 
 Value *array_expr_codegen(array_expr *expr);
 
