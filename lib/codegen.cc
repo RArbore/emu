@@ -564,10 +564,8 @@ Function *func_decl_codegen(func_decl *decl) {
 	builder->CreateStore(&arg, alloca);
 	bound_named_allocas[std::string((decl->params + i)->name)] = alloca;
     }
-    if (Value *ret = stmt_codegen(decl->body)) {
-	if (decl->ret_type->decorated_type_e != PURE_TYPE || decl->ret_type->pure_type->type_e != VOID) builder->CreateRet(ret);
-	verifyFunction(*f);
-    }
+    stmt_codegen(decl->body);
+    verifyFunction(*f);
     clear_recent_locals();
     --scope_level;
     
