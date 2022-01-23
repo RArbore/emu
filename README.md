@@ -9,8 +9,9 @@ Emu is in early development. Emu uses Haskell for it's frontend, and C/C++ for i
 - [x] Parser & AST
 - [x] Semantic analysis
 - [x] Haskell to C marshalling
-- [ ] LLVM code generation
+- [x] LLVM code generation
+- [ ] Fleshed out command line interface
 - [ ] Comptime evaluator
-- [ ] Full language feature-set
+- [ ] Core language feature-set
 - [ ] High level optimizations
 - [ ] Additional language features
