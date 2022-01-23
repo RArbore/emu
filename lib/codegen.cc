@@ -12,16 +12,6 @@
 
 #include "codegen.h"
 
-static std::unique_ptr<LLVMContext> context;
-static std::unique_ptr<IRBuilder<>> builder;
-static std::unique_ptr<Module> module;
-static std::unique_ptr<legacy::FunctionPassManager> fpm;
-static std::map<std::string, std::vector<decorated_type*>> defined_structs;
-static std::map<std::string, Value*> bound_named_allocas;
-static std::vector<std::pair<std::string, u64>> local_names;
-static u64 scope_level = 0;
-static bool inside_function = false;
-
 bool is_floating(decorated_type *dt) {
     switch (dt->decorated_type_e) {
     case PURE_TYPE:
@@ -52,15 +42,17 @@ bool is_pointer(decorated_type *dt) {
     return dt->decorated_type_e == DEREF_TYPE;
 }
 
-StructType *struct_name_to_llvm_type(char *cname) {
+StructType* Codegen::struct_name_to_llvm_type(char *cname) {
     std::string name(cname);
     auto def_emu = defined_structs.at(name);
     std::vector<Type*> def_llvm;
-    std::transform(def_emu.begin(), def_emu.end(), def_llvm.begin(), emu_to_llvm_type);
+    for (size_t i = 0; i < def_emu.size(); ++i) {
+	def_llvm.push_back(emu_to_llvm_type(def_emu.at(i)));
+    }
     return StructType::get(*context, def_llvm);
 }
 
-Type *emu_to_llvm_type(decorated_type *dec_type) {
+Type* Codegen::emu_to_llvm_type(decorated_type *dec_type) {
     switch(dec_type->decorated_type_e) {
     case PURE_TYPE: {
 	type *pure_type = dec_type->pure_type;
@@ -93,7 +85,7 @@ Type *emu_to_llvm_type(decorated_type *dec_type) {
     }
 }
 
-void clear_recent_locals() {
+void Codegen::clear_recent_locals() {
     u64 scoped_name_index = local_names.size() - 1;
     while (local_names.size() > 0 && std::get<1>(local_names.at(scoped_name_index)) == scope_level) {
 	bound_named_allocas.erase(bound_named_allocas.find(std::get<0>(local_names.at(scoped_name_index))));
@@ -103,7 +95,7 @@ void clear_recent_locals() {
     }
 }
 
-Value *binary_expr_codegen(binary_expr *expr) {
+Value* Codegen::binary_expr_codegen(binary_expr *expr) {
     Value *v1 = expr_codegen(expr->expr1);
     Value *v2 = expr_codegen(expr->expr2);
     if (!v1 || !v2) return nullptr;
@@ -170,7 +162,7 @@ Value *binary_expr_codegen(binary_expr *expr) {
     }
 }
 
-Value *unary_expr_codegen(unary_expr *expr) {
+Value* Codegen::unary_expr_codegen(unary_expr *expr) {
     Value *v = expr_codegen(expr->expr);
     if (!v) return nullptr;
     switch (expr->op) {
@@ -182,7 +174,7 @@ Value *unary_expr_codegen(unary_expr *expr) {
     }
 }
 
-Constant *literal_expr_codegen(literal_expr *expr) {
+Constant* Codegen::literal_expr_codegen(literal_expr *expr) {
     comptime_value *cv = expr->comptime_value;
     std::function<Constant*(comptime_value*)> lambda = [&](comptime_value *cv) -> Constant* {
 	switch (cv->type) {
@@ -218,7 +210,7 @@ Constant *literal_expr_codegen(literal_expr *expr) {
     return lambda(cv);
 }
 
-Value *array_expr_codegen(array_expr *expr) {
+Value* Codegen::array_expr_codegen(array_expr *expr) {
     ArrayType *array_type = ArrayType::get(emu_to_llvm_type(expr->element_type), expr->size);
     AllocaInst *alloca = builder->CreateAlloca(array_type, ConstantInt::get(*context, APInt(64, expr->size, false)));
     for(u64 i = 0; i < expr->size; ++i) {
@@ -228,7 +220,7 @@ Value *array_expr_codegen(array_expr *expr) {
     return alloca;
 }
 
-Value *call_expr_codegen(call_expr *expr) {
+Value* Codegen::call_expr_codegen(call_expr *expr) {
     Function *to_call = module->getFunction(expr->func_name);
     std::vector<Value*> args;
     for (u64 i = 0; i < expr->num_args; ++i) {
@@ -268,7 +260,7 @@ const static Instruction::CastOps simple_cast_rules[STRUCT][STRUCT] = {
     /*      F64  */    {BITCAST , TRUNC   , FPTOUI  , FPTOUI  , FPTOUI  , FPTOUI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTOSI  , FPTRUNC , BITCAST },
 };
 
-Value *cast_expr_codegen(cast_expr *expr) {
+Value* Codegen::cast_expr_codegen(cast_expr *expr) {
     if (is_pointer(expr->in_type) && is_pointer(expr->out_type))
 	return builder->CreateCast(BITCAST, expr_codegen(expr->expr), emu_to_llvm_type(expr->out_type));
     if (expr->in_type->decorated_type_e == DEREF_TYPE && expr->out_type->decorated_type_e == PURE_TYPE)
@@ -289,7 +281,7 @@ Value *cast_expr_codegen(cast_expr *expr) {
     return nullptr;
 }
 
-Value *lvalue_codegen(lvalue *lvalue) {
+Value* Codegen::lvalue_codegen(lvalue *lvalue) {
     switch (lvalue->type) {
     case DEREF: return expr_codegen(lvalue->dereferenced);
     case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
@@ -299,12 +291,12 @@ Value *lvalue_codegen(lvalue *lvalue) {
     }
 }
 
-Value *lvalue_expr_codegen(lvalue_expr *expr) {
+Value* Codegen::lvalue_expr_codegen(lvalue_expr *expr) {
     lvalue *lval = expr->lvalue;
     return builder->CreateLoad(emu_to_llvm_type(lval->decorated_type), lvalue_codegen(lval));
 }
 
-Value *assign_expr_codegen(assign_expr *expr) {
+Value* Codegen::assign_expr_codegen(assign_expr *expr) {
     Value *left = lvalue_codegen(expr->lvalue);
     Value *right = expr_codegen(expr->expr);
     Value *result;
@@ -336,11 +328,11 @@ Value *assign_expr_codegen(assign_expr *expr) {
     return builder->CreateStore(result, left);
 }
 
-Value *address_expr_codegen(address_expr *expr) {
+Value* Codegen::address_expr_codegen(address_expr *expr) {
     return lvalue_codegen(expr->lvalue);
 }
 
-Value *crement_expr_codegen(crement_expr *expr) {
+Value* Codegen::crement_expr_codegen(crement_expr *expr) {
     Value *lval = lvalue_codegen(expr->lvalue);
     if (!lval) return nullptr;
     Type *term_type = emu_to_llvm_type(expr->type);
@@ -431,11 +423,11 @@ Value *crement_expr_codegen(crement_expr *expr) {
     }
 }
 
-Value *undefined_expr_codegen() {
+Value* Codegen::undefined_expr_codegen() {
     return UndefValue::get(Type::getInt64Ty(*context));
 }
 
-Value *expr_codegen(expression *expr) {
+Value* Codegen::expr_codegen(expression *expr) {
     switch (expr->type) {
     case BINARY_EXPR: return binary_expr_codegen(expr->binary_expr);
     case UNARY_EXPR: return unary_expr_codegen(expr->unary_expr);
@@ -452,11 +444,11 @@ Value *expr_codegen(expression *expr) {
     }
 }
 
-Value *expr_stmt_codegen(expr_stmt *stmt) {
+Value* Codegen::expr_stmt_codegen(expr_stmt *stmt) {
     return expr_codegen(stmt->expr);
 }
 
-Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
+Value* Codegen::ifelse_stmt_codegen(ifelse_stmt *stmt) {
     ++scope_level;
     Value *cond = expr_codegen(stmt->cond);
     if (!cond) return nullptr;
@@ -483,7 +475,7 @@ Value *ifelse_stmt_codegen(ifelse_stmt *stmt) {
     return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
-Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
+Value* Codegen::dowhile_stmt_codegen(dowhile_stmt *stmt) {
     ++scope_level;
     Function *cur_function = builder->GetInsertBlock()->getParent();
     BasicBlock *whileBB = BasicBlock::Create(*context, "", cur_function);
@@ -502,14 +494,14 @@ Value *dowhile_stmt_codegen(dowhile_stmt *stmt) {
     return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
-Value *return_stmt_codegen(return_stmt *stmt) {
+Value* Codegen::return_stmt_codegen(return_stmt *stmt) {
     if (stmt->expr->type == UNDEFINED) return builder->CreateRetVoid();
     Value *ret = expr_codegen(stmt->expr);
     if (ret->getType()->isVoidTy()) return builder->CreateRetVoid();
     else return builder->CreateRet(ret);
 }
 
-Value *block_codegen(declaration *body, u64 block_size) {
+Value* Codegen::block_codegen(declaration *body, u64 block_size) {
     ++scope_level;
     for (u64 i = 0; i < block_size; ++i) decl_codegen(body + i);
     clear_recent_locals();
@@ -517,11 +509,11 @@ Value *block_codegen(declaration *body, u64 block_size) {
     return undefined_expr_codegen();
 }
 
-Value *empty_codegen() {
+Value* Codegen::empty_codegen() {
     return undefined_expr_codegen();
 }
 
-Value *stmt_codegen(statement *stmt) {
+Value* Codegen::stmt_codegen(statement *stmt) {
     switch (stmt->type) {
     case EXPR_STMT: return expr_stmt_codegen(stmt->expr_stmt);
     case IFELSE_STMT: return ifelse_stmt_codegen(stmt->ifelse_stmt);
@@ -533,7 +525,7 @@ Value *stmt_codegen(statement *stmt) {
     }
 }
 
-Value *struct_decl_codegen(struct_decl *decl) {
+Value* Codegen::struct_decl_codegen(struct_decl *decl) {
     std::vector<decorated_type*> fields;
     for (u64 i = 0; i < decl->num_fields; ++i) {
 	fields.push_back((decl->fields + i)->type);
@@ -542,7 +534,7 @@ Value *struct_decl_codegen(struct_decl *decl) {
     return Constant::getNullValue(Type::getVoidTy(*context));;
 }
 
-Function *func_decl_codegen(func_decl *decl) {
+Function* Codegen::func_decl_codegen(func_decl *decl) {
     inside_function = true;
     std::vector<Type*> args_llvm;
     for (u64 i = 0; i < decl->num_params; ++i) {
@@ -573,7 +565,7 @@ Function *func_decl_codegen(func_decl *decl) {
     return f;
 }
 
-Value *var_decl_codegen(var_decl *decl) {
+Value* Codegen::var_decl_codegen(var_decl *decl) {
     if (inside_function) {
 	Value *expr_v = expr_codegen(decl->init);
 	if (!expr_v) return nullptr;
@@ -591,11 +583,11 @@ Value *var_decl_codegen(var_decl *decl) {
     }
 }
 
-Value *stmt_decl_codegen(stmt_decl *decl) {
+Value* Codegen::stmt_decl_codegen(stmt_decl *decl) {
     return stmt_codegen(decl->stmt);
 }
 
-Value *decl_codegen(declaration *decl) {
+Value* Codegen::decl_codegen(declaration *decl) {
     switch (decl->type) {
     case STRUCT_DECL: return struct_decl_codegen(decl->struct_decl);
     case FUNC_DECL: return func_decl_codegen(decl->func_decl);
@@ -605,7 +597,7 @@ Value *decl_codegen(declaration *decl) {
     }
 }
 
-int cxx_entry_point(sast *sast) {
+int Codegen::codegen(sast *sast) {
     context = std::make_unique<LLVMContext>();
     module = std::make_unique<Module>("module", *context);
     builder = std::make_unique<IRBuilder<>>(*context);
@@ -681,4 +673,9 @@ int cxx_entry_point(sast *sast) {
     dest.flush();
     
     return 0;
+}
+
+int cxx_entry_point(sast *sast) {
+    Codegen cg;
+    return cg.codegen(sast);
 }

@@ -56,58 +56,76 @@
 using namespace llvm;
 using namespace llvm::sys;
 
-StructType *struct_name_to_llvm_type(char *cname);
+class Codegen {
+private:
+    std::unique_ptr<LLVMContext> context;
+    std::unique_ptr<IRBuilder<>> builder;
+    std::unique_ptr<Module> module;
+    std::unique_ptr<legacy::FunctionPassManager> fpm;
+    std::map<std::string, std::vector<decorated_type*>> defined_structs;
+    std::map<std::string, Value*> bound_named_allocas;
+    std::vector<std::pair<std::string, u64>> local_names;
+    u64 scope_level = 0;
+    bool inside_function = false;
+    
+public:
+    StructType *struct_name_to_llvm_type(char *cname);
 
-Type *emu_to_llvm_type(decorated_type *dec_type);
+    Type *emu_to_llvm_type(decorated_type *dec_type);
 
-Value *binary_expr_codegen(binary_expr *expr);
+    void clear_recent_locals();
 
-Value *unary_expr_codegen(unary_expr *expr);
+    Value *binary_expr_codegen(binary_expr *expr);
 
-Constant *literal_expr_codegen(literal_expr *expr);
+    Value *unary_expr_codegen(unary_expr *expr);
 
-Value *array_expr_codegen(array_expr *expr);
+    Constant *literal_expr_codegen(literal_expr *expr);
 
-Value *call_expr_codegen(call_expr *expr);
+    Value *array_expr_codegen(array_expr *expr);
 
-Value *cast_expr_codegen(cast_expr *expr);
+    Value *call_expr_codegen(call_expr *expr);
 
-Value *lvalue_codegen(lvalue *lvalue);
+    Value *cast_expr_codegen(cast_expr *expr);
 
-Value *lvalue_expr_codegen(lvalue_expr *expr);
+    Value *lvalue_codegen(lvalue *lvalue);
 
-Value *assign_expr_codegen(assign_expr *expr);
+    Value *lvalue_expr_codegen(lvalue_expr *expr);
 
-Value *address_expr_codegen(address_expr *expr);
+    Value *assign_expr_codegen(assign_expr *expr);
 
-Value *crement_expr_codegen(crement_expr *expr);
+    Value *address_expr_codegen(address_expr *expr);
 
-Value *undefined_expr_codegen();
+    Value *crement_expr_codegen(crement_expr *expr);
 
-Value *expr_codegen(expression *expr);
+    Value *undefined_expr_codegen();
 
-Value *expr_stmt_codegen(expr_stmt *stmt);
+    Value *expr_codegen(expression *expr);
 
-Value *ifelse_stmt_codegen(ifelse_stmt *stmt);
+    Value *expr_stmt_codegen(expr_stmt *stmt);
 
-Value *dowhile_stmt_codegen(dowhile_stmt *stmt);
+    Value *ifelse_stmt_codegen(ifelse_stmt *stmt);
 
-Value *return_stmt_codegen(return_stmt *stmt);
+    Value *dowhile_stmt_codegen(dowhile_stmt *stmt);
 
-Value *block_codegen(declaration *body, u64 block_size);
+    Value *return_stmt_codegen(return_stmt *stmt);
 
-Value *empty_codegen();
+    Value *block_codegen(declaration *body, u64 block_size);
 
-Value *stmt_codegen(statement *stmt);
+    Value *empty_codegen();
 
-Value *struct_decl_codegen(struct_decl *decl);
+    Value *stmt_codegen(statement *stmt);
 
-Function *func_decl_codegen(func_decl *decl);
+    Value *struct_decl_codegen(struct_decl *decl);
 
-Value *var_decl_codegen(var_decl *decl);
+    Function *func_decl_codegen(func_decl *decl);
 
-Value *stmt_decl_codegen(stmt_decl *decl);
+    Value *var_decl_codegen(var_decl *decl);
 
-Value *decl_codegen(declaration *decl);
+    Value *stmt_decl_codegen(stmt_decl *decl);
+
+    Value *decl_codegen(declaration *decl);
+
+    int codegen(sast *sast);
+};
 
 int cxx_entry_point(sast *sast);

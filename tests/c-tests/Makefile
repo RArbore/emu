@@ -19,4 +19,5 @@ CC=gcc
 test1: test1.c test1.emu
 	$(EMU) test1.emu
 	$(CC) test1.c out.o -o test1.out
-	rm out.o
+clean:
+	rm *.o *.out
