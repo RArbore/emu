@@ -557,7 +557,7 @@ Function* Codegen::func_decl_codegen(func_decl *decl) {
     Value *body = stmt_codegen(decl->body);
     if (!body) return nullptr;
     verifyFunction(*f);
-    fpm->run(*f);
+    //fpm->run(*f);
     clear_recent_locals();
     --scope_level;
     
@@ -614,8 +614,8 @@ int Codegen::codegen(sast *sast) {
 	decl_codegen(sast->decls + i);
     }
 
-    module->print(errs(), nullptr);
     //print_sast(sast);
+    module->print(errs(), nullptr);
     auto targetTriple = getDefaultTargetTriple();
     InitializeAllTargetInfos();
     InitializeAllTargets();
@@ -661,6 +661,7 @@ int Codegen::codegen(sast *sast) {
     pb.crossRegisterProxies(lam, fam, cgam, mam);
     ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(PassBuilder::OptimizationLevel::O2);
     mpm.run(*module, mam);
+    module->print(errs(), nullptr);
 
     legacy::PassManager pass;
     auto fileType = CGFT_ObjectFile;

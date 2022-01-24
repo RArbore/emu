@@ -11,6 +11,6 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
 pure inline func fact(n: u32): u32 {
-     if (n >= 2) n *= fact(n - (u32) 1);
-     return n;
+     if (n >= 2) return n * fact(n - (u32) 1);
+     else return n;
 }

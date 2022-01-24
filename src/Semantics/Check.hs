@@ -603,3 +603,36 @@ comptimeEvaluate (l, sc, ec) (LValueExpression (Identifier name _)) = do
         then comptimeEvaluate (l, sc, ec) ve
         else throwError $ SemanticsError l sc ec $ NonConstArraySizeError
 comptimeEvaluate (l, sc, ec) _ = throwError $ SemanticsError l sc ec NonComptimeError
+
+stmtReturns :: A.Location -> Statement -> Semantics (Maybe DecoratedType)
+stmtReturns _ (ExpressionStatement _) = return Nothing
+stmtReturns (l, sc, ec) (IfElseStatement _ s1 s2) = do
+  curSig <- gets curFuncSignature
+  rs1 <- stmtReturns (l, sc, ec) s1
+  rs2 <- stmtReturns (l, sc, ec) s2
+  case (rs1, rs2) of
+    (Nothing, Nothing) -> return Nothing
+    (Nothing, _) -> return Nothing
+    (_, Nothing) -> return Nothing
+    (Just ts1, Just ts2) ->
+        case curSig of
+          Nothing -> throwError $ SemanticsError l sc ec $ StatementOutsideDeclarationError
+          Just (FunctionSignature  _ _ _ retType) -> if ts1 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts1
+                                  else if ts2 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts2
+                                       else return $ Just retType
+stmtReturns (l, sc, ec) (DoWhileStatement _ s) = do
+  curSig <- gets curFuncSignature
+  rs <- stmtReturns (l, sc, ec) s
+  case rs of
+    Nothing -> return Nothing
+    Just ts ->
+        case curSig of
+          Nothing -> throwError $ SemanticsError l sc ec $ StatementOutsideDeclarationError
+          Just (FunctionSignature _ _ _ retType) -> if ts /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts
+                                  else return $ Just retType
+stmtReturns _ (ReturnStatement e) = return $ Just $ typeOf e
+stmtReturns _ (Block []) = return Nothing
+stmtReturns _ (Block [StatementDecl (ReturnStatement e)]) = return $ Just $ typeOf e
+stmtReturns (l, sc, ec) (Block ((StatementDecl (ReturnStatement _)):xs)) = throwError $ SemanticsError l sc ec $ DeadCode
+stmtReturns loc (Block (x:xs)) = stmtReturns loc $ Block xs
+stmtReturns _ EmptyStatement = return Nothing
