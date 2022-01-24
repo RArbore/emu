@@ -616,7 +616,7 @@ stmtReturns (l, sc, ec) (IfElseStatement _ s1 s2) = do
     (_, Nothing) -> return Nothing
     (Just ts1, Just ts2) ->
         case curSig of
-          Nothing -> throwError $ SemanticsError l sc ec $ StatementOutsideDeclarationError
+          Nothing -> throwError $ SemanticsError l sc ec StatementOutsideDeclarationError
           Just (FunctionSignature  _ _ _ retType) -> if ts1 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts1
                                   else if ts2 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts2
                                        else return $ Just retType
@@ -627,12 +627,18 @@ stmtReturns (l, sc, ec) (DoWhileStatement _ s) = do
     Nothing -> return Nothing
     Just ts ->
         case curSig of
-          Nothing -> throwError $ SemanticsError l sc ec $ StatementOutsideDeclarationError
+          Nothing -> throwError $ SemanticsError l sc ec StatementOutsideDeclarationError
           Just (FunctionSignature _ _ _ retType) -> if ts /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts
                                   else return $ Just retType
 stmtReturns _ (ReturnStatement e) = return $ Just $ typeOf e
 stmtReturns _ (Block []) = return Nothing
-stmtReturns _ (Block [StatementDecl (ReturnStatement e)]) = return $ Just $ typeOf e
-stmtReturns (l, sc, ec) (Block ((StatementDecl (ReturnStatement _)):xs)) = throwError $ SemanticsError l sc ec $ DeadCode
-stmtReturns loc (Block (x:xs)) = stmtReturns loc $ Block xs
+stmtReturns l sc ec (Block (x:xs)) = do
+  first <- case x of
+             StatementDecl sx -> stmtReturns loc sx
+             otherwise -> return Nothing
+  case first of
+    Just retType -> case xs of
+                      [] -> return $ Just retType
+                      otherwise -> throwError $ SemanticsError l sc ec DeadCode
+    Nothing -> stmtReturns loc $ Block xs
 stmtReturns _ EmptyStatement = return Nothing
