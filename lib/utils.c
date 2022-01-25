@@ -346,7 +346,31 @@ void destruct_comptime_value(comptime_value *comptime_value) {
 }
 
 void destruct_lvalue(lvalue *lvalue) {
-
+    switch (lvalue->type) {
+    case DEREF: {
+	destruct_expr(lvalue->dereferenced);
+	free(lvalue->dereferenced);
+	break;
+    }
+    case ACCESS: {
+	destruct_lvalue(lvalue->accessed);
+	free(lvalue->accessed);
+	break;
+    }
+    case INDEX: {
+	destruct_lvalue(lvalue->indexed);
+	free(lvalue->indexed);
+	destruct_expr(lvalue->index);
+	free(lvalue->index);
+	break;
+    }
+    case IDENTIFIER: {
+	free(lvalue->name);
+	break;
+    }
+    }
+    destruct_decorated_type(lvalue->decorated_type);
+    free(lvalue->decorated_type);
 }
 
 void destruct_expr(expression *expr) {
