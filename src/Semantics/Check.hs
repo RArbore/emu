@@ -190,7 +190,7 @@ checkDecl ((l, sc, ec), d) = checked
                              modify $ \env -> env { curFuncSignature = Just sig }
                              sbody <- checkStmt body
                              termination <- stmtReturns (l, sc, ec) sbody
-                             unless (termination == sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
+                             unless (termination == Just sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
                              let func = Function sig sbody
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              return $ FuncDecl $ func
@@ -634,13 +634,13 @@ stmtReturns (l, sc, ec) (DoWhileStatement _ s) = do
                                   else return $ Just retType
 stmtReturns _ (ReturnStatement e) = return $ Just $ typeOf e
 stmtReturns _ (Block []) = return Nothing
-stmtReturns l sc ec (Block (x:xs)) = do
+stmtReturns (l, sc, ec) (Block (x:xs)) = do
   first <- case x of
-             StatementDecl sx -> stmtReturns loc sx
+             StatementDecl sx -> stmtReturns (l, sc, ec) sx
              otherwise -> return Nothing
   case first of
     Just retType -> case xs of
                       [] -> return $ Just retType
                       otherwise -> throwError $ SemanticsError l sc ec DeadCode
-    Nothing -> stmtReturns loc $ Block xs
+    Nothing -> stmtReturns (l, sc, ec) $ Block xs
 stmtReturns _ EmptyStatement = return Nothing
