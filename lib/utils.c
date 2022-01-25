@@ -290,7 +290,67 @@ int c_entry_point(sast *sast) {
     return cxx_entry_point(sast);
 }
 
+void free_type(type *type) {
+
+}
+
+void free_decorated_type(decorated_type *decorated_type) {
+
+}
+
+void free_decorated_identifier(decorated_identifier *decorated_identifier) {
+
+}
+
+void free_comptime_value(comptime_value *comptime_value) {
+
+}
+
+void free_lvalue(lvalue *lvalue) {
+
+}
+
+void free_expr(expression *expr) {
+
+}
+
+void free_stmt(statement *stmt) {
+
+}
+
+void free_decl(declaration *decl) {
+    switch (decl->type) {
+    case STRUCT_DECL: {
+	free(decl->struct_decl->mods);
+	free(decl->struct_decl->name);
+	for (u64 i = 0; i < decl->struct_decl->num_fields; ++i) free_decorated_identifier(decl->struct_decl->fields + i);
+	free(decl->struct_decl->fields);
+    }
+    case FUNC_DECL: {
+	free(decl->func_decl->mods);
+	free(decl->func_decl->name);
+	for (u64 i = 0; i < decl->func_decl->num_params; ++i) free_decorated_identifier(decl->func_decl->params + i);
+	free(decl->func_decl->params);
+	free_decorated_type(decl->func_decl->ret_type);
+	free(decl->func_decl->ret_type);
+	free_stmt(decl->func_decl->body);
+	free(decl->func_decl->body);
+    }
+    case VAR_DECL: {
+	free_decorated_identifier(decl->var_decl->iden);
+	free(decl->var_decl->iden);
+	free_expr(decl->var_decl->init);
+	free(decl->var_decl->init);
+    }
+    case STMT_DECL: {
+	free_stmt(decl->stmt_decl->stmt);
+	free(decl->stmt_decl->stmt);
+    }
+    }
+}
+
 void free_sast(sast *sast) {
     for (u64 i = 0; i < sast->num_decls; ++i) free_decl(sast->decls + i);
+    free(sast->decls);
     free(sast);
 }
