@@ -455,21 +455,24 @@ Value* Codegen::ifelse_stmt_codegen(ifelse_stmt *stmt) {
     Function *cur_function = builder->GetInsertBlock()->getParent();
     BasicBlock *thenBB = BasicBlock::Create(*context, "", cur_function);
     BasicBlock *elseBB = BasicBlock::Create(*context);
-    BasicBlock *mergeBB = BasicBlock::Create(*context);
+    BasicBlock *mergeBB;
+    if (!stmt->pos_terms || !stmt->neg_terms) mergeBB = BasicBlock::Create(*context);
     builder->CreateCondBr(cond, thenBB, elseBB);
     builder->SetInsertPoint(thenBB);
     Value *pos = stmt_codegen(stmt->pos);
     if (!pos) return nullptr;
-    builder->CreateBr(mergeBB);
+    if (!stmt->pos_terms) builder->CreateBr(mergeBB);
     thenBB = builder->GetInsertBlock();
     cur_function->getBasicBlockList().push_back(elseBB);
     builder->SetInsertPoint(elseBB);
     Value *neg = stmt_codegen(stmt->neg);
     if (!neg) return nullptr;
-    builder->CreateBr(mergeBB);
+    if (!stmt->neg_terms) builder->CreateBr(mergeBB);
     elseBB = builder->GetInsertBlock();
-    cur_function->getBasicBlockList().push_back(mergeBB);
-    builder->SetInsertPoint(mergeBB);
+    if (!stmt->pos_terms || !stmt->neg_terms) {
+	cur_function->getBasicBlockList().push_back(mergeBB);
+	builder->SetInsertPoint(mergeBB);
+    }
     clear_recent_locals();
     --scope_level;
     return Constant::getNullValue(Type::getVoidTy(*context));;
@@ -479,16 +482,19 @@ Value* Codegen::dowhile_stmt_codegen(dowhile_stmt *stmt) {
     ++scope_level;
     Function *cur_function = builder->GetInsertBlock()->getParent();
     BasicBlock *whileBB = BasicBlock::Create(*context, "", cur_function);
-    BasicBlock *mergeBB = BasicBlock::Create(*context);
+    BasicBlock *mergeBB;
+    if (!stmt->terms) mergeBB = BasicBlock::Create(*context);
     builder->CreateBr(whileBB);
     builder->SetInsertPoint(whileBB);
     Value *body = stmt_codegen(stmt->body);
     if (!body) return nullptr;
     Value *cond = expr_codegen(stmt->cond);
-    builder->CreateCondBr(cond, whileBB, mergeBB);
+    if (!stmt->terms) builder->CreateCondBr(cond, whileBB, mergeBB);
     whileBB = builder->GetInsertBlock();
-    cur_function->getBasicBlockList().push_back(mergeBB);
-    builder->SetInsertPoint(mergeBB);
+    if (!stmt->terms) {
+	cur_function->getBasicBlockList().push_back(mergeBB);
+	builder->SetInsertPoint(mergeBB);
+    }
     clear_recent_locals();
     --scope_level;
     return Constant::getNullValue(Type::getVoidTy(*context));;
