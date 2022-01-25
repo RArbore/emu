@@ -427,23 +427,23 @@ extern "C"
 
     void print_sast(sast*);
 
-    void free_type(type*);
+    void destruct_type(type*);
 
-    void free_decorated_type(decorated_type*);
+    void destruct_decorated_type(decorated_type*);
 
-    void free_decorated_identifier(decorated_identifier*);
+    void destruct_decorated_identifier(decorated_identifier*);
 
-    void free_comptime_value(comptime_value*);
+    void destruct_comptime_value(comptime_value*);
 
-    void free_lvalue(lvalue*);
+    void destruct_lvalue(lvalue*);
     
-    void free_expr(expression*);
+    void destruct_expr(expression*);
     
-    void free_stmt(statement*);
+    void destruct_stmt(statement*);
     
-    void free_decl(declaration*);
+    void destruct_decl(declaration*);
 
-    void free_sast(sast*);
+    void destruct_sast(sast*);
 
     int c_entry_point(sast*);
     int cxx_entry_point(sast*);
