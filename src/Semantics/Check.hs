@@ -390,9 +390,9 @@ checkExpr ((l, sc, ec), e) = checked
                                A.Tilda -> if singletonNonVoid $ typeOf sexpr
                                           then return $ Unary Tilda sexpr (typeOf sexpr)
                                           else throwError $ SemanticsError l sc ec PointerTypeError
-                               A.Star -> if canDeref $ typeOf sexpr
-                                         then return $ LValueExpression $ Dereference sexpr $ typeOf sexpr
-                                         else throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
+                               A.Star -> case typeOf sexpr of
+                                           DerefType t -> return $ LValueExpression $ Dereference sexpr $ t
+                                           otherwise -> throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                                A.And -> case sexpr of
                                           LValueExpression lval -> return $ Address lval
                                           _ -> throwError $ SemanticsError l sc ec AddressError
@@ -488,8 +488,6 @@ checkExpr ((l, sc, ec), e) = checked
           numeric _ = True
           boolean (PureType Bool) = True
           boolean _ = False
-          canDeref (DerefType _) = True
-          canDeref _ = False
           isIntegralType (PureType U8) = True
           isIntegralType (PureType U16) = True
           isIntegralType (PureType U32) = True
