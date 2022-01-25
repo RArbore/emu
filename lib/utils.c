@@ -295,7 +295,23 @@ void destruct_type(type *type) {
 }
 
 void destruct_decorated_type(decorated_type *decorated_type) {
-
+    switch (decorated_type->decorated_type_e) {
+    case PURE_TYPE: {
+	destruct_type(decorated_type->pure_type);
+	free(decorated_type->pure_type);
+	break;
+    }
+    case DEREF_TYPE: {
+	destruct_decorated_type(decorated_type->deref_type);
+	free(decorated_type->deref_type);
+	break;
+    }
+    case ARRAY_TYPE: {
+	for (u64 i = 0; i < decorated_type->array_size; ++i) destruct_decorated_type(decorated_type->array_type + i);
+	free(decorated_type->array_type);
+	break;
+    }
+    }
 }
 
 void destruct_decorated_identifier(decorated_identifier *decorated_identifier) {
@@ -323,30 +339,30 @@ void destruct_decl(declaration *decl) {
     case STRUCT_DECL: {
 	free(decl->struct_decl->mods);
 	free(decl->struct_decl->name);
-	for (u64 i = 0; i < decl->struct_decl->num_fields; ++i) free_decorated_identifier(decl->struct_decl->fields + i);
+	for (u64 i = 0; i < decl->struct_decl->num_fields; ++i) destruct_decorated_identifier(decl->struct_decl->fields + i);
 	free(decl->struct_decl->fields);
 	break;
     }
     case FUNC_DECL: {
 	free(decl->func_decl->mods);
 	free(decl->func_decl->name);
-	for (u64 i = 0; i < decl->func_decl->num_params; ++i) free_decorated_identifier(decl->func_decl->params + i);
+	for (u64 i = 0; i < decl->func_decl->num_params; ++i) destruct_decorated_identifier(decl->func_decl->params + i);
 	free(decl->func_decl->params);
-	free_decorated_type(decl->func_decl->ret_type);
+	destruct_decorated_type(decl->func_decl->ret_type);
 	free(decl->func_decl->ret_type);
-	free_stmt(decl->func_decl->body);
+	destruct_stmt(decl->func_decl->body);
 	free(decl->func_decl->body);
 	break;
     }
     case VAR_DECL: {
-	free_decorated_identifier(decl->var_decl->iden);
+	destruct_decorated_identifier(decl->var_decl->iden);
 	free(decl->var_decl->iden);
-	free_expr(decl->var_decl->init);
+	destruct_expr(decl->var_decl->init);
 	free(decl->var_decl->init);
 	break;
     }
     case STMT_DECL: {
-	free_stmt(decl->stmt_decl->stmt);
+	destruct_stmt(decl->stmt_decl->stmt);
 	free(decl->stmt_decl->stmt);
 	break;
     }
@@ -354,7 +370,7 @@ void destruct_decl(declaration *decl) {
 }
 
 void destruct_sast(sast *sast) {
-    for (u64 i = 0; i < sast->num_decls; ++i) free_decl(sast->decls + i);
+    for (u64 i = 0; i < sast->num_decls; ++i) destruct_decl(sast->decls + i);
     free(sast->decls);
     free(sast);
 }
