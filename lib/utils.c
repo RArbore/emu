@@ -10,6 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
+#include <stdlib.h>
+
 #include "lib.h"
 
 void print_type(type *t) {
@@ -288,4 +290,7 @@ int c_entry_point(sast *sast) {
     return cxx_entry_point(sast);
 }
 
-void free_sast(sast*);
+void free_sast(sast *sast) {
+    for (u64 i = 0; i < sast->num_decls; ++i) free_decl(sast->decls + i);
+    free(sast);
+}
