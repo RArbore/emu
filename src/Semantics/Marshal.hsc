@@ -17,11 +17,13 @@ module Semantics.Marshal
 
 import Control.Applicative ((<$>), (<*>))
 
+import Data.Maybe
 import qualified Data.Text as T
 import Data.Word
 
 import Foreign
 import Foreign.C.String
+import Foreign.C.Types
 import Foreign.Storable
 
 import Parser.AST (Type (..), Modifier (..))
@@ -395,9 +397,9 @@ instance Storable Statement where
       [let ioeptr = (#peek statement, expr_stmt) ptr :: IO (Ptr ())
        in ExpressionStatement <$> (peek =<< (#peek expr_stmt, expr) =<< ioeptr),
        let ioieptr = (#peek statement, ifelse_stmt) ptr :: IO (Ptr ())
-       in IfElseStatement <$> (peek =<< (#peek ifelse_stmt, cond) =<< ioieptr) <*> (peek =<< (#peek ifelse_stmt, pos) =<< ioieptr) <*> (peek =<< (#peek ifelse_stmt, neg) =<< ioieptr),
+       in IfElseStatement <$> (peek =<< (#peek ifelse_stmt, cond) =<< ioieptr) <*> (peek =<< (#peek ifelse_stmt, pos) =<< ioieptr) <*> (peek =<< (#peek ifelse_stmt, neg) =<< ioieptr) <*> pure False <*> pure False,
        let iodwptr = (#peek statement, dowhile_stmt) ptr :: IO (Ptr ())
-       in DoWhileStatement <$> (peek =<< (#peek dowhile_stmt, cond) =<< iodwptr) <*> (peek =<< (#peek dowhile_stmt, body) =<< iodwptr),
+       in DoWhileStatement <$> (peek =<< (#peek dowhile_stmt, cond) =<< iodwptr) <*> (peek =<< (#peek dowhile_stmt, body) =<< iodwptr) <*> pure False,
        let iorptr = (#peek statement, return_stmt) ptr :: IO (Ptr ())
        in ReturnStatement <$> (peek =<< (#peek return_stmt, expr) =<< iorptr),
        Block <$> (do
@@ -412,7 +414,7 @@ instance Storable Statement where
                               poke eptr e
                               (#poke expr_stmt, expr) esptr eptr
                               (#poke statement, expr_stmt) ptr esptr
-    poke ptr (IfElseStatement e s1 s2) = do
+    poke ptr (IfElseStatement e s1 s2 b1 b2) = do
                               (#poke statement, type) ptr ((#const IFELSE_STMT) :: Word32)
                               ieptr <- callocBytes (#size ifelse_stmt)
                               eptr <- calloc
@@ -424,10 +426,10 @@ instance Storable Statement where
                               (#poke ifelse_stmt, cond) ieptr eptr
                               (#poke ifelse_stmt, pos) ieptr s1ptr
                               (#poke ifelse_stmt, neg) ieptr s2ptr
-                              (#poke ifelse_stmt pos_terms) ieptr $ fromIntegral $ isJust $ stmtReturns s1
-                              (#poke ifelse_stmt neg_terms) ieptr $ fromIntegral $ isJust $ stmtReturns s2
+                              (#poke ifelse_stmt, pos_terms) ieptr $ (fromIntegral $ (\x -> if x then 1 else 0) $ b1 :: CBool)
+                              (#poke ifelse_stmt, neg_terms) ieptr $ (fromIntegral $ (\x -> if x then 1 else 0) $ b2 :: CBool)
                               (#poke statement, ifelse_stmt) ptr ieptr
-    poke ptr (DoWhileStatement e s) = do
+    poke ptr (DoWhileStatement e s b) = do
                               (#poke statement, type) ptr ((#const DOWHILE_STMT) :: Word32)
                               dwptr <- callocBytes (#size dowhile_stmt)
                               eptr <- calloc
@@ -436,7 +438,7 @@ instance Storable Statement where
                               poke sptr s
                               (#poke dowhile_stmt, cond) dwptr eptr
                               (#poke dowhile_stmt, body) dwptr sptr
-                              (#poke dowhile_stmt, terms) dwptr $ fromIntegral $ isJust $ stmtReturns s
+                              (#poke dowhile_stmt, terms) dwptr $ (fromIntegral $ (\x -> if x then 1 else 0) $ b :: CBool)
                               (#poke statement, dowhile_stmt) ptr dwptr
     poke ptr (ReturnStatement e) = do
                               (#poke statement, type) ptr ((#const RETURN_STMT) :: Word32)

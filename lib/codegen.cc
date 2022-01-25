@@ -424,7 +424,7 @@ Value* Codegen::crement_expr_codegen(crement_expr *expr) {
 }
 
 Value* Codegen::undefined_expr_codegen() {
-    return UndefValue::get(Type::getInt64Ty(*context));
+    return UndefValue::get(Type::getVoidTy(*context));
 }
 
 Value* Codegen::expr_codegen(expression *expr) {

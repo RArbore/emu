@@ -62,8 +62,8 @@ data Declaration = StructDecl Structure
                  | StatementDecl Statement deriving (Show, Generic, NFData)
     
 data Statement = ExpressionStatement Expression
-               | IfElseStatement Expression Statement Statement
-               | DoWhileStatement Expression Statement
+               | IfElseStatement Expression Statement Statement Bool Bool
+               | DoWhileStatement Expression Statement Bool
                | ReturnStatement Expression
                | Block [Declaration]
                | EmptyStatement deriving (Show, Generic, NFData)

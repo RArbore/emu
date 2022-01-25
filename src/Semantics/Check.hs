@@ -252,7 +252,9 @@ checkDecoratedIdentifiers (l, sc, ec) idens = let sortedNames = map (\(A.Decorat
 
 checkStmt :: A.Statement -> Semantics Statement
 checkStmt ((l, sc, ec), s) = checked
-    where checked = case s of
+    where mkIfElse mkCond mkSb1 mkSb2 = IfElseStatement mkCond mkSb1 mkSb2 <$> (isJust <$> stmtReturns (l, sc, ec) mkSb1) <*> (isJust <$> stmtReturns (l, sc, ec) mkSb2)
+          mkDoWhile mkCond mkSb = DoWhileStatement mkCond mkSb <$> (isJust <$> stmtReturns (l, sc, ec) mkSb)
+          checked = case s of
                       A.ExpressionStatement e -> ExpressionStatement <$> checkExpr e
                       A.IfElseStatement cond b1 b2 -> do
                              scond <- checkExpr cond
@@ -263,7 +265,7 @@ checkStmt ((l, sc, ec), s) = checked
                              sb2 <- checkStmt b2
                              modify $ \env -> env { vars = boundVars }
                              case typeOf scond of
-                               PureType Bool -> return $ IfElseStatement scond sb1 sb2
+                               PureType Bool -> mkIfElse scond sb1 sb2
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
                       A.WhileStatement cond b -> do
                              scond <- checkExpr cond
@@ -271,7 +273,7 @@ checkStmt ((l, sc, ec), s) = checked
                              sb <- checkStmt b
                              modify $ \env -> env { vars = boundVars }
                              case typeOf scond of
-                               PureType Bool -> return $ IfElseStatement scond (DoWhileStatement scond sb) EmptyStatement
+                               PureType Bool -> (\x -> mkIfElse scond x EmptyStatement) =<< (mkDoWhile scond sb)
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
                       A.ForStatement decl cond iter b -> do
                              boundVars <- gets vars
@@ -281,12 +283,11 @@ checkStmt ((l, sc, ec), s) = checked
                              sb <- checkStmt b
                              modify $ \env -> env { vars = boundVars }
                              case typeOf scond of
-                               PureType Bool -> return $ Block [
-                                                          sdecl,
-                                                          StatementDecl $ IfElseStatement scond
-                                                                            (DoWhileStatement scond (Block [StatementDecl sb, StatementDecl $ ExpressionStatement siter]))
-                                                                            EmptyStatement
-                                                         ]
+                               PureType Bool -> (\x -> Block [
+                                                        sdecl,
+                                                        StatementDecl x
+                                                       ])
+                                                <$> ((\x -> mkIfElse scond x EmptyStatement) =<< mkDoWhile scond (Block [StatementDecl sb, StatementDecl $ ExpressionStatement siter]))
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
                       A.SwitchStatement _ _ -> undefined
                       A.CaseStatement _ _ -> undefined
@@ -609,7 +610,7 @@ comptimeEvaluate (l, sc, ec) _ = throwError $ SemanticsError l sc ec NonComptime
 
 stmtReturns :: A.Location -> Statement -> Semantics (Maybe DecoratedType)
 stmtReturns _ (ExpressionStatement _) = return Nothing
-stmtReturns (l, sc, ec) (IfElseStatement _ s1 s2) = do
+stmtReturns (l, sc, ec) (IfElseStatement _ s1 s2 _ _) = do
   curSig <- gets curFuncSignature
   rs1 <- stmtReturns (l, sc, ec) s1
   rs2 <- stmtReturns (l, sc, ec) s2
@@ -623,7 +624,7 @@ stmtReturns (l, sc, ec) (IfElseStatement _ s1 s2) = do
           Just (FunctionSignature _ _ _ retType) -> if ts1 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts1
                                   else if ts2 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts2
                                        else return $ Just retType
-stmtReturns (l, sc, ec) (DoWhileStatement _ s) = do
+stmtReturns (l, sc, ec) (DoWhileStatement _ s _) = do
   curSig <- gets curFuncSignature
   rs <- stmtReturns (l, sc, ec) s
   case rs of
