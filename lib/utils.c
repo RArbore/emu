@@ -315,11 +315,34 @@ void destruct_decorated_type(decorated_type *decorated_type) {
 }
 
 void destruct_decorated_identifier(decorated_identifier *decorated_identifier) {
-
+    free(decorated_identifier->mods);
+    free(decorated_identifier->name);
+    destruct_decorated_type(decorated_identifier->type);
+    free(decorated_identifier->type);
 }
 
 void destruct_comptime_value(comptime_value *comptime_value) {
-
+    switch (comptime_value->type) {
+    case CT_PTR: {
+	destruct_decorated_type(comptime_value->ptr_type);
+	free(comptime_value->ptr_type);
+	break;
+    }
+    case CT_STRUCT: {
+	for (u64 i = 0; i < comptime_value->num_fields; ++i) destruct_comptime_value(comptime_value->fields + i);
+	free(comptime_value->fields);
+	free(comptime_value->struct_name);
+	break;
+    }
+    case CT_ARR: {
+	for (u64 i = 0; i < comptime_value->size; ++i) destruct_comptime_value(comptime_value->elements + i);
+	free(comptime_value->elements);
+	destruct_decorated_type(comptime_value->array_type);
+	free(comptime_value->array_type);
+	break;
+    }
+    default: break;
+    }
 }
 
 void destruct_lvalue(lvalue *lvalue) {
