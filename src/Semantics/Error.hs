@@ -68,6 +68,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | NestedDeclarationError
                         | InvalidModifier Modifier
                         | StatementOutsideDeclarationError 
+                        | FunctionNotReturning
                         | DeadCode
 
 data VarKind = Global | Local | Formal deriving (Show, Eq, Ord)
@@ -126,6 +127,7 @@ instance Show SemanticsErrorType where
     show (InvalidModifier Register) = "register is an invalid modifier here"
     show (InvalidModifier Restrict) = "restrict is an invalid modifier here"
     show StatementOutsideDeclarationError = "statements are illegal outside of declarations"
+    show FunctionNotReturning = "function doesn't return the correct type in all control flow paths"
     show DeadCode = "code is never reached"
 
 show'' :: Type -> String

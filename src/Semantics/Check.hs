@@ -189,6 +189,8 @@ checkDecl ((l, sc, ec), d) = checked
                              let sig = FunctionSignature mods name sargs sretType
                              modify $ \env -> env { curFuncSignature = Just sig }
                              sbody <- checkStmt body
+                             termination <- stmtReturns (l, sc, ec) sbody
+                             unless (termination == sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
                              let func = Function sig sbody
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              return $ FuncDecl $ func
@@ -617,7 +619,7 @@ stmtReturns (l, sc, ec) (IfElseStatement _ s1 s2) = do
     (Just ts1, Just ts2) ->
         case curSig of
           Nothing -> throwError $ SemanticsError l sc ec StatementOutsideDeclarationError
-          Just (FunctionSignature  _ _ _ retType) -> if ts1 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts1
+          Just (FunctionSignature _ _ _ retType) -> if ts1 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts1
                                   else if ts2 /= retType then throwError $ SemanticsError l sc ec $ TypeError retType ts2
                                        else return $ Just retType
 stmtReturns (l, sc, ec) (DoWhileStatement _ s) = do
