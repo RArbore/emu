@@ -192,7 +192,7 @@ checkDecl ((l, sc, ec), d) = checked
                              sbody <- checkStmt body
                              termination <- stmtReturns (l, sc, ec) sbody
                              unless (termination == Just sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
-                             let func = Function sig sbody
+                             let func = Function sig (if isTypeVoid sretType && termination == Nothing then Block [StatementDecl sbody, StatementDecl $ ReturnStatement Undefined] else sbody)
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              return $ FuncDecl $ func
                       A.VarDecl (A.DecoratedIdentifier mods name t) init -> do
