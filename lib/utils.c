@@ -283,3 +283,9 @@ void print_sast(sast *sast) {
     }
     printf("]");
 }
+
+int c_entry_point(sast *sast) {
+    return cxx_entry_point(sast);
+}
+
+void free_sast(sast*);

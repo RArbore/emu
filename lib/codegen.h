@@ -10,6 +10,9 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
+#ifndef LIB_H
+#define LIB_H
+
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar.h"
@@ -129,3 +132,5 @@ public:
 };
 
 int cxx_entry_point(sast *sast);
+
+#endif

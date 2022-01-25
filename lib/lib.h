@@ -10,8 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
-#ifndef CODEGEN_H
-#define CODEGEN_H
+#ifndef LIB_H
+#define LIB_H
 
 #ifdef __cplusplus
 extern "C"
@@ -426,6 +426,8 @@ typedef struct sast {
 } sast;
 
 void print_sast(sast*);
+
+void free_sast(sast*);
 
 int c_entry_point(sast*);
 int cxx_entry_point(sast*);
