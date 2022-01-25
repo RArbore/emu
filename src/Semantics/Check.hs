@@ -14,7 +14,8 @@ module Semantics.Check
     (
 
      Environment (..),
-     
+
+     stmtReturns,
      check
 
     ) where

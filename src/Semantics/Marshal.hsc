@@ -26,6 +26,7 @@ import Foreign.Storable
 
 import Parser.AST (Type (..), Modifier (..))
     
+import Semantics.Check (stmtReturns)
 import Semantics.SAST
 
 #include "lib.h"
@@ -423,6 +424,8 @@ instance Storable Statement where
                               (#poke ifelse_stmt, cond) ieptr eptr
                               (#poke ifelse_stmt, pos) ieptr s1ptr
                               (#poke ifelse_stmt, neg) ieptr s2ptr
+                              (#poke ifelse_stmt pos_terms) ieptr $ fromIntegral $ isJust $ stmtReturns s1
+                              (#poke ifelse_stmt neg_terms) ieptr $ fromIntegral $ isJust $ stmtReturns s2
                               (#poke statement, ifelse_stmt) ptr ieptr
     poke ptr (DoWhileStatement e s) = do
                               (#poke statement, type) ptr ((#const DOWHILE_STMT) :: Word32)
@@ -433,6 +436,7 @@ instance Storable Statement where
                               poke sptr s
                               (#poke dowhile_stmt, cond) dwptr eptr
                               (#poke dowhile_stmt, body) dwptr sptr
+                              (#poke dowhile_stmt, terms) dwptr $ fromIntegral $ isJust $ stmtReturns s
                               (#poke statement, dowhile_stmt) ptr dwptr
     poke ptr (ReturnStatement e) = do
                               (#poke statement, type) ptr ((#const RETURN_STMT) :: Word32)

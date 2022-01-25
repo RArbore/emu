@@ -333,11 +333,14 @@ typedef struct ifelse_stmt {
     expression *cond;
     struct statement *pos;
     struct statement *neg;
+    bool pos_terms;
+    bool neg_terms;
 } ifelse_stmt;
 
 typedef struct dowhile_stmt {
     expression *cond;
     struct statement *body;
+    bool terms;
 } dowhile_stmt;
 
 typedef struct return_stmt {
