@@ -374,7 +374,88 @@ void destruct_lvalue(lvalue *lvalue) {
 }
 
 void destruct_expr(expression *expr) {
-
+    switch (expr->type) {
+    case BINARY_EXPR: {
+	destruct_expr(expr->binary_expr->expr1);
+	free(expr->binary_expr->expr1);
+	destruct_expr(expr->binary_expr->expr2);
+	free(expr->binary_expr->expr2);
+	destruct_decorated_type(expr->binary_expr->type);
+	free(expr->binary_expr->type);
+	destruct_decorated_type(expr->binary_expr->left_type);
+	free(expr->binary_expr->left_type);
+	destruct_decorated_type(expr->binary_expr->right_type);
+	free(expr->binary_expr->right_type);
+	break;
+    }
+    case UNARY_EXPR: {
+	destruct_expr(expr->unary_expr->expr);
+	free(expr->unary_expr->expr);
+	destruct_decorated_type(expr->unary_expr->type);
+	free(expr->unary_expr->type);
+	break;
+    }
+    case LITERAL_EXPR: {
+	destruct_comptime_value(expr->literal_expr->comptime_value);
+	free(expr->literal_expr->comptime_value);
+	break;
+    }
+    case ARRAY_EXPR: {
+	for (u64 i = 0; i < expr->array_expr->size; ++i) destruct_expr(expr->array_expr->elements + i);
+	free(expr->array_expr->elements);
+	destruct_decorated_type(expr->array_expr->element_type);
+	free(expr->array_expr->element_type);
+	break;
+    }
+    case CALL_EXPR: {
+	free(expr->call_expr->func_name);
+	for (u64 i = 0; i < expr->call_expr->num_args; ++i) destruct_expr(expr->call_expr->args + i);
+	free(expr->call_expr->args);
+	destruct_decorated_type(expr->call_expr->result_type);
+	free(expr->call_expr->result_type);
+	break;
+    }
+    case CAST_EXPR: {
+	destruct_expr(expr->cast_expr->expr);
+	free(expr->cast_expr->expr);
+	destruct_decorated_type(expr->cast_expr->in_type);
+	free(expr->cast_expr->in_type);
+	destruct_decorated_type(expr->cast_expr->out_type);
+	free(expr->cast_expr->out_type);
+	break;
+    }
+    case LVALUE_EXPR: {
+	destruct_lvalue(expr->lvalue_expr->lvalue);
+	free(expr->lvalue_expr->lvalue);
+	break;
+    }
+    case ASSIGN_EXPR: {
+	destruct_lvalue(expr->assign_expr->lvalue);
+	free(expr->assign_expr->lvalue);
+	destruct_expr(expr->assign_expr->expr);
+	free(expr->assign_expr->expr);
+	destruct_decorated_type(expr->assign_expr->left_type);
+	free(expr->assign_expr->left_type);
+	destruct_decorated_type(expr->assign_expr->right_type);
+	free(expr->assign_expr->right_type);
+	break;
+    }
+    case ADDRESS_EXPR: {
+	destruct_lvalue(expr->address_expr->lvalue);
+	free(expr->address_expr->lvalue);
+	break;
+    }
+    case CREMENT_EXPR: {
+	destruct_lvalue(expr->crement_expr->lvalue);
+	free(expr->crement_expr->lvalue);
+	destruct_decorated_type(expr->crement_expr->type);
+	free(expr->crement_expr->type);
+	break;
+    }
+    case UNDEFINED: {
+	break;
+    }
+    }
 }
 
 void destruct_stmt(statement *stmt) {
