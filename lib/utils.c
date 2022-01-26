@@ -459,7 +459,42 @@ void destruct_expr(expression *expr) {
 }
 
 void destruct_stmt(statement *stmt) {
-    
+    switch (stmt->type) {
+    case EXPR_STMT: {
+	destruct_expr(stmt->expr_stmt->expr);
+	free(stmt->expr_stmt->expr);
+	break;
+    }
+    case IFELSE_STMT: {
+	destruct_expr(stmt->ifelse_stmt->cond);
+	free(stmt->ifelse_stmt->cond);
+	destruct_stmt(stmt->ifelse_stmt->pos);
+	free(stmt->ifelse_stmt->pos);
+	destruct_stmt(stmt->ifelse_stmt->neg);
+	free(stmt->ifelse_stmt->neg);
+	break;
+    }
+    case DOWHILE_STMT: {
+	destruct_expr(stmt->dowhile_stmt->cond);
+	free(stmt->dowhile_stmt->cond);
+	destruct_stmt(stmt->dowhile_stmt->body);
+	free(stmt->dowhile_stmt->body);
+	break;
+    }
+    case RETURN_STMT: {
+	destruct_expr(stmt->return_stmt->expr);
+	free(stmt->return_stmt->expr);
+	break;
+    }
+    case BLOCK: {
+	for (u64 i = 0; i < stmt->block_size; ++i) destruct_decl(stmt->block + i);
+	free(stmt->block);
+	break;
+    }
+    case EMPTY: {
+	break;
+    }
+    }
 }
 
 void destruct_decl(declaration *decl) {
@@ -500,5 +535,4 @@ void destruct_decl(declaration *decl) {
 void destruct_sast(sast *sast) {
     for (u64 i = 0; i < sast->num_decls; ++i) destruct_decl(sast->decls + i);
     free(sast->decls);
-    free(sast);
 }
