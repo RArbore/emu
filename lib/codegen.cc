@@ -678,6 +678,9 @@ int Codegen::codegen(sast *sast) {
     }
     pass.run(*module);
     dest.flush();
+
+    destruct_sast(sast);
+    free(sast);
     
     return 0;
 }

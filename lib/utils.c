@@ -291,7 +291,7 @@ int c_entry_point(sast *sast) {
 }
 
 void destruct_type(type *type) {
-    free(type->struct_name);
+    if (type->type_e == STRUCT) free(type->struct_name);
 }
 
 void destruct_decorated_type(decorated_type *decorated_type) {
@@ -307,7 +307,7 @@ void destruct_decorated_type(decorated_type *decorated_type) {
 	break;
     }
     case ARRAY_TYPE: {
-	for (u64 i = 0; i < decorated_type->array_size; ++i) destruct_decorated_type(decorated_type->array_type + i);
+	destruct_decorated_type(decorated_type->array_type);
 	free(decorated_type->array_type);
 	break;
     }
