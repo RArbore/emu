@@ -563,7 +563,7 @@ Function* Codegen::func_decl_codegen(func_decl *decl) {
     Value *body = stmt_codegen(decl->body);
     if (!body) return nullptr;
     verifyFunction(*f);
-    //fpm->run(*f);
+    fpm->run(*f);
     clear_recent_locals();
     --scope_level;
     
@@ -603,7 +603,7 @@ Value* Codegen::decl_codegen(declaration *decl) {
     }
 }
 
-int Codegen::codegen(sast *sast) {
+int Codegen::codegen(sast *sast, std::string out_file) {
     context = std::make_unique<LLVMContext>();
     module = std::make_unique<Module>("module", *context);
     builder = std::make_unique<IRBuilder<>>(*context);
@@ -621,7 +621,7 @@ int Codegen::codegen(sast *sast) {
     }
 
     //print_sast(sast);
-    module->print(errs(), nullptr);
+    //module->print(errs(), nullptr);
     auto targetTriple = getDefaultTargetTriple();
     InitializeAllTargetInfos();
     InitializeAllTargets();
@@ -644,12 +644,11 @@ int Codegen::codegen(sast *sast) {
     module->setDataLayout(targetMachine->createDataLayout());
     module->setTargetTriple(targetTriple);
 
-    auto filename = "out.o";
     std::error_code ec;
-    raw_fd_ostream dest(filename, ec, fs::OF_None);
+    raw_fd_ostream dest(out_file, ec, fs::OF_None);
 
     if (ec) {
-	errs() << "Could not open file: " << ec.message();
+	errs() << "Could not open file " << out_file << ": " << ec.message();
 	return 1;
     }
 
@@ -667,13 +666,13 @@ int Codegen::codegen(sast *sast) {
     pb.crossRegisterProxies(lam, fam, cgam, mam);
     ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(PassBuilder::OptimizationLevel::O2);
     mpm.run(*module, mam);
-    module->print(errs(), nullptr);
+    //module->print(errs(), nullptr);
 
     legacy::PassManager pass;
     auto fileType = CGFT_ObjectFile;
 
     if (targetMachine->addPassesToEmitFile(pass, dest, nullptr, fileType)) {
-	errs() << "TargetMachine can't emit a file of this type";
+	errs() << "TargetMachine can't emit a file of this type.";
 	return 1;
     }
     pass.run(*module);
@@ -685,7 +684,7 @@ int Codegen::codegen(sast *sast) {
     return 0;
 }
 
-int cxx_entry_point(sast *sast) {
+int cxx_entry_point(sast *sast, char* out_file) {
     Codegen cg;
-    return cg.codegen(sast);
+    return cg.codegen(sast, std::string(out_file));
 }

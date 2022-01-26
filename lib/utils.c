@@ -286,10 +286,6 @@ void print_sast(sast *sast) {
     printf("]");
 }
 
-int c_entry_point(sast *sast) {
-    return cxx_entry_point(sast);
-}
-
 void destruct_type(type *type) {
     if (type->type_e == STRUCT) free(type->struct_name);
 }
@@ -535,4 +531,8 @@ void destruct_decl(declaration *decl) {
 void destruct_sast(sast *sast) {
     for (u64 i = 0; i < sast->num_decls; ++i) destruct_decl(sast->decls + i);
     free(sast->decls);
+}
+
+int c_entry_point(sast *sast, char *out_file) {
+    return cxx_entry_point(sast, out_file);
 }

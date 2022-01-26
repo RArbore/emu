@@ -128,7 +128,7 @@ public:
 
     Value *decl_codegen(declaration *decl);
 
-    int codegen(sast *sast);
+    int codegen(sast *sast, std::string out_file);
 };
 
 #endif
