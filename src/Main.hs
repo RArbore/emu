@@ -19,6 +19,7 @@ import Control.Monad.Except
 import Data.Either
 import Data.List
 import qualified Data.Map as M
+import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
@@ -42,7 +43,7 @@ import qualified Semantics.Error as SE
 import Semantics.Marshal
 import qualified Semantics.SAST as SA
 
-foreign import capi "lib.h c_entry_point" c_entry_point :: Ptr SA.SAST -> CString -> IO (CInt)
+foreign import capi "lib.h c_entry_point" c_entry_point :: Ptr SA.SAST -> CString -> CString -> IO (CInt)
 
 main :: IO ()
 main = do
@@ -59,14 +60,16 @@ main = do
       if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip emuFiles filesContents
       else do
         let sasts = map (fromRight undefined . fst) checked
-            codegen sast fileName = do
+            codegen sast fileName moduleName = do
               ptr <- callocBytes (sizeOf sast)
               poke ptr sast
               cFileName <- newCString $ fileName
-              statusCode <- c_entry_point ptr cFileName
+              cModuleName <- newCString $ moduleName
+              statusCode <- c_entry_point ptr cFileName cModuleName
               free cFileName
+              free cModuleName
               return statusCode
         pathsAndHandles <- mapM (openTempFile ".") (map ((\x -> x ++ ".o") . T.unpack) emuFiles)
         mapM_ hClose $ map snd pathsAndHandles
-        statusCodes <- sequence $ zipWith codegen sasts $ map fst pathsAndHandles
+        statusCodes <- sequence $ zipWith3 codegen sasts (map fst pathsAndHandles) (map (T.unpack . fromJust . T.stripSuffix (T.pack ".emu")) emuFiles)
         return ()

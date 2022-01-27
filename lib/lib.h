@@ -445,8 +445,8 @@ extern "C"
 
     void destruct_sast(sast*);
 
-    int c_entry_point(sast*, char*);
-    int cxx_entry_point(sast*, char*);
+    int c_entry_point(sast*, char*, char*);
+    int cxx_entry_point(sast*, char*, char*);
 
 #ifdef __cplusplus
 }

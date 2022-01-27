@@ -603,9 +603,9 @@ Value* Codegen::decl_codegen(declaration *decl) {
     }
 }
 
-int Codegen::codegen(sast *sast, std::string out_file) {
+int Codegen::codegen(sast *sast, std::string out_file, std::string module_name) {
     context = std::make_unique<LLVMContext>();
-    module = std::make_unique<Module>("module", *context);
+    module = std::make_unique<Module>(module_name, *context);
     builder = std::make_unique<IRBuilder<>>(*context);
     fpm = std::make_unique<legacy::FunctionPassManager>(module.get());
 
@@ -684,7 +684,7 @@ int Codegen::codegen(sast *sast, std::string out_file) {
     return 0;
 }
 
-int cxx_entry_point(sast *sast, char* out_file) {
+int cxx_entry_point(sast *sast, char* out_file, char* module_name) {
     Codegen cg;
-    return cg.codegen(sast, std::string(out_file));
+    return cg.codegen(sast, std::string(out_file), std::string(module_name));
 }

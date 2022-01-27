@@ -533,6 +533,6 @@ void destruct_sast(sast *sast) {
     free(sast->decls);
 }
 
-int c_entry_point(sast *sast, char *out_file) {
-    return cxx_entry_point(sast, out_file);
+int c_entry_point(sast *sast, char *out_file, char *module_name) {
+    return cxx_entry_point(sast, out_file, module_name);
 }
