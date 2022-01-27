@@ -12,6 +12,10 @@
 
 #include "codegen.h"
 
+TargetMachine *targetMachine;
+std::string targetTriple;
+std::vector<std::unique_ptr<Module>> modules;
+
 bool is_floating(decorated_type *dt) {
     switch (dt->decorated_type_e) {
     case PURE_TYPE:
@@ -603,7 +607,7 @@ Value* Codegen::decl_codegen(declaration *decl) {
     }
 }
 
-int Codegen::codegen(sast *sast, std::string out_file, std::string module_name) {
+int Codegen::codegen(sast *sast, std::string module_name) {
     context = std::make_unique<LLVMContext>();
     module = std::make_unique<Module>(module_name, *context);
     builder = std::make_unique<IRBuilder<>>(*context);
@@ -622,35 +626,6 @@ int Codegen::codegen(sast *sast, std::string out_file, std::string module_name) 
 
     //print_sast(sast);
     //module->print(errs(), nullptr);
-    auto targetTriple = getDefaultTargetTriple();
-    InitializeAllTargetInfos();
-    InitializeAllTargets();
-    InitializeAllTargetMCs();
-    InitializeAllAsmParsers();
-    InitializeAllAsmPrinters();
-
-    std::string error;
-    auto target = TargetRegistry::lookupTarget(targetTriple, error);
-    if (!target) {
-	errs() << error;
-	return 1;
-    }
-    auto cpu = "generic";
-    auto features = "";
-    TargetOptions opt;
-    auto rm = Optional<Reloc::Model>();
-    auto targetMachine = target->createTargetMachine(targetTriple, cpu, features, opt, rm);
-
-    module->setDataLayout(targetMachine->createDataLayout());
-    module->setTargetTriple(targetTriple);
-
-    std::error_code ec;
-    raw_fd_ostream dest(out_file, ec, fs::OF_None);
-
-    if (ec) {
-	errs() << "Could not open file " << out_file << ": " << ec.message();
-	return 1;
-    }
 
     LoopAnalysisManager lam;
     FunctionAnalysisManager fam;
@@ -668,6 +643,28 @@ int Codegen::codegen(sast *sast, std::string out_file, std::string module_name) 
     mpm.run(*module, mam);
     //module->print(errs(), nullptr);
 
+    module->setDataLayout(targetMachine->createDataLayout());
+    module->setTargetTriple(targetTriple);
+
+    destruct_sast(sast);
+    free(sast);
+    
+    return 0;
+}
+
+std::unique_ptr<Module> Codegen::get_module() {
+    return std::move(module);
+}
+
+int write_module(std::unique_ptr<Module> module, std::string out_file) {
+    std::error_code ec;
+    raw_fd_ostream dest(out_file, ec, fs::OF_None);
+
+    if (ec) {
+	errs() << "Could not open file " << out_file << ": " << ec.message();
+	return 1;
+    }
+
     legacy::PassManager pass;
     auto fileType = CGFT_ObjectFile;
 
@@ -678,13 +675,49 @@ int Codegen::codegen(sast *sast, std::string out_file, std::string module_name) 
     pass.run(*module);
     dest.flush();
 
-    destruct_sast(sast);
-    free(sast);
-    
     return 0;
 }
 
-int cxx_entry_point(sast *sast, char* out_file, char* module_name) {
+int cxx_llvm_init() {
+    targetTriple = getDefaultTargetTriple();
+    InitializeAllTargetInfos();
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmParsers();
+    InitializeAllAsmPrinters();
+
+    std::string error;
+    auto target = TargetRegistry::lookupTarget(targetTriple, error);
+    if (!target) {
+	errs() << error;
+	return 1;
+    }
+
+    auto cpu = "generic";
+    auto features = "";
+    TargetOptions opt;
+    auto rm = Optional<Reloc::Model>();
+    targetMachine = target->createTargetMachine(targetTriple, cpu, features, opt, rm);
+
+    return 0;
+}
+
+int cxx_codegen(sast *sast, char* module_name) {
     Codegen cg;
-    return cg.codegen(sast, std::string(out_file), std::string(module_name));
+    int ret_code = cg.codegen(sast, std::string(module_name));
+    if (ret_code) return ret_code;
+    modules.push_back(cg.get_module());
+    return 0;
+}
+
+int c_link(char* out_file) {
+    bool res;
+    for (u64 i = 1; i < modules.size(); ++i) {
+	res = Linker::linkModules(*modules.at(0), std::move(modules.at(i)));
+	if (res) {
+	    errs() << "Linker failed.";
+	    return 1;
+	}
+    }
+    return write_module(std::move(modules.at(0)), std::string(out_file));
 }

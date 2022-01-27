@@ -33,6 +33,8 @@
 
 #include <llvm/Passes/PassBuilder.h>
 
+#include <llvm/Linker/Linker.h>
+
 #include <llvm/ADT/APFixedPoint.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/APFloat.h>
@@ -128,7 +130,11 @@ public:
 
     Value *decl_codegen(declaration *decl);
 
-    int codegen(sast *sast, std::string out_file, std::string module_name);
+    int codegen(sast *sast, std::string module_name);
+
+    std::unique_ptr<Module> get_module();
 };
+
+int write_module(std::unique_ptr<Module> module, std::string out_file);
 
 #endif

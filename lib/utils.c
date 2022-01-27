@@ -533,6 +533,14 @@ void destruct_sast(sast *sast) {
     free(sast->decls);
 }
 
-int c_entry_point(sast *sast, char *out_file, char *module_name) {
-    return cxx_entry_point(sast, out_file, module_name);
+int c_llvm_init() {
+    return cxx_llvm_init();
+}
+
+int c_codegen(sast *sast, char* module_name) {
+    return cxx_codegen(sast, module_name);
+}
+
+int c_link(char* out_file) {
+    return cxx_link(out_file);
 }
