@@ -12,9 +12,10 @@
 
 #include <stdio.h>
 
-extern unsigned fact(unsigned);
+extern float f(float);
+extern float g();
 
 int main(void) {
-    printf("%d", fact(5));
+    printf("%f", f(g()));
     return 0;
 }

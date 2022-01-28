@@ -16,4 +16,5 @@ extern float f();
 
 int main(void) {
     printf("%f", f());
+    return 0;
 }

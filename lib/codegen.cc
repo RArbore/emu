@@ -677,7 +677,6 @@ int write_module(Module* module, std::string out_file) {
     }
     pass.run(*module);
     dest.flush();
-
     return 0;
 }
 
@@ -701,7 +700,6 @@ int cxx_llvm_init() {
     TargetOptions opt;
     auto rm = Optional<Reloc::Model>();
     targetMachine = target->createTargetMachine(targetTriple, cpu, features, opt, rm);
-
     return 0;
 }
 
@@ -727,6 +725,6 @@ int cxx_link(char* out_file) {
 }
 
 void cxx_free() {
-    for (auto p : modulesVec) delete p;
+    delete modulesVec.at(0);
     for (auto p : codegensVec) delete p;
 }

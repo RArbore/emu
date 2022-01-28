@@ -10,11 +10,6 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
-#include <stdio.h>
-
-extern unsigned fact(unsigned);
-
-int main(void) {
-    printf("%d", fact(5));
-    return 0;
+func g(): f32 {
+    return (f32) 3.14;
 }
