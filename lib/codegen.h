@@ -65,7 +65,7 @@ class Codegen {
 private:
     std::unique_ptr<LLVMContext> context;
     std::unique_ptr<IRBuilder<>> builder;
-    std::unique_ptr<Module> module;
+    Module* module;
     std::unique_ptr<legacy::FunctionPassManager> fpm;
     std::map<std::string, std::vector<decorated_type*>> defined_structs;
     std::map<std::string, Value*> bound_named_allocas;
@@ -132,9 +132,9 @@ public:
 
     int codegen(sast *sast, std::string module_name);
 
-    std::unique_ptr<Module> get_module();
+    Module *get_module();
 };
 
-int write_module(std::unique_ptr<Module> module, std::string out_file);
+int write_module(Module* module, std::string out_file);
 
 #endif

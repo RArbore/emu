@@ -544,3 +544,7 @@ int c_codegen(sast *sast, char* module_name) {
 int c_link(char* out_file) {
     return cxx_link(out_file);
 }
+
+void c_free(void) {
+    cxx_free();
+}

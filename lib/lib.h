@@ -454,6 +454,9 @@ extern "C"
     int c_link(char*);
     int cxx_link(char*);
 
+    void c_free(void);
+    void cxx_free(void);
+
 #ifdef __cplusplus
 }
 #endif

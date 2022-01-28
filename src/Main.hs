@@ -29,7 +29,6 @@ import Foreign.C.Types
 import Foreign.Marshal.Alloc
 
 import System.Environment
-import System.IO
 
 import Interface.ParseArgs
 
@@ -43,7 +42,10 @@ import qualified Semantics.Error as SE
 import Semantics.Marshal
 import qualified Semantics.SAST as SA
 
-foreign import capi "lib.h c_entry_point" c_entry_point :: Ptr SA.SAST -> CString -> CString -> IO (CInt)
+foreign import capi "lib.h c_llvm_init" c_llvm_init :: IO (CInt)
+foreign import capi "lib.h c_codegen" c_codegen :: Ptr SA.SAST -> CString -> IO (CInt)
+foreign import capi "lib.h c_link" c_link :: CString -> IO (CInt)
+foreign import capi "lib.h c_free" c_free :: IO ()
 
 main :: IO ()
 main = do
@@ -60,16 +62,16 @@ main = do
       if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip emuFiles filesContents
       else do
         let sasts = map (fromRight undefined . fst) checked
-            codegen sast fileName moduleName = do
+            codegen sast moduleName = do
               ptr <- callocBytes (sizeOf sast)
               poke ptr sast
-              cFileName <- newCString $ fileName
               cModuleName <- newCString $ moduleName
-              statusCode <- c_entry_point ptr cFileName cModuleName
-              free cFileName
+              statusCode <- c_codegen ptr cModuleName
               free cModuleName
               return statusCode
-        pathsAndHandles <- mapM (openTempFile ".") (map ((\x -> x ++ ".o") . T.unpack) emuFiles)
-        mapM_ hClose $ map snd pathsAndHandles
-        statusCodes <- sequence $ zipWith3 codegen sasts (map fst pathsAndHandles) (map (T.unpack . fromJust . T.stripSuffix (T.pack ".emu")) emuFiles)
-        return ()
+        initCode <- c_llvm_init
+        codegenCodes <- sequence $ zipWith codegen sasts $ map (T.unpack . fromJust . T.stripSuffix (T.pack ".emu")) emuFiles
+        cOutFile <- newCString $ T.unpack $ outputFile checkedArgs
+        linkCode <- c_link cOutFile
+        free cOutFile
+        c_free

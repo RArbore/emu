@@ -14,7 +14,8 @@
 
 TargetMachine *targetMachine;
 std::string targetTriple;
-std::vector<std::unique_ptr<Module>> modules;
+std::vector<Codegen*> codegensVec;
+std::vector<Module*> modulesVec;
 
 bool is_floating(decorated_type *dt) {
     switch (dt->decorated_type_e) {
@@ -609,9 +610,9 @@ Value* Codegen::decl_codegen(declaration *decl) {
 
 int Codegen::codegen(sast *sast, std::string module_name) {
     context = std::make_unique<LLVMContext>();
-    module = std::make_unique<Module>(module_name, *context);
+    module = new Module(module_name, *context);
     builder = std::make_unique<IRBuilder<>>(*context);
-    fpm = std::make_unique<legacy::FunctionPassManager>(module.get());
+    fpm = std::make_unique<legacy::FunctionPassManager>(module);
 
     fpm->add(createPromoteMemoryToRegisterPass());
     fpm->add(createInstructionCombiningPass());
@@ -648,15 +649,17 @@ int Codegen::codegen(sast *sast, std::string module_name) {
 
     destruct_sast(sast);
     free(sast);
+    //module->print(errs(), nullptr);
     
     return 0;
 }
 
-std::unique_ptr<Module> Codegen::get_module() {
-    return std::move(module);
+Module* Codegen::get_module() {
+    return module;
 }
 
-int write_module(std::unique_ptr<Module> module, std::string out_file) {
+int write_module(Module* module, std::string out_file) {
+    //module->print(errs(), nullptr);
     std::error_code ec;
     raw_fd_ostream dest(out_file, ec, fs::OF_None);
 
@@ -703,21 +706,27 @@ int cxx_llvm_init() {
 }
 
 int cxx_codegen(sast *sast, char* module_name) {
-    Codegen cg;
-    int ret_code = cg.codegen(sast, std::string(module_name));
+    Codegen *cg = new Codegen();
+    int ret_code = cg->codegen(sast, std::string(module_name));
     if (ret_code) return ret_code;
-    modules.push_back(cg.get_module());
+    modulesVec.push_back(cg->get_module());
+    codegensVec.push_back(cg);
     return 0;
 }
 
-int c_link(char* out_file) {
+int cxx_link(char* out_file) {
     bool res;
-    for (u64 i = 1; i < modules.size(); ++i) {
-	res = Linker::linkModules(*modules.at(0), std::move(modules.at(i)));
+    for (u64 i = 1; i < modulesVec.size(); ++i) {
+	res = Linker::linkModules(*modulesVec.at(0), std::unique_ptr<Module>(modulesVec.at(i)));
 	if (res) {
 	    errs() << "Linker failed.";
 	    return 1;
 	}
     }
-    return write_module(std::move(modules.at(0)), std::string(out_file));
+    return write_module(modulesVec.at(0), std::string(out_file));
+}
+
+void cxx_free() {
+    for (auto p : modulesVec) delete p;
+    for (auto p : codegensVec) delete p;
 }
