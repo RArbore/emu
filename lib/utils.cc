@@ -31,6 +31,7 @@ void print_type(type *t) {
     case STRUCT: printf("(StructType \"%s\")", t->struct_name); break;
     default: printf("(INVALID ENUM CODE (print_type))");
     }
+    fflush(stdout);
 }
 
 void print_decorated_type(decorated_type *dt) {
@@ -40,6 +41,7 @@ void print_decorated_type(decorated_type *dt) {
     case ARRAY_TYPE: printf("(ArrayType "); print_decorated_type(dt->array_type); printf(" %lu)", dt->array_size); break;
     default: printf("(INVALID ENUM CODE (print_decorated_type))");
     }
+    fflush(stdout);
 }
 
 void print_modifier(modifier mod) {
@@ -51,6 +53,7 @@ void print_modifier(modifier mod) {
     case RESTRICT: printf("Restrict"); break;
     default: printf("(INVALID ENUM CODE (print_modifier))");
     }
+    fflush(stdout);
 }
 
 void print_decorated_identifier(decorated_identifier *dec_iden) {
@@ -61,6 +64,7 @@ void print_decorated_identifier(decorated_identifier *dec_iden) {
     }
     printf("] \"%s\" ", dec_iden->name);
     print_decorated_type(dec_iden->type);
+    fflush(stdout);
 }
 
 void print_binary_op(binary_op bop) {
@@ -86,6 +90,7 @@ void print_binary_op(binary_op bop) {
     case FACTOR_PERCENT: printf("FactorPercent"); break;
     default: printf("(INVALID ENUM CODE (print_binary_op))");
     }
+    fflush(stdout);
 }
 
 void print_unary_op(unary_op uop) {
@@ -96,6 +101,7 @@ void print_unary_op(unary_op uop) {
     case TILDA: printf("Tilda"); break;
     default: printf("(INVALID ENUM CODE (print_unary_op))");
     }
+    fflush(stdout);
 }
 
 void print_comptime_value(comptime_value *cv) {
@@ -132,6 +138,7 @@ void print_comptime_value(comptime_value *cv) {
     }
     default: printf("(INVALID ENUM CODE (print_comptime_value))");
     }
+    fflush(stdout);
 }
 
 void print_lvalue(lvalue *lv) {
@@ -142,6 +149,7 @@ void print_lvalue(lvalue *lv) {
     case IDENTIFIER: printf("(Identifier \"%s\" ", lv->name); print_decorated_type(lv->decorated_type); printf(")"); break;
     default: printf("(INVALID ENUM CODE (print_lvalue))");
     }
+    fflush(stdout);
 }
 
 void print_assign_op(assign_op aop) {
@@ -159,6 +167,7 @@ void print_assign_op(assign_op aop) {
     case AND_EQUALS: printf("AndEquals"); break;
     default: printf("(INVALID ENUM CODE (print_assign_op))");
     }
+    fflush(stdout);
 }
 
 void print_crement_op(crement_op cop) {
@@ -169,6 +178,7 @@ void print_crement_op(crement_op cop) {
     case POST_MINUS_MINUS: printf("PostMinusMinus"); break;
     default: printf("(INVALID ENUM CODE (print_crement_op))");
     }
+    fflush(stdout);
 }
 
 void print_expression(expression *expr) {
@@ -215,6 +225,7 @@ void print_expression(expression *expr) {
     case UNDEFINED: printf("Undefined"); break;
     default: printf("(INVALID ENUM CODE (print_expression))");
     }
+    fflush(stdout);
 }
 
 void print_statement(statement *stmt) {
@@ -235,6 +246,7 @@ void print_statement(statement *stmt) {
     case EMPTY: printf("EmptyStatement"); break;
     default: printf("(INVALID ENUM CODE (print_statement))");
     }
+    fflush(stdout);
 }
 
 void print_declaration(declaration *decl) {
@@ -275,6 +287,7 @@ void print_declaration(declaration *decl) {
     case STMT_DECL: printf("(StatementDecl "); print_statement(decl->stmt_decl->stmt); printf(")"); break;
     default: printf("(INVALID ENUM CODE (print_declaration))");
     }
+    fflush(stdout);
 }
 
 void print_sast(sast *sast) {
@@ -284,6 +297,7 @@ void print_sast(sast *sast) {
 	print_declaration(sast->decls + i);
     }
     printf("]");
+    fflush(stdout);
 }
 
 void destruct_type(type *type) {

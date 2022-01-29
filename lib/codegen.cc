@@ -583,11 +583,13 @@ Value* Codegen::var_decl_codegen(var_decl *decl) {
 	AllocaInst *alloca = builder->CreateAlloca(emu_to_llvm_type(decl->iden->type));
 	local_names.push_back(std::make_pair(std::string(decl->iden->name), scope_level));
 	bound_named_allocas[std::string(decl->iden->name)] = alloca;
-	return builder->CreateStore(expr_v, alloca);
+	if (expr_v->getType()->isVoidTy()) return alloca;
+	else return builder->CreateStore(expr_v, alloca);
     }
     else {
 	Constant *expr_c = literal_expr_codegen(decl->init->literal_expr);
 	if (!expr_c) return nullptr;
+	if (expr_c->getType()->isVoidTy()) expr_c = nullptr;
 	GlobalVariable *gv = new GlobalVariable(*module, emu_to_llvm_type(decl->iden->type), false, GlobalValue::InternalLinkage, expr_c);
 	bound_named_allocas[std::string(decl->iden->name)] = gv;
 	return gv;
@@ -625,7 +627,6 @@ int Codegen::codegen(sast *sast, std::string module_name) {
 	decl_codegen(sast->decls + i);
     }
 
-    //print_sast(sast);
     //module->print(errs(), nullptr);
 
     LoopAnalysisManager lam;
