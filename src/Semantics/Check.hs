@@ -503,7 +503,7 @@ checkExpr ((l, sc, ec), e) = checked
           indexArr lval [] = return lval
           indexArr lval (index:indices)
               | isIntegralType $ typeOf index = case typeOf $ LValueExpression lval of
-                                                  (ArrayType t _) -> (\x -> return $ Index x index t) =<< (indexArr lval indices)
+                                                  (ArrayType t s) -> (\x -> return $ Index x index t s) =<< (indexArr lval indices)
                                                   _ -> throwError $ SemanticsError l sc ec IndexNonArrayError
               | otherwise = throwError $ SemanticsError l sc ec (NonIntegralError $ typeOf index)
           arithEqualsOp :: Expression -> Expression -> AssignOp -> Bool -> (DecoratedType -> Bool) -> (DecoratedType -> Bool) -> (DecoratedType -> SemanticsErrorType) -> (DecoratedType -> SemanticsErrorType) -> Semantics Expression

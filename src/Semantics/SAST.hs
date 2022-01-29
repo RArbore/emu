@@ -82,7 +82,7 @@ data Expression = Binary BinaryOp Expression Expression DecoratedType
 
 data LValue = Dereference Expression DecoratedType
             | Access LValue Word64 DecoratedType
-            | Index LValue Expression DecoratedType
+            | Index LValue Expression DecoratedType Word64
             | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq)
 
 data ComptimeValue = ComptimePointer Word64 DecoratedType 
@@ -170,7 +170,7 @@ typeOf (Call _ _ t) = t
 typeOf (Cast _ t) = t
 typeOf (LValueExpression (Dereference _ t)) = t
 typeOf (LValueExpression (Access _ _ t)) = t
-typeOf (LValueExpression (Index _ _ t)) = t
+typeOf (LValueExpression (Index _ _ t _)) = t
 typeOf (LValueExpression (Identifier _ t)) = t
 typeOf (Assign _ lval _) = typeOf $ LValueExpression lval
 typeOf (Address lval) = DerefType $ typeOf $ LValueExpression lval

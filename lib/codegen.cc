@@ -290,7 +290,7 @@ Value* Codegen::lvalue_codegen(lvalue *lvalue) {
     switch (lvalue->type) {
     case DEREF: return expr_codegen(lvalue->dereferenced);
     case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
-    case INDEX: return builder->CreateGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
+    case INDEX: return builder->CreateGEP(ArrayType::get(emu_to_llvm_type(lvalue->decorated_type), lvalue->array_size), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
     case IDENTIFIER: return bound_named_allocas.at(std::string(lvalue->name));
     default: return nullptr;
     }
@@ -647,8 +647,8 @@ int Codegen::codegen(sast *sast, std::string module_name) {
     module->setDataLayout(targetMachine->createDataLayout());
     module->setTargetTriple(targetTriple);
 
-    destruct_sast(sast);
-    free(sast);
+    //destruct_sast(sast);
+    //free(sast);
     //module->print(errs(), nullptr);
     
     return 0;
@@ -659,7 +659,7 @@ Module* Codegen::get_module() {
 }
 
 int write_module(Module* module, std::string out_file) {
-    //module->print(errs(), nullptr);
+    module->print(errs(), nullptr);
     std::error_code ec;
     raw_fd_ostream dest(out_file, ec, fs::OF_None);
 

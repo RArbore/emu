@@ -198,7 +198,7 @@ instance Storable LValue where
       enum <- (#peek lvalue, type) ptr :: IO Word32
       [Dereference <$> (peek =<< (#peek lvalue, dereferenced) ptr) <*> (peek =<< (#peek lvalue, decorated_type) ptr),
        Access <$> (peek =<< (#peek lvalue, accessed) ptr) <*> (#peek lvalue, offset) ptr <*> (peek =<< (#peek lvalue, decorated_type) ptr),
-       Index <$> (peek =<< (#peek lvalue, indexed) ptr) <*> (peek =<< (#peek lvalue, index) ptr) <*> (peek =<< (#peek lvalue, decorated_type) ptr),
+       Index <$> (peek =<< (#peek lvalue, indexed) ptr) <*> (peek =<< (#peek lvalue, index) ptr) <*> (peek =<< (#peek lvalue, decorated_type) ptr) <*> (#peek lvalue, array_size) ptr,
        Identifier <$> (T.pack <$> (peekCString =<< (#peek lvalue, name) ptr)) <*> (peek =<< (#peek lvalue, decorated_type) ptr)] !! fromIntegral enum
     poke ptr (Dereference e dt) = do
                            (#poke lvalue, type) ptr ((#const DEREF) :: Word32)
@@ -217,7 +217,7 @@ instance Storable LValue where
                            poke dtPtr dt
                            (#poke lvalue, accessed) ptr lvPtr
                            (#poke lvalue, decorated_type) ptr dtPtr
-    poke ptr (Index lv e dt) = do
+    poke ptr (Index lv e dt s) = do
                            (#poke lvalue, type) ptr ((#const INDEX) :: Word32)
                            lvPtr <- calloc
                            ePtr <- calloc
@@ -227,6 +227,7 @@ instance Storable LValue where
                            poke dtPtr dt
                            (#poke lvalue, indexed) ptr lvPtr
                            (#poke lvalue, index) ptr ePtr
+                           (#poke lvalue, array_size) ptr s
                            (#poke lvalue, decorated_type) ptr dtPtr
     poke ptr (Identifier n dt) = do
                            (#poke lvalue, type) ptr ((#const IDENTIFIER) :: Word32)

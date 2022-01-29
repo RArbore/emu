@@ -236,6 +236,7 @@ extern "C"
 	    struct {
 		struct lvalue *indexed;
 		struct expression *index;
+		u64 array_size;
 	    };
 	    char *name;
 	};

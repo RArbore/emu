@@ -26,5 +26,8 @@ test2: test2.c test2.emu
 test3: test3.c test3a.emu test3b.emu
 	$(EMU) test3a.emu test3b.emu -o test3.o
 	$(CC) test3.c test3.o -o test3.out
+test4: test4.c test4.emu
+	$(EMU) test4.emu -o test4.o
+	$(CC) test4.c test4.o -o test4.out
 clean:
 	rm *.o *.out
