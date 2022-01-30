@@ -290,7 +290,7 @@ Value* Codegen::lvalue_codegen(lvalue *lvalue) {
     switch (lvalue->type) {
     case DEREF: return expr_codegen(lvalue->dereferenced);
     case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
-    case INDEX: return builder->CreateGEP(ArrayType::get(emu_to_llvm_type(lvalue->decorated_type), lvalue->array_size), lvalue_codegen(lvalue->indexed), expr_codegen(lvalue->index));
+    case INDEX: return builder->CreateGEP(ArrayType::get(emu_to_llvm_type(lvalue->decorated_type), lvalue->array_size), lvalue_codegen(lvalue->indexed), {ConstantInt::get(*context, APInt()), expr_codegen(lvalue->index)});
     case IDENTIFIER: return bound_named_allocas.at(std::string(lvalue->name));
     default: return nullptr;
     }
@@ -567,7 +567,7 @@ Function* Codegen::func_decl_codegen(func_decl *decl) {
     }
     Value *body = stmt_codegen(decl->body);
     if (!body) return nullptr;
-    verifyFunction(*f);
+    verifyFunction(*f, &errs());
     fpm->run(*f);
     clear_recent_locals();
     --scope_level;
