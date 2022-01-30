@@ -103,7 +103,7 @@ data Modifier = Pure
               | Const
               | Inline
               | Register
-              | Restrict deriving (Show, Generic, NFData, Eq, Enum)
+              | Restrict deriving (Show, Generic, NFData, Eq, Ord, Enum)
                 
 data Type = Void
           | Bool
@@ -117,7 +117,7 @@ data Type = Void
           | I64
           | F32
           | F64
-          | StructType Text deriving (Show, Generic, NFData, Eq)
+          | StructType Text deriving (Show, Generic, NFData, Eq, Ord)
             
 data BinaryOp = Equals
               | PlusEquals

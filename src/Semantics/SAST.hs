@@ -49,24 +49,24 @@ import Parser.AST (Type (..), Modifier (..), FixedPointVal (..), FloatingPointVa
 
 newtype SAST = SAST [Declaration] deriving (Show, Generic, NFData)
 
-data Structure = Structure [Modifier] Text [DecoratedIdentifier] deriving (Show, Generic, NFData)
+data Structure = Structure [Modifier] Text [DecoratedIdentifier] deriving (Show, Generic, NFData, Eq, Ord)
 
-data Function = Function FunctionSignature Statement deriving (Show, Generic, NFData)
-data FunctionSignature = FunctionSignature [Modifier] Text [DecoratedIdentifier] DecoratedType deriving (Show, Generic, NFData)
+data Function = Function FunctionSignature Statement deriving (Show, Generic, NFData, Eq, Ord)
+data FunctionSignature = FunctionSignature [Modifier] Text [DecoratedIdentifier] DecoratedType deriving (Show, Generic, NFData, Eq, Ord)
 
-data VarBinding = VarBinding DecoratedIdentifier Expression deriving (Show, Generic, NFData)
+data VarBinding = VarBinding DecoratedIdentifier Expression deriving (Show, Generic, NFData, Eq, Ord)
 
 data Declaration = StructDecl Structure
                  | FuncDecl Function
                  | VarDecl VarBinding
-                 | StatementDecl Statement deriving (Show, Generic, NFData)
+                 | StatementDecl Statement deriving (Show, Generic, NFData, Eq, Ord)
     
 data Statement = ExpressionStatement Expression
                | IfElseStatement Expression Statement Statement Bool Bool
                | DoWhileStatement Expression Statement Bool
                | ReturnStatement Expression
                | Block [Declaration]
-               | EmptyStatement deriving (Show, Generic, NFData)
+               | EmptyStatement deriving (Show, Generic, NFData, Eq, Ord)
 
 data Expression = Binary BinaryOp Expression Expression DecoratedType
                 | Unary UnaryOp Expression DecoratedType
@@ -78,12 +78,12 @@ data Expression = Binary BinaryOp Expression Expression DecoratedType
                 | Assign AssignOp LValue Expression
                 | Address LValue
                 | Crement CrementOp LValue DecoratedType
-                | Undefined deriving (Show, Generic, NFData, Eq)
+                | Undefined deriving (Show, Generic, NFData, Eq, Ord)
 
 data LValue = Dereference Expression DecoratedType
             | Access LValue Word64 DecoratedType
             | Index LValue Expression DecoratedType Word64
-            | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq)
+            | Identifier Text DecoratedType deriving (Show, Generic, NFData, Eq, Ord)
 
 data ComptimeValue = ComptimePointer Word64 DecoratedType 
                    | ComptimeBool Bool
@@ -98,12 +98,12 @@ data ComptimeValue = ComptimePointer Word64 DecoratedType
                    | ComptimeF32 Float 
                    | ComptimeF64 Double
                    | ComptimeStruct [ComptimeValue] Text
-                   | ComptimeArr [ComptimeValue] DecoratedType deriving (Show, Generic, NFData, Eq)
+                   | ComptimeArr [ComptimeValue] DecoratedType deriving (Show, Generic, NFData, Eq, Ord)
 
-data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData)
+data DecoratedIdentifier = DecoratedIdentifier [Modifier] Text DecoratedType deriving (Show, Generic, NFData, Eq, Ord)
 data DecoratedType = PureType Type
                    | DerefType DecoratedType
-                   | ArrayType DecoratedType Word64 deriving (Show, Generic, NFData, Eq)
+                   | ArrayType DecoratedType Word64 deriving (Show, Generic, NFData, Eq, Ord)
  
 data AssignOp = Equals
               | PlusEquals
@@ -115,7 +115,7 @@ data AssignOp = Equals
               | RShiftEquals
               | HatEquals
               | BarEquals
-              | AndEquals deriving (Show, Generic, NFData, Eq, Enum)
+              | AndEquals deriving (Show, Generic, NFData, Eq, Ord, Enum)
             
 data BinaryOp = LogicOr
               | LogicXor
@@ -135,17 +135,17 @@ data BinaryOp = LogicOr
               | TermMinus
               | FactorStar
               | FactorSlash
-              | FactorPercent deriving (Show, Generic, NFData, Eq, Enum)
+              | FactorPercent deriving (Show, Generic, NFData, Eq, Ord, Enum)
                 
 data UnaryOp = Plus
              | Minus
              | Excla
-             | Tilda deriving (Show, Generic, NFData, Eq, Enum)
+             | Tilda deriving (Show, Generic, NFData, Eq, Ord, Enum)
 
 data CrementOp = PrePlusPlus
                | PreMinusMinus
                | PostPlusPlus
-               | PostMinusMinus deriving (Show, Generic, NFData, Eq, Enum)
+               | PostMinusMinus deriving (Show, Generic, NFData, Eq, Ord, Enum)
 
 typeOf :: Expression -> DecoratedType
 typeOf (Binary _ _ _ t) = t

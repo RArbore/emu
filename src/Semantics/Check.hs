@@ -21,6 +21,7 @@ module Semantics.Check
     ) where
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad.State
 import Control.Monad.Except
 
@@ -29,6 +30,7 @@ import Data.Either
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
+import qualified Data.Set as S
 import Data.Text (Text)
 import Data.Word
 
@@ -325,7 +327,7 @@ checkExpr ((l, sc, ec), e) = checked
                       A.CharLiteral c -> return $ Literal $ ComptimeU8 c
                       A.StringLiteral s -> let unpacked = B.unpack s in return $ Literal $ ComptimeArr (ComptimeU8 <$> unpacked) $ PureType U8
                       A.Undefined -> return $ Undefined
-                      A.ComptimeExpression ce -> Literal <$> (checkExpr ce >>= comptimeEvaluate (l, sc, ec))
+                      A.ComptimeExpression ce -> Literal <$!!> (checkExpr ce >>= comptimeEvaluate)
                       A.ArrayLiteral x -> do
                              exprs <- mapM checkExpr x
                              if uniform $ map typeOf exprs then
@@ -593,19 +595,6 @@ isTypeVoid (DerefType t) = isTypeVoid t
 isTypeVoid (ArrayType t _) = isTypeVoid t
 isTypeVoid _ = False
 
-comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
-comptimeEvaluate _ (Literal cv) = return cv
-comptimeEvaluate (l, sc, ec) (LValueExpression (Identifier name _)) = do
-  boundVars <- gets vars
-  let lookup = M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars <|> M.lookup (name, Global) boundVars
-  case lookup of
-    Nothing -> throwError $ SemanticsError l sc ec $ UndefinedIdentifier name
-    Just (VarBinding (DecoratedIdentifier mods _ varT) ve) ->
-        if A.Const `elem` mods
-        then comptimeEvaluate (l, sc, ec) ve
-        else throwError $ SemanticsError l sc ec $ NonConstArraySizeError
-comptimeEvaluate (l, sc, ec) _ = throwError $ SemanticsError l sc ec NonComptimeError
-
 stmtReturns :: A.Location -> Statement -> Semantics (Maybe DecoratedType)
 stmtReturns _ (ExpressionStatement _) = return Nothing
 stmtReturns (l, sc, ec) (IfElseStatement _ s1 s2 _ _) = do
@@ -644,3 +633,32 @@ stmtReturns (l, sc, ec) (Block (x:xs)) = do
                       otherwise -> throwError $ SemanticsError l sc ec DeadCode
     Nothing -> stmtReturns (l, sc, ec) $ Block xs
 stmtReturns _ EmptyStatement = return Nothing
+
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE CApiFFI #-}
+
+class Depends d where
+    depends :: d -> Semantics (S.Set Declaration)
+
+instance Depends Declaration where
+    depends s@(StructDecl (Structure _ _ idens))
+        = S.insert s <$> (S.unions <$> mapM depends idens)
+    --depends f@(FuncDecl (Function (FunctionSignature _ n idens retType) s))
+
+instance Depends DecoratedIdentifier where
+    depends (DecoratedIdentifier _ _ dt) = depends dt
+
+instance Depends DecoratedType where
+    depends (PureType (StructType n)) = do
+                                 boundStructs <- gets structs
+                                 case M.lookup n boundStructs of
+                                   Just struct -> return $ S.singleton $ StructDecl struct
+                                   Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType n
+    depends (DerefType dt) = depends dt
+    depends (ArrayType dt _) = depends dt
+    depends _ = return S.empty
+                                                                             
+{-# NOINLINE comptimeEvaluate #-}
+comptimeEvaluate :: Expression -> Semantics ComptimeValue
+comptimeEvaluate e = do
+  return $!! undefined;

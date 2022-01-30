@@ -10,16 +10,18 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
-func g(): f64[4] {
-     x: f64[4] = {0.0, 1.0, 2.0, 3.0};
-     for (i: i64 = 0; i < 4; ++i) x[i] *= 2.0;
+const size: i64 = 4;
+
+func g(): f64[size] {
+     x: f64[size] = {0.0, 1.0, 2.0, 3.0};
+     for (i: i64 = 0; i < size; ++i) x[i] *= 2.0;
      return x;
 }
 
 func f(): f64 {
-     x: f64[4] = g();
+     x: f64[size] = g();
      y: f64 = 0.0;
-     for (i: i64 = 0; i < 4; ++i) {
+     for (i: i64 = 0; i < size; ++i) {
      	 y += x[i];
      }
      return y;
