@@ -15,6 +15,7 @@ module Interface.ParseArgs
 
      ParsedArgs (..),
 
+     usage,
      parseFromArgs,
      checkArgs,
      argsInvalidated
@@ -32,6 +33,9 @@ data ParsedArgs = ParsedArgs { inputFiles :: [T.Text],
 instance Show ParsedArgs where
   show (ParsedArgs inFiles outObject) = T.unpack $ T.pack "Input files:" `T.append` T.concat (map (T.cons ' ') $ inFiles) `T.append` (T.singleton '\n') `T.append` (T.pack "Output object file: ") `T.append` outObject
   show (InvalidArgs err) = T.unpack $ T.intercalate (T.singleton '\n') $ map (T.pack "ERROR: " `T.append`) err
+
+usage :: String
+usage = "usage: emu input_files [-o output_file]"
 
 addInputFile :: ParsedArgs -> T.Text -> ParsedArgs
 addInputFile inv@(InvalidArgs _)  _ = inv

@@ -50,28 +50,30 @@ foreign import capi "lib.h cxx_free" c_free :: IO ()
 main :: IO ()
 main = do
   args <- getArgs
-  checkedArgs <- checkArgs $ parseFromArgs args
-  if argsInvalidated checkedArgs then print checkedArgs
+  if null args then putStrLn usage
   else do
-    let (emuFiles, objFiles) = partition (T.isSuffixOf $ T.pack ".emu") $ inputFiles checkedArgs
-    filesContents <- mapM TIO.readFile $ map T.unpack $ emuFiles
-    let parsed = zipWith (runParser P.pProgram) (map T.unpack emuFiles) filesContents 
-    if not $ null $ lefts parsed then mapM_ putStrLn $ map errorBundlePretty $ lefts parsed
+    checkedArgs <- checkArgs $ parseFromArgs args
+    if argsInvalidated checkedArgs then print checkedArgs
     else do
-      let checked = map ((\x -> runState x (SC.Environment M.empty M.empty M.empty Nothing)) . runExceptT . SC.check . fromRight undefined) parsed
-      if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip emuFiles filesContents
+      let (emuFiles, objFiles) = partition (T.isSuffixOf $ T.pack ".emu") $ inputFiles checkedArgs
+      filesContents <- mapM TIO.readFile $ map T.unpack $ emuFiles
+      let parsed = zipWith (runParser P.pProgram) (map T.unpack emuFiles) filesContents 
+      if not $ null $ lefts parsed then mapM_ putStrLn $ map errorBundlePretty $ lefts parsed
       else do
-        let sasts = map (fromRight undefined . fst) checked
-            codegen sast moduleName = do
-              ptr <- callocBytes (sizeOf sast)
-              poke ptr sast
-              cModuleName <- newCString $ moduleName
-              statusCode <- c_codegen ptr cModuleName
-              free cModuleName
-              return statusCode
-        initCode <- c_llvm_init
-        codegenCodes <- sequence $ zipWith codegen sasts $ map (T.unpack . fromJust . T.stripSuffix (T.pack ".emu")) emuFiles
-        cOutFile <- newCString $ T.unpack $ outputFile checkedArgs
-        linkCode <- c_link cOutFile
-        free cOutFile
-        c_free
+        let checked = map ((\x -> runState x (SC.Environment M.empty M.empty M.empty Nothing)) . runExceptT . SC.check . fromRight undefined) parsed
+        if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip emuFiles filesContents
+        else do
+          let sasts = map (fromRight undefined . fst) checked
+              codegen sast moduleName = do
+                ptr <- callocBytes (sizeOf sast)
+                poke ptr sast
+                cModuleName <- newCString $ moduleName
+                statusCode <- c_codegen ptr cModuleName
+                free cModuleName
+                return statusCode
+          initCode <- c_llvm_init
+          codegenCodes <- sequence $ zipWith codegen sasts $ map (T.unpack . fromJust . T.stripSuffix (T.pack ".emu")) emuFiles
+          cOutFile <- newCString $ T.unpack $ outputFile checkedArgs
+          linkCode <- c_link cOutFile
+          free cOutFile
+          c_free
