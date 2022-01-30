@@ -546,19 +546,3 @@ void destruct_sast(sast *sast) {
     for (u64 i = 0; i < sast->num_decls; ++i) destruct_decl(sast->decls + i);
     free(sast->decls);
 }
-
-int c_llvm_init() {
-    return cxx_llvm_init();
-}
-
-int c_codegen(sast *sast, char* module_name) {
-    return cxx_codegen(sast, module_name);
-}
-
-int c_link(char* out_file) {
-    return cxx_link(out_file);
-}
-
-void c_free(void) {
-    cxx_free();
-}

@@ -42,10 +42,10 @@ import qualified Semantics.Error as SE
 import Semantics.Marshal
 import qualified Semantics.SAST as SA
 
-foreign import capi "lib.h c_llvm_init" c_llvm_init :: IO (CInt)
-foreign import capi "lib.h c_codegen" c_codegen :: Ptr SA.SAST -> CString -> IO (CInt)
-foreign import capi "lib.h c_link" c_link :: CString -> IO (CInt)
-foreign import capi "lib.h c_free" c_free :: IO ()
+foreign import capi "lib.h cxx_llvm_init" c_llvm_init :: IO (CInt)
+foreign import capi "lib.h cxx_codegen" c_codegen :: Ptr SA.SAST -> CString -> IO (CInt)
+foreign import capi "lib.h cxx_link" c_link :: CString -> IO (CInt)
+foreign import capi "lib.h cxx_free" c_free :: IO ()
 
 main :: IO ()
 main = do
