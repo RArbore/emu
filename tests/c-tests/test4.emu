@@ -11,11 +11,7 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
 func f(): f64 {
-     x: f64[4] = undefined;//{0.0, 1.0, 2.0, 3.0};
-     x[(i32)0] = 0.0;
-     x[(i32)1] = 1.0;
-     x[(i32)2] = 2.0;
-     x[(i32)3] = 3.0;
+     x: f64[4] = {0.0, 1.0, 2.0, 3.0};
      y: f64 = 0.0;
      for (i: i64 = 0; i < 4; ++i) {
      	 y += x[i];

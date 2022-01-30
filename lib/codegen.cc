@@ -217,12 +217,13 @@ Constant* Codegen::literal_expr_codegen(literal_expr *expr) {
 
 Value* Codegen::array_expr_codegen(array_expr *expr) {
     ArrayType *array_type = ArrayType::get(emu_to_llvm_type(expr->element_type), expr->size);
-    AllocaInst *alloca = builder->CreateAlloca(array_type, ConstantInt::get(*context, APInt(64, expr->size, false)));
+    AllocaInst *alloca = builder->CreateAlloca(array_type);
     for(u64 i = 0; i < expr->size; ++i) {
 	Value *element = expr_codegen(expr->elements + i);
-	builder->CreateInsertElement(alloca, element, i);
+	Value *ptr = builder->CreateGEP(array_type, alloca, {ConstantInt::get(*context, APInt()), ConstantInt::get(*context, APInt(32, i, false))});
+	builder->CreateStore(element, ptr);
     }
-    return alloca;
+    return builder->CreateLoad(array_type, alloca);
 }
 
 Value* Codegen::call_expr_codegen(call_expr *expr) {
