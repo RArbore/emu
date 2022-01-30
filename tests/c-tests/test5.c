@@ -12,9 +12,11 @@
 
 #include <stdio.h>
 
+extern void g();
 extern double f();
 
 int main(void) {
+    g();
     printf("%f", f());
     return 0;
 }

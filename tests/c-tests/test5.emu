@@ -15,9 +15,15 @@ struct my_type {
      y: i64
 };
 
-func f(): f64 {
+z: f64 = 0.0;
+
+func g(): void {
      s: my_type = undefined;
      s.x = 1.0;
      s.y = 2;
-     return s.x + s.y;
+     z = s.x + s.y;
+}
+
+func f(): f64 {
+     return z;
 }
