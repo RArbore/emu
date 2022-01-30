@@ -10,17 +10,11 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
-func g(): f64[4] {
-     x: f64[4] = {0.0, 1.0, 2.0, 3.0};
-     for (i: i64 = 0; i < 4; ++i) x[i] *= 2.0;
-     return x;
-}
+#include <stdio.h>
 
-func f(): f64 {
-     x: f64[4] = g();
-     y: f64 = 0.0;
-     for (i: i64 = 0; i < 4; ++i) {
-     	 y += x[i];
-     }
-     return y;
+extern double f();
+
+int main(void) {
+    printf("%f", f());
+    return 0;
 }

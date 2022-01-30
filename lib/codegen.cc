@@ -290,7 +290,7 @@ Value* Codegen::cast_expr_codegen(cast_expr *expr) {
 Value* Codegen::lvalue_codegen(lvalue *lvalue) {
     switch (lvalue->type) {
     case DEREF: return expr_codegen(lvalue->dereferenced);
-    case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
+    case ACCESS: return builder->CreateStructGEP(emu_to_llvm_type(lvalue->accessed->decorated_type), lvalue_codegen(lvalue->accessed), lvalue->offset);
     case INDEX: return builder->CreateGEP(ArrayType::get(emu_to_llvm_type(lvalue->decorated_type), lvalue->array_size), lvalue_codegen(lvalue->indexed), {ConstantInt::get(*context, APInt()), expr_codegen(lvalue->index)});
     case IDENTIFIER: return bound_named_allocas.at(std::string(lvalue->name));
     default: return nullptr;
