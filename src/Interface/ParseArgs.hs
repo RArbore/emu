@@ -50,7 +50,7 @@ parseFromArgs (x:xs)
   | x == "-o" = if null xs then addErrors (parseFromArgs $ xs) $ T.pack "-o flag requires an argument (filename to output object file to)" else setOutputFile (parseFromArgs $ tail xs) $ T.pack $ head xs
   | head x == '-' = addErrors (parseFromArgs $ xs) $ T.pack $ "Invalid argument " ++ x
   | otherwise = addInputFile (parseFromArgs $ xs) $ T.pack x
-parseFromArgs [] = ParsedArgs [] $ T.empty
+parseFromArgs [] = ParsedArgs [] $ T.pack "a.o"
 
 checkArgs :: ParsedArgs -> IO (ParsedArgs)
 checkArgs inv@(InvalidArgs _) = do return inv
