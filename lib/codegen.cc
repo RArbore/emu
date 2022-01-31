@@ -661,7 +661,7 @@ Module* Codegen::get_module() {
 }
 
 int write_module(Module* module, std::string out_file) {
-    module->print(errs(), nullptr);
+    //module->print(errs(), nullptr);
     std::error_code ec;
     raw_fd_ostream dest(out_file, ec, fs::OF_None);
 

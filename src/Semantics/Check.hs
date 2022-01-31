@@ -30,7 +30,6 @@ import Data.Either
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
-import qualified Data.Set as S
 import Data.Text (Text)
 import Data.Word
 
@@ -637,13 +636,49 @@ stmtReturns _ EmptyStatement = return Nothing
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CApiFFI #-}
 
+appendSet :: Eq a => a -> [a] -> [a]
+appendSet x xs = union xs [x]
+
+unions :: Eq a => [[a]] -> [a]
+unions [] = []
+unions (x:xs) = foldl' union x xs
+
 class Depends d where
-    depends :: d -> Semantics (S.Set Declaration)
+    depends :: d -> Semantics [Declaration]
 
 instance Depends Declaration where
     depends s@(StructDecl (Structure _ _ idens))
-        = S.insert s <$> (S.unions <$> mapM depends idens)
-    --depends f@(FuncDecl (Function (FunctionSignature _ n idens retType) s))
+        = appendSet s <$> (unions <$> mapM depends idens)
+    depends f@(FuncDecl (Function (FunctionSignature _ n idens retType) s))
+        = appendSet f <$> (unions <$> sequence
+                                      [unions <$> mapM depends idens, depends retType, depends s])
+    depends v@(VarDecl (VarBinding iden e))
+        = do
+      checkIfInFunction <- gets curFuncSignature
+      if isJust checkIfInFunction
+      then unions <$> sequence [depends iden, depends e]
+      else appendSet v <$> (unions <$> sequence [depends iden, depends e])
+    depends (StatementDecl s) = depends s
+
+instance Depends Statement where
+    depends (ExpressionStatement e) = depends e
+    depends (IfElseStatement e s1 s2 _ _) = unions <$> sequence [depends e, depends s1, depends s2]
+    depends (DoWhileStatement e s _) = unions <$> sequence [depends e, depends s]
+    depends (ReturnStatement e) = depends e
+    depends (Block ds) = unions <$> mapM depends ds
+    depends (EmptyStatement) = return []
+
+instance Depends Expression where
+    depends (Binary _ e1 e2 dt) = unions <$> sequence [depends e1, depends e2, depends dt]
+    depends (Unary _ e dt) = unions <$> sequence [depends e, depends dt]
+    depends (Literal cv) = depends cv
+    depends (Array es) = unions <$> mapM depends es
+
+instance Depends LValue where
+    depends _ = undefined
+
+instance Depends ComptimeValue where
+    depends _ = undefined
 
 instance Depends DecoratedIdentifier where
     depends (DecoratedIdentifier _ _ dt) = depends dt
@@ -652,11 +687,11 @@ instance Depends DecoratedType where
     depends (PureType (StructType n)) = do
                                  boundStructs <- gets structs
                                  case M.lookup n boundStructs of
-                                   Just struct -> return $ S.singleton $ StructDecl struct
+                                   Just struct -> return [StructDecl struct]
                                    Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType n
     depends (DerefType dt) = depends dt
     depends (ArrayType dt _) = depends dt
-    depends _ = return S.empty
+    depends _ = return []
                                                                              
 comptimeEvaluate :: Expression -> Semantics ComptimeValue
 comptimeEvaluate e = do
