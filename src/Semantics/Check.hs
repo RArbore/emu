@@ -658,11 +658,7 @@ instance Depends Declaration where
                                  modify $ \env -> env { curFuncSignature = Just sig }
                                  appendSet f <$> (unions <$> sequence
                                                              [unions <$> mapM depends idens, depends retType, depends s])
-    depends v@(VarDecl (VarBinding iden e)) = do
-                               checkIfInFunction <- gets curFuncSignature
-                               if isJust checkIfInFunction
-                               then unions <$> sequence [depends iden, depends e]
-                               else appendSet v <$> (unions <$> sequence [depends iden, depends e])
+    depends (VarDecl (VarBinding iden e)) = unions <$> sequence [depends iden, depends e]
     depends (StatementDecl s) = depends s
 
 instance Depends Statement where
@@ -674,7 +670,7 @@ instance Depends Statement where
     depends (EmptyStatement) = return []
 
 instance Depends Expression where
-    depends (Binary _ e1 e2 dt) = unions <$> sequence [depends e1, depends e2, depends dt]
+    depends (Binary op e1 e2 dt) = unions <$> sequence [depends e1, depends e2, depends dt]
     depends (Unary _ e dt) = unions <$> sequence [depends e, depends dt]
     depends (Literal cv) = depends cv
     depends (Array es) = unions <$> mapM depends es
@@ -682,7 +678,7 @@ instance Depends Expression where
                                                      boundFuncs <- gets funcs
                                                      let lookup = M.lookup fn boundFuncs
                                                      case lookup of
-                                                       Just f -> depends $ FuncDecl f
+                                                       Just f -> unions <$> sequence [depends $ FuncDecl f, return [FuncDecl f]]
                                                        Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier fn),
                                                    unions <$> mapM depends es,
                                                    depends dt]
@@ -701,13 +697,14 @@ instance Depends LValue where
                                                        boundVars <- gets vars
                                                        let varLookup = M.lookup (n, Global) boundVars
                                                        case varLookup of
-                                                         Just v -> depends $ VarDecl v
+                                                         Just v -> unions <$> sequence [depends $ VarDecl v, return [VarDecl v]]
                                                          Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier n), depends dt]
 
 instance Depends ComptimeValue where
     depends (ComptimePointer _ dt) = depends dt
     depends (ComptimeStruct cvs n) = unions <$> sequence [depends $ PureType $ StructType n, unions <$> mapM depends cvs]
     depends (ComptimeArr cvs dt) = unions <$> sequence [unions <$> mapM depends cvs, depends dt]
+    depends _ = return []
 
 instance Depends DecoratedIdentifier where
     depends (DecoratedIdentifier _ _ dt) = depends dt
@@ -724,4 +721,6 @@ instance Depends DecoratedType where
                                                                              
 comptimeEvaluate :: Expression -> Semantics ComptimeValue
 comptimeEvaluate e = do
-  return $!! undefined;
+  dependencies <- depends e
+  liftIO $ print dependencies
+  return $!! ComptimeBool False;
