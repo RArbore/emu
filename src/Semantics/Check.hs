@@ -647,17 +647,22 @@ class Depends d where
     depends :: d -> Semantics [Declaration]
 
 instance Depends Declaration where
-    depends s@(StructDecl (Structure _ _ idens))
-        = appendSet s <$> (unions <$> mapM depends idens)
-    depends f@(FuncDecl (Function (FunctionSignature _ n idens retType) s))
-        = appendSet f <$> (unions <$> sequence
-                                      [unions <$> mapM depends idens, depends retType, depends s])
-    depends v@(VarDecl (VarBinding iden e))
-        = do
-      checkIfInFunction <- gets curFuncSignature
-      if isJust checkIfInFunction
-      then unions <$> sequence [depends iden, depends e]
-      else appendSet v <$> (unions <$> sequence [depends iden, depends e])
+    depends s@(StructDecl (Structure _ _ idens)) = appendSet s <$> (unions <$> mapM depends idens)
+    depends f@(FuncDecl (Function sig@(FunctionSignature _ n idens retType) s)) = do
+                               msig <- gets curFuncSignature
+                               let recursive = case msig of
+                                                 Just (FunctionSignature _ in_n _ _) -> n == in_n
+                                                 Nothing -> False
+                               if recursive then return []
+                               else do
+                                 modify $ \env -> env { curFuncSignature = Just sig }
+                                 appendSet f <$> (unions <$> sequence
+                                                             [unions <$> mapM depends idens, depends retType, depends s])
+    depends v@(VarDecl (VarBinding iden e)) = do
+                               checkIfInFunction <- gets curFuncSignature
+                               if isJust checkIfInFunction
+                               then unions <$> sequence [depends iden, depends e]
+                               else appendSet v <$> (unions <$> sequence [depends iden, depends e])
     depends (StatementDecl s) = depends s
 
 instance Depends Statement where
@@ -673,6 +678,14 @@ instance Depends Expression where
     depends (Unary _ e dt) = unions <$> sequence [depends e, depends dt]
     depends (Literal cv) = depends cv
     depends (Array es) = unions <$> mapM depends es
+    depends (Call fn es dt) = unions <$> sequence [(do
+                                                     boundFuncs <- gets funcs
+                                                     let lookup = M.lookup fn boundFuncs
+                                                     case lookup of
+                                                       Just f -> depends $ FuncDecl f
+                                                       Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier fn),
+                                                   unions <$> mapM depends es,
+                                                   depends dt]
 
 instance Depends LValue where
     depends _ = undefined
