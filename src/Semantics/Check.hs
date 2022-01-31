@@ -52,7 +52,7 @@ data Environment = Environment { vars :: Variables,
                                  structs :: Structures,
                                  curFuncSignature :: Maybe FunctionSignature } deriving Show
 
-type Semantics = ExceptT SemanticsError (State Environment)
+type Semantics = ExceptT SemanticsError (StateT Environment IO)
 
 uniform :: Eq a => [a] -> Bool
 uniform [] = True
@@ -658,7 +658,6 @@ instance Depends DecoratedType where
     depends (ArrayType dt _) = depends dt
     depends _ = return S.empty
                                                                              
-{-# NOINLINE comptimeEvaluate #-}
 comptimeEvaluate :: Expression -> Semantics ComptimeValue
 comptimeEvaluate e = do
   return $!! undefined;
