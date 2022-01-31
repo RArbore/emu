@@ -686,12 +686,28 @@ instance Depends Expression where
                                                        Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier fn),
                                                    unions <$> mapM depends es,
                                                    depends dt]
+    depends (Cast e dt) = unions <$> sequence [depends e, depends dt]
+    depends (LValueExpression lv) = depends lv
+    depends (Assign _ lv e) = unions <$> sequence [depends lv, depends e]
+    depends (Address lv) = depends lv
+    depends (Crement _ lv dt) = unions <$> sequence [depends lv, depends dt]
+    depends Undefined = return []
 
 instance Depends LValue where
-    depends _ = undefined
+    depends (Dereference e dt) = unions <$> sequence [depends e, depends dt]
+    depends (Access lv _ dt) = unions <$> sequence [depends lv, depends dt]
+    depends (Index lv e dt _) = unions <$> sequence [depends lv, depends e, depends dt]
+    depends (Identifier n dt) = unions <$> sequence [(do
+                                                       boundVars <- gets vars
+                                                       let varLookup = M.lookup (n, Global) boundVars
+                                                       case varLookup of
+                                                         Just v -> depends $ VarDecl v
+                                                         Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier n), depends dt]
 
 instance Depends ComptimeValue where
-    depends _ = undefined
+    depends (ComptimePointer _ dt) = depends dt
+    depends (ComptimeStruct cvs n) = unions <$> sequence [depends $ PureType $ StructType n, unions <$> mapM depends cvs]
+    depends (ComptimeArr cvs dt) = unions <$> sequence [unions <$> mapM depends cvs, depends dt]
 
 instance Depends DecoratedIdentifier where
     depends (DecoratedIdentifier _ _ dt) = depends dt
