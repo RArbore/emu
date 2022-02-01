@@ -28,7 +28,6 @@ import Foreign.Storable
 
 import Parser.AST (Type (..), Modifier (..))
     
-import Semantics.Check (stmtReturns)
 import Semantics.SAST
 
 #include "lib.h"

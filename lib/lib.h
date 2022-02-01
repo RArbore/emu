@@ -454,6 +454,8 @@ extern "C"
 
     void cxx_free(void);
 
+    comptime_value* cxx_comptime_eval(sast*);
+
 #ifdef __cplusplus
 }
 #endif

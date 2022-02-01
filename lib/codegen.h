@@ -13,10 +13,11 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
-#include "llvm/Transforms/InstCombine/InstCombine.h"
-#include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Utils.h"
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Utils/Evaluator.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Utils.h>
 
 #include <llvm/Analysis/LoopAnalysisManager.h>
 #include <llvm/Analysis/CGSCCPassManager.h>
@@ -136,5 +137,7 @@ public:
 };
 
 int write_module(Module* module, std::string out_file);
+
+comptime_value* extract_constant(Constant *ret_val);
 
 #endif

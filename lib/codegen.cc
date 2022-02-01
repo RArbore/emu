@@ -730,3 +730,20 @@ void cxx_free() {
     delete modulesVec.at(0);
     for (auto p : codegensVec) delete p;
 }
+
+comptime_value* extract_constant(Constant *ret_val) {
+    return nullptr;
+}
+
+comptime_value* cxx_comptime_eval(sast *sast) {
+    Codegen cg;
+    int ret_code = cg.codegen(sast, "comptime_eval");
+    if (ret_code) return nullptr;
+    Constant *ret_val;
+    SmallVector<Constant*> args = {};
+    DataLayout dl(cg.get_module());
+    Evaluator eval(dl, nullptr);
+    bool could_eval = eval.EvaluateFunction(cg.get_module()->getFunction("@comptime_eval"), ret_val, args);
+    if (!could_eval) return nullptr;
+    return extract_constant(ret_val);
+}

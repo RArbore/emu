@@ -9,6 +9,9 @@
     GNU General Public License for more details.
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  -}
+                                                                             
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE CApiFFI #-}
 
 module Semantics.Check
     (
@@ -21,7 +24,6 @@ module Semantics.Check
     ) where
 
 import Control.Applicative
-import Control.DeepSeq
 import Control.Monad.State
 import Control.Monad.Except
 
@@ -30,8 +32,11 @@ import Data.Either
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Word
+
+import Foreign (Ptr, poke, peek)
+import Foreign.Marshal.Alloc
 
 import Parser.AST (Type (..),
                    Modifier (..),
@@ -40,7 +45,10 @@ import Parser.AST (Type (..),
 import qualified Parser.AST as A
     
 import Semantics.Error
+import Semantics.Marshal
 import Semantics.SAST
+
+foreign import capi "lib.h cxx_comptime_eval" c_comptime_eval :: Ptr SAST -> IO (Ptr ComptimeValue)
 
 type Variables = M.Map (Text, VarKind) VarBinding
 type Functions = M.Map Text Function
@@ -326,7 +334,7 @@ checkExpr ((l, sc, ec), e) = checked
                       A.CharLiteral c -> return $ Literal $ ComptimeU8 c
                       A.StringLiteral s -> let unpacked = B.unpack s in return $ Literal $ ComptimeArr (ComptimeU8 <$> unpacked) $ PureType U8
                       A.Undefined -> return $ Undefined
-                      A.ComptimeExpression ce -> Literal <$!!> (checkExpr ce >>= comptimeEvaluate)
+                      A.ComptimeExpression ce -> Literal <$> (checkExpr ce >>= comptimeEvaluate)
                       A.ArrayLiteral x -> do
                              exprs <- mapM checkExpr x
                              if uniform $ map typeOf exprs then
@@ -633,9 +641,6 @@ stmtReturns (l, sc, ec) (Block (x:xs)) = do
     Nothing -> stmtReturns (l, sc, ec) $ Block xs
 stmtReturns _ EmptyStatement = return Nothing
 
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE CApiFFI #-}
-
 appendSet :: Eq a => a -> [a] -> [a]
 appendSet x xs = union xs [x]
 
@@ -718,9 +723,14 @@ instance Depends DecoratedType where
     depends (DerefType dt) = depends dt
     depends (ArrayType dt _) = depends dt
     depends _ = return []
-                                                                             
+
 comptimeEvaluate :: Expression -> Semantics ComptimeValue
 comptimeEvaluate e = do
   dependencies <- depends e
-  liftIO $ print dependencies
-  return $!! ComptimeBool False;
+  let sast = SAST (dependencies ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_eval") [] (typeOf e)) (ReturnStatement e))])
+  sastptr <- liftIO $ callocBytes (sizeOf sast)
+  liftIO $ poke sastptr sast
+  cvptr <- liftIO $ c_comptime_eval sastptr
+  cv <- liftIO $ peek cvptr
+  liftIO $ free cvptr
+  return cv;
