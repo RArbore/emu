@@ -48,7 +48,8 @@ import Semantics.Error
 import Semantics.Marshal
 import Semantics.SAST
 
-foreign import capi "lib.h cxx_comptime_eval" c_comptime_eval :: Ptr SAST -> IO (Ptr ComptimeValue)
+foreign import capi "lib.h cxx_comptime_eval" c_comptime_eval :: Ptr SAST -> Ptr DecoratedType -> IO (Ptr ComptimeValue)
+foreign import capi "lib.h destruct_comptime_value" c_destruct_comptime_value :: Ptr ComptimeValue -> IO ()
 
 type Variables = M.Map (Text, VarKind) VarBinding
 type Functions = M.Map Text Function
@@ -730,7 +731,10 @@ comptimeEvaluate e = do
   let sast = SAST (dependencies ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_eval") [] (typeOf e)) (ReturnStatement e))])
   sastptr <- liftIO $ callocBytes (sizeOf sast)
   liftIO $ poke sastptr sast
-  cvptr <- liftIO $ c_comptime_eval sastptr
+  dtptr <- liftIO $ callocBytes (sizeOf $ typeOf e)
+  liftIO $ poke dtptr $ typeOf e
+  cvptr <- liftIO $ c_comptime_eval sastptr dtptr
   cv <- liftIO $ peek cvptr
+  liftIO $ c_destruct_comptime_value cvptr
   liftIO $ free cvptr
   return cv;

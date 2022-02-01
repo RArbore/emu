@@ -138,6 +138,6 @@ public:
 
 int write_module(Module* module, std::string out_file);
 
-comptime_value* extract_constant(Constant *ret_val);
+comptime_value* extract_constant(Constant *ret_val, decorated_type *dt);
 
 #endif

@@ -649,8 +649,8 @@ int Codegen::codegen(sast *sast, std::string module_name) {
     module->setDataLayout(targetMachine->createDataLayout());
     module->setTargetTriple(targetTriple);
 
-    //destruct_sast(sast);
-    //free(sast);
+    destruct_sast(sast);
+    free(sast);
     //module->print(errs(), nullptr);
     
     return 0;
@@ -731,11 +731,33 @@ void cxx_free() {
     for (auto p : codegensVec) delete p;
 }
 
-comptime_value* extract_constant(Constant *ret_val) {
-    return nullptr;
+comptime_value* extract_constant(Constant *ret_val, decorated_type *dt) {
+    comptime_value *cv = new comptime_value;
+    switch (dt->decorated_type_e) {
+    case PURE_TYPE: {
+	switch(dt->pure_type->type_e) {
+	case VOID: free(cv); return nullptr;
+	case BOOL:
+	case U8:
+	case U16:
+	case U32:
+	case U64:
+	case I8:
+	case I16:
+	case I32:
+	case I64:
+	case F32:
+	case F64:
+	case STRUCT:
+	}
+    }
+    case DEREF_TYPE:
+    case ARRAY_TYPE:
+    }
+    return cv;
 }
 
-comptime_value* cxx_comptime_eval(sast *sast) {
+comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     Codegen cg;
     int ret_code = cg.codegen(sast, "comptime_eval");
     if (ret_code) return nullptr;
@@ -745,5 +767,8 @@ comptime_value* cxx_comptime_eval(sast *sast) {
     Evaluator eval(dl, nullptr);
     bool could_eval = eval.EvaluateFunction(cg.get_module()->getFunction("@comptime_eval"), ret_val, args);
     if (!could_eval) return nullptr;
-    return extract_constant(ret_val);
+    comptime_value *cv = extract_constant(ret_val, dt);
+    destruct_decorated_type(dt);
+    free(dt);
+    return cv;
 }
