@@ -698,7 +698,7 @@ instance Depends LValue where
                                                        let varLookup = M.lookup (n, Global) boundVars
                                                        case varLookup of
                                                          Just v -> unions <$> sequence [depends $ VarDecl v, return [VarDecl v]]
-                                                         Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier n), depends dt]
+                                                         Nothing -> return []), depends dt]
 
 instance Depends ComptimeValue where
     depends (ComptimePointer _ dt) = depends dt

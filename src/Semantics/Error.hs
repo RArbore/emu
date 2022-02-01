@@ -75,7 +75,7 @@ data VarKind = Global | Local | Formal deriving (Show, Eq, Ord)
 
 showSError :: SemanticsError -> Text -> Text -> String
 showSError (SemanticsError l sc ec e) f o
-    | l == -1 && sc == -1 && ec == -1 = "This error should be impossible to encounter. If you've found this organically, please file a bug report!"
+    | l == -1 && sc == -1 && ec == -1 = "This error should be impossible to encounter. If you've found this organically, please file a bug report! The reported error is: " ++ show e
     | otherwise = T.unpack f ++ ":"
                   ++ (show l) ++ ":"
                   ++ (show sc) ++ ":\n"
