@@ -731,7 +731,7 @@ void cxx_free() {
     for (auto p : codegensVec) delete p;
 }
 
-comptime_value* extract_constant(Constant *ret_val, decorated_type *dt) {
+comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt) {
     comptime_value *cv = new comptime_value;
     switch (dt->decorated_type_e) {
     case PURE_TYPE: {
@@ -786,6 +786,17 @@ comptime_value* extract_constant(Constant *ret_val, decorated_type *dt) {
 	    break;
 	}
 	case STRUCT:
+	    ConstantStruct *cs = static_cast<ConstantStruct*>(ret_val);
+	    StructType *st = struct_name_to_llvm_type(dt->pure_type->struct_name);
+	    cv->num_fields = st->getNumElements();
+	    strcpy(cv->struct_name, dt->pure_type->struct_name);
+	    cv->fields = (comptime_value*) malloc(cv->num_fields * sizeof(comptime_value));
+	    for (u64 i = 0; i < cv->num_fields; ++i) {
+		Constant *c = cs->get(st, {ConstantInt::get(*context, APInt(64, i, false))});
+		comptime_value *m = extract_constant(c, defined_structs.at(std::string(dt->pure_type->struct_name)).at(i));
+		cv->fields[i] = *m;
+		free(m);
+	    }
 	    break;
 	}
     }
@@ -810,7 +821,7 @@ comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     Evaluator eval(dl, nullptr);
     bool could_eval = eval.EvaluateFunction(cg.get_module()->getFunction("@comptime_eval"), ret_val, args);
     if (!could_eval) return nullptr;
-    comptime_value *cv = extract_constant(ret_val, dt);
+    comptime_value *cv = cg.extract_constant(ret_val, dt);
     destruct_decorated_type(dt);
     free(dt);
     return cv;

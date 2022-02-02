@@ -53,6 +53,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <stdlib.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -134,10 +135,10 @@ public:
     int codegen(sast *sast, std::string module_name);
 
     Module *get_module();
+
+    comptime_value* extract_constant(Constant *ret_val, decorated_type *dt);
 };
 
 int write_module(Module* module, std::string out_file);
-
-comptime_value* extract_constant(Constant *ret_val, decorated_type *dt);
 
 #endif
