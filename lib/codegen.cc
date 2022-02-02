@@ -806,6 +806,17 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
 	break;
     }
     case ARRAY_TYPE:
+	ConstantArray *ca = static_cast<ConstantArray*>(ret_val);
+	ArrayType *at = static_cast<ArrayType*>(emu_to_llvm_type(dt));
+	cv->size = at->getNumElements();
+	cv->array_type = deepcopy_decorated_type(dt);
+	cv->elements = (comptime_value*) malloc(cv->size * sizeof(comptime_value));
+	for (u64 i = 0; i < cv->size; ++i) {
+	    Constant *c = ca->get(at, {ConstantInt::get(*context, APInt(64, i, false))});
+	    comptime_value *e = extract_constant(c, dt->array_type);
+	    cv->elements[i] = *e;
+	    free(e);
+	}
 	break;
     }
     return cv;
