@@ -736,18 +736,55 @@ comptime_value* extract_constant(Constant *ret_val, decorated_type *dt) {
     switch (dt->decorated_type_e) {
     case PURE_TYPE: {
 	switch(dt->pure_type->type_e) {
-	case VOID: free(cv); return nullptr;
-	case BOOL:
-	case U8:
-	case U16:
-	case U32:
-	case U64:
-	case I8:
-	case I16:
-	case I32:
-	case I64:
-	case F32:
-	case F64:
+	case VOID: {
+	    free(cv);
+	    cv = nullptr;
+	    break;
+	}
+	case BOOL: {
+	    cv->comptime_bool = static_cast<ConstantInt*>(ret_val)->getZExtValue() != 0;
+	    break;
+	}
+	case U8: {
+	    cv->comptime_u8 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    break;
+	}
+	case U16: {
+	    cv->comptime_u16 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    break;
+	}
+	case U32: {
+	    cv->comptime_u32 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    break;
+	}
+	case U64: {
+	    cv->comptime_u64 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    break;
+	}
+	case I8: {
+	    cv->comptime_i8 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    break;
+	}
+	case I16: {
+	    cv->comptime_i16 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    break;
+	}
+	case I32: {
+	    cv->comptime_i32 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    break;
+	}
+	case I64: {
+	    cv->comptime_i64 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    break;
+	}
+	case F32: {
+	    cv->comptime_f32 = static_cast<ConstantFP*>(ret_val)->getValue().convertToFloat();
+	    break;
+	}
+	case F64: {
+	    cv->comptime_f64 = static_cast<ConstantFP*>(ret_val)->getValue().convertToDouble();
+	    break;
+	}
 	case STRUCT:
 	}
     }
