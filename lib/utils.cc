@@ -11,6 +11,7 @@
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "lib.h"
 
@@ -298,6 +299,30 @@ void print_sast(sast *sast) {
     }
     printf("]");
     fflush(stdout);
+}
+
+decorated_type* deepcopy_decorated_type(decorated_type *dt) {
+    decorated_type* new_dt = (decorated_type*) malloc(sizeof(decorated_type));
+    new_dt->decorated_type_e = dt->decorated_type_e;
+    switch (new_dt->decorated_type_e) {
+    case PURE_TYPE: {
+	new_dt->pure_type = (type*) malloc(sizeof(type));
+	new_dt->pure_type->type_e = dt->pure_type->type_e;
+	if (new_dt->pure_type->type_e == STRUCT)
+	    strcpy(new_dt->pure_type->struct_name, dt->pure_type->struct_name);
+	break;
+    }
+    case DEREF_TYPE: {
+	new_dt->deref_type = deepcopy_decorated_type(dt->deref_type);
+	break;
+    }
+    case ARRAY_TYPE: {
+	new_dt->array_type = deepcopy_decorated_type(dt->array_type);
+	new_dt->array_size = dt->array_size;
+	break;
+    }
+    }
+    return new_dt;
 }
 
 void destruct_type(type *type) {

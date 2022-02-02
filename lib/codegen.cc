@@ -786,10 +786,16 @@ comptime_value* extract_constant(Constant *ret_val, decorated_type *dt) {
 	    break;
 	}
 	case STRUCT:
+	    break;
 	}
     }
-    case DEREF_TYPE:
+    case DEREF_TYPE: {
+	cv->comptime_ptr = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	cv->ptr_type = deepcopy_decorated_type(dt);
+	break;
+    }
     case ARRAY_TYPE:
+	break;
     }
     return cv;
 }

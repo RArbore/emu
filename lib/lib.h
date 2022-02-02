@@ -76,6 +76,8 @@ extern "C"
 
     void print_decorated_type(decorated_type*);
 
+    decorated_type* deepcopy_decorated_type(decorated_type*);
+
     typedef enum modifier {
 	PURE = 0,
 	CONST,
