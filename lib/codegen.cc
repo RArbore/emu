@@ -611,8 +611,12 @@ Value* Codegen::decl_codegen(declaration *decl) {
     }
 }
 
-int Codegen::codegen(sast *sast, std::string module_name) {
+void Codegen::construct_context() {
     context = std::make_unique<LLVMContext>();
+}
+
+int Codegen::codegen(sast *sast, std::string module_name) {
+    construct_context();
     module = new Module(module_name, *context);
     builder = std::make_unique<IRBuilder<>>(*context);
     fpm = std::make_unique<legacy::FunctionPassManager>(module);
@@ -735,7 +739,7 @@ void cxx_free() {
     for (auto p : codegensVec) delete p;
 }
 
-comptime_value* extract_cv(u8 *memory, decorated_type *dt) {
+comptime_value* Codegen::extract_cv(u8 *memory, decorated_type *dt, const DataLayout &dl) {
     comptime_value *cv = (comptime_value*) malloc(sizeof(comptime_value));
     switch (dt->decorated_type_e) {
     case PURE_TYPE: {
@@ -801,16 +805,16 @@ comptime_value* extract_cv(u8 *memory, decorated_type *dt) {
 	    break;
 	}
 	case STRUCT:
-	    ConstantStruct *cs = static_cast<ConstantStruct*>(ret_val);
 	    StructType *st = struct_name_to_llvm_type(dt->pure_type->struct_name);
 	    cv->num_fields = st->getNumElements();
 	    strcpy(cv->struct_name, dt->pure_type->struct_name);
 	    cv->fields = (comptime_value*) malloc(cv->num_fields * sizeof(comptime_value));
-	    for (u64 i = 0; i < cv->num_fields; ++i) {
-		Constant *c = cs->get(st, {ConstantInt::get(*context, APInt(64, i, false))});
-		comptime_value *m = extract_constant(c, defined_structs.at(std::string(dt->pure_type->struct_name)).at(i));
-		cv->fields[i] = *m;
-		free(m);
+	    auto layout = dl.getStructLayout(st);
+	    auto offsets = layout->getMemberOffsets();
+	    for (u64 i = 0; i < offsets.size(); ++i) {
+		comptime_value* field = extract_cv(memory + offsets[i], defined_structs.at(std::string(dt->pure_type->struct_name)).at(i), dl);
+		cv->fields[i] = *field;
+		free(field);
 	    }
 	    cv->type = CT_STRUCT;
 	    break;
@@ -824,7 +828,6 @@ comptime_value* extract_cv(u8 *memory, decorated_type *dt) {
 	break;
     }
     case ARRAY_TYPE:
-	ConstantArray *ca = static_cast<ConstantArray*>(ret_val);
 	ArrayType *at = static_cast<ArrayType*>(emu_to_llvm_type(dt));
 	cv->size = at->getNumElements();
 	cv->array_type = deepcopy_decorated_type(dt);
@@ -856,7 +859,8 @@ comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     if (!entry_point_symbol) return nullptr;
     auto *entry_point = (void (*)(u8 *)) entry_point_symbol->getAddress();
     entry_point(memory);
-    comptime_value *cv = extract_cv(memory, dt);
+    cg.construct_context();
+    comptime_value *cv = cg.extract_cv(memory, dt, dl);
     destruct_decorated_type(dt);
     free(dt);
     free(memory);

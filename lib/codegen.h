@@ -141,7 +141,9 @@ public:
 
     std::unique_ptr<LLVMContext> get_context();
 
-    comptime_value* extract_cv(void *memory, decorated_type *dt);
+    void construct_context();
+
+    comptime_value* extract_cv(u8 *memory, decorated_type *dt, const DataLayout &dl);
 };
 
 int write_module(Module* module, std::string out_file);
