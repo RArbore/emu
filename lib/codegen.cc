@@ -735,7 +735,7 @@ void cxx_free() {
     for (auto p : codegensVec) delete p;
 }
 
-comptime_value* extract_cv(void *memory, decorated_type *dt) {
+comptime_value* extract_cv(u8 *memory, decorated_type *dt) {
     comptime_value *cv = (comptime_value*) malloc(sizeof(comptime_value));
     switch (dt->decorated_type_e) {
     case PURE_TYPE: {
@@ -818,7 +818,7 @@ comptime_value* extract_cv(void *memory, decorated_type *dt) {
 	break;
     }
     case DEREF_TYPE: {
-	cv->comptime_ptr = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	cv->comptime_ptr = *((u64*) memory);
 	cv->ptr_type = deepcopy_decorated_type(dt);
 	cv->type = CT_PTR;
 	break;
@@ -850,11 +850,11 @@ comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     if (auto e = jit.takeError()) return nullptr;
     DataLayout dl = (*jit)->getDataLayout();
     Type *ty = cg.emu_to_llvm_type(dt);
-    void *memory = malloc(dl.getTypeStoreSize(ty));
+    u8 *memory = (u8*) malloc(dl.getTypeStoreSize(ty));
     if (auto e = (*jit)->addIRModule(orc::ThreadSafeModule(std::unique_ptr<Module>(cg.get_module()), cg.get_context()))) return nullptr;
     auto entry_point_symbol = (*jit)->lookup("@comptime_entry");
     if (!entry_point_symbol) return nullptr;
-    auto *entry_point = (void (*)(void *)) entry_point_symbol->getAddress();
+    auto *entry_point = (void (*)(u8 *)) entry_point_symbol->getAddress();
     entry_point(memory);
     comptime_value *cv = extract_cv(memory, dt);
     destruct_decorated_type(dt);
