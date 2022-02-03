@@ -10,13 +10,8 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
-func f(): f64 {
-     return comptime 0.0;
-}
-
-/*
-func g(): i64[4] {
-     return {1, 2, 3, 4};
+func g(): f64[4] {
+     return {1.0, 2.0, 3.0, 4.0};
 }
 
 struct s {
@@ -29,4 +24,11 @@ func h(): s {
      st.y = {1.0, 2.0, 3.0, 4.0};
      return st;
 }
-*/
+
+func sum(x: f64[4]): f64 {
+     return x[0] + x[1] + x[2] + x[3];
+}
+
+func f(): f64 {
+     return sum(comptime g());
+}

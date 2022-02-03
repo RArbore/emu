@@ -834,7 +834,7 @@ comptime_value* Codegen::extract_cv(u8 *memory, decorated_type *dt, const DataLa
 	cv->elements = (comptime_value*) malloc(cv->size * sizeof(comptime_value));
 	u64 alloc_size = dl.getTypeAllocSize(emu_to_llvm_type(dt->array_type));
 	for (u64 i = 0; i < cv->size; ++i) {
-	    comptime_value* elem = extract_cv(memory + alloc_size, dt->array_type, dl);
+	    comptime_value* elem = extract_cv(memory + i * alloc_size, dt->array_type, dl);
 	    cv->elements[i] = *elem;
 	    free(elem);
 	}
