@@ -735,8 +735,7 @@ void cxx_free() {
     for (auto p : codegensVec) delete p;
 }
 
-/*
-comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt) {
+comptime_value* extract_cv(void *memory, decorated_type *dt) {
     comptime_value *cv = (comptime_value*) malloc(sizeof(comptime_value));
     switch (dt->decorated_type_e) {
     case PURE_TYPE: {
@@ -747,57 +746,57 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
 	    break;
 	}
 	case BOOL: {
-	    cv->comptime_bool = static_cast<ConstantInt*>(ret_val)->getZExtValue() != 0;
+	    cv->comptime_bool = *((bool*) memory);
 	    cv->type = CT_BOOL;
 	    break;
 	}
 	case U8: {
-	    cv->comptime_u8 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->comptime_u8 = *((u8*) memory);
 	    cv->type = CT_U8;
 	    break;
 	}
 	case U16: {
-	    cv->comptime_u16 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->comptime_u16 = *((u16*) memory);
 	    cv->type = CT_U16;
 	    break;
 	}
 	case U32: {
-	    cv->comptime_u32 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->comptime_u32 = *((u32*) memory);
 	    cv->type = CT_U32;
 	    break;
 	}
 	case U64: {
-	    cv->comptime_u64 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->comptime_u64 = *((u64*) memory);
 	    cv->type = CT_U64;
 	    break;
 	}
 	case I8: {
-	    cv->comptime_i8 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->comptime_i8 = *((i8*) memory);
 	    cv->type = CT_I8;
 	    break;
 	}
 	case I16: {
-	    cv->comptime_i16 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->comptime_i16 = *((i16*) memory);
 	    cv->type = CT_I16;
 	    break;
 	}
 	case I32: {
-	    cv->comptime_i32 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->comptime_i32 = *((i32*) memory);
 	    cv->type = CT_I32;
 	    break;
 	}
 	case I64: {
-	    cv->comptime_i64 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->comptime_i64 = *((i64*) memory);
 	    cv->type = CT_I64;
 	    break;
 	}
 	case F32: {
-	    cv->comptime_f32 = static_cast<ConstantFP*>(ret_val)->getValue().convertToFloat();
+	    cv->comptime_f32 = *((f32*) memory);
 	    cv->type = CT_F32;
 	    break;
 	}
 	case F64: {
-	    cv->comptime_f64 = static_cast<ConstantFP*>(ret_val)->getValue().convertToDouble();
+	    cv->comptime_f64 = *((f64*) memory);
 	    cv->type = CT_F64;
 	    break;
 	}
@@ -841,7 +840,6 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
     }
     return cv;
 }
-*/
 
 comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     Codegen cg;
@@ -858,7 +856,9 @@ comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     if (!entry_point_symbol) return nullptr;
     auto *entry_point = (void (*)(void *)) entry_point_symbol->getAddress();
     entry_point(memory);
+    comptime_value *cv = extract_cv(memory, dt);
     destruct_decorated_type(dt);
     free(dt);
-    return nullptr;
+    free(memory);
+    return cv;
 }
