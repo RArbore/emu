@@ -37,6 +37,7 @@ import Data.Word
 import Debug.Trace
 
 import Foreign (Ptr, poke, peek)
+import Foreign.Ptr
 import Foreign.Marshal.Alloc
 
 import Parser.AST (Type (..),
@@ -336,7 +337,7 @@ checkExpr ((l, sc, ec), e) = checked
                       A.CharLiteral c -> return $ Literal $ ComptimeU8 c
                       A.StringLiteral s -> let unpacked = B.unpack s in return $ Literal $ ComptimeArr (ComptimeU8 <$> unpacked) $ PureType U8
                       A.Undefined -> return $ Undefined
-                      A.ComptimeExpression ce -> Literal <$> (checkExpr ce >>= comptimeEvaluate)
+                      A.ComptimeExpression ce -> Literal <$> (checkExpr ce >>= comptimeEvaluate (l, sc, ec))
                       A.ArrayLiteral x -> do
                              exprs <- mapM checkExpr x
                              if uniform $ map typeOf exprs then
@@ -651,11 +652,11 @@ unions [] = []
 unions (x:xs) = foldl' union x xs
 
 class Depends d where
-    depends :: d -> Semantics [Declaration]
+    depends :: A.Location -> d -> Semantics [Declaration]
 
 instance Depends Declaration where
-    depends s@(StructDecl (Structure _ _ idens)) = appendSet s <$> (unions <$> mapM depends idens)
-    depends f@(FuncDecl (Function sig@(FunctionSignature _ n idens retType) s)) = do
+    depends loc s@(StructDecl (Structure _ _ idens)) = appendSet s <$> (unions <$> mapM (depends loc) idens)
+    depends loc f@(FuncDecl (Function sig@(FunctionSignature _ n idens retType) s)) = do
                                msig <- gets curFuncSignature
                                let recursive = case msig of
                                                  Just (FunctionSignature _ in_n _ _) -> n == in_n
@@ -664,77 +665,82 @@ instance Depends Declaration where
                                else do
                                  modify $ \env -> env { curFuncSignature = Just sig }
                                  appendSet f <$> (unions <$> sequence
-                                                             [unions <$> mapM depends idens, depends retType, depends s])
-    depends (VarDecl (VarBinding iden e)) = unions <$> sequence [depends iden, depends e]
-    depends (StatementDecl s) = depends s
+                                                             [unions <$> mapM (depends loc) idens, (depends loc) retType, (depends loc) s])
+    depends loc (VarDecl (VarBinding iden e)) = unions <$> sequence [(depends loc) iden, (depends loc) e]
+    depends loc (StatementDecl s) = (depends loc) s
 
 instance Depends Statement where
-    depends (ExpressionStatement e) = depends e
-    depends (IfElseStatement e s1 s2 _ _) = unions <$> sequence [depends e, depends s1, depends s2]
-    depends (DoWhileStatement e s _) = unions <$> sequence [depends e, depends s]
-    depends (ReturnStatement e) = depends e
-    depends (Block ds) = unions <$> mapM depends ds
-    depends (EmptyStatement) = return []
+    depends loc (ExpressionStatement e) = (depends loc) e
+    depends loc (IfElseStatement e s1 s2 _ _) = unions <$> sequence [(depends loc) e, (depends loc) s1, (depends loc) s2]
+    depends loc (DoWhileStatement e s _) = unions <$> sequence [(depends loc) e, (depends loc) s]
+    depends loc (ReturnStatement e) = (depends loc) e
+    depends loc (Block ds) = unions <$> mapM (depends loc) ds
+    depends _ (EmptyStatement) = return []
 
 instance Depends Expression where
-    depends (Binary op e1 e2 dt) = unions <$> sequence [depends e1, depends e2, depends dt]
-    depends (Unary _ e dt) = unions <$> sequence [depends e, depends dt]
-    depends (Literal cv) = depends cv
-    depends (Array es) = unions <$> mapM depends es
-    depends (Call fn es dt) = unions <$> sequence [(do
-                                                     boundFuncs <- gets funcs
-                                                     let lookup = M.lookup fn boundFuncs
-                                                     case lookup of
-                                                       Just f -> unions <$> sequence [depends $ FuncDecl f, return [FuncDecl f]]
-                                                       Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier fn),
-                                                   unions <$> mapM depends es,
-                                                   depends dt]
-    depends (Cast e dt) = unions <$> sequence [depends e, depends dt]
-    depends (LValueExpression lv) = depends lv
-    depends (Assign _ lv e) = unions <$> sequence [depends lv, depends e]
-    depends (Address lv) = depends lv
-    depends (Crement _ lv dt) = unions <$> sequence [depends lv, depends dt]
-    depends Undefined = return []
+    depends loc (Binary op e1 e2 dt) = unions <$> sequence [(depends loc) e1, (depends loc) e2, (depends loc) dt]
+    depends loc (Unary _ e dt) = unions <$> sequence [(depends loc) e, (depends loc) dt]
+    depends loc (Literal cv) = (depends loc) cv
+    depends loc (Array es) = unions <$> mapM (depends loc) es
+    depends loc (Call fn es dt) = unions <$> sequence [(do
+                                                         boundFuncs <- gets funcs
+                                                         let lookup = M.lookup fn boundFuncs
+                                                         case lookup of
+                                                           Just f -> unions <$> sequence [(depends loc) $ FuncDecl f, return [FuncDecl f]]
+                                                           Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier fn),
+                                                       unions <$> mapM (depends loc) es,
+                                                       (depends loc) dt]
+    depends loc (Cast e dt) = unions <$> sequence [(depends loc) e, (depends loc) dt]
+    depends loc (LValueExpression lv) = (depends loc) lv
+    depends loc (Assign _ lv e) = unions <$> sequence [(depends loc) lv, (depends loc) e]
+    depends loc (Address lv) = (depends loc) lv
+    depends loc (Crement _ lv dt) = unions <$> sequence [(depends loc) lv, (depends loc) dt]
+    depends _ Undefined = return []
 
 instance Depends LValue where
-    depends (Dereference e dt) = unions <$> sequence [depends e, depends dt]
-    depends (Access lv _ dt) = unions <$> sequence [depends lv, depends dt]
-    depends (Index lv e dt _) = unions <$> sequence [depends lv, depends e, depends dt]
-    depends (Identifier n dt) = unions <$> sequence [(do
-                                                       boundVars <- gets vars
-                                                       let varLookup = M.lookup (n, Global) boundVars
-                                                       case varLookup of
-                                                         Just v -> unions <$> sequence [depends $ VarDecl v, return [VarDecl v]]
-                                                         Nothing -> return []), depends dt]
+    depends loc (Dereference e dt) = unions <$> sequence [(depends loc) e, (depends loc) dt]
+    depends loc (Access lv _ dt) = unions <$> sequence [(depends loc) lv, (depends loc) dt]
+    depends loc (Index lv e dt _) = unions <$> sequence [(depends loc) lv, (depends loc) e, (depends loc) dt]
+    depends loc@(l, sc, ec) (Identifier n dt) = unions <$> sequence [(do
+                                                                       boundVars <- gets vars
+                                                                       let varLookup = M.lookup (n, Global) boundVars
+                                                                       case varLookup of
+                                                                         Just v@(VarBinding (DecoratedIdentifier mods _ _) _) -> do
+                                                                                        if A.Const `elem` mods then unions <$> sequence [(depends loc) $ VarDecl v, return [VarDecl v]]
+                                                                                        else throwError $ SemanticsError l sc ec $ CannotComptimeError
+                                                                         Nothing -> return []), (depends loc) dt]
 
 instance Depends ComptimeValue where
-    depends (ComptimePointer _ dt) = depends dt
-    depends (ComptimeStruct cvs n) = unions <$> sequence [depends $ PureType $ StructType n, unions <$> mapM depends cvs]
-    depends (ComptimeArr cvs dt) = unions <$> sequence [unions <$> mapM depends cvs, depends dt]
-    depends _ = return []
+    depends loc (ComptimePointer _ dt) = (depends loc) dt
+    depends loc (ComptimeStruct cvs n) = unions <$> sequence [(depends loc) $ PureType $ StructType n, unions <$> mapM (depends loc) cvs]
+    depends loc (ComptimeArr cvs dt) = unions <$> sequence [unions <$> mapM (depends loc) cvs, (depends loc) dt]
+    depends _ _ = return []
 
 instance Depends DecoratedIdentifier where
-    depends (DecoratedIdentifier _ _ dt) = depends dt
+    depends loc (DecoratedIdentifier _ _ dt) = (depends loc) dt
 
 instance Depends DecoratedType where
-    depends (PureType (StructType n)) = do
+    depends loc (PureType (StructType n)) = do
                                  boundStructs <- gets structs
                                  case M.lookup n boundStructs of
                                    Just struct -> return [StructDecl struct]
                                    Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ BadTypeError $ PureType $ StructType n
-    depends (DerefType dt) = depends dt
-    depends (ArrayType dt _) = depends dt
-    depends _ = return []
+    depends loc (DerefType dt) = (depends loc) dt
+    depends loc (ArrayType dt _) = (depends loc) dt
+    depends _ _ = return []
 
-comptimeEvaluate :: Expression -> Semantics ComptimeValue
-comptimeEvaluate e = do
-  dependencies <- depends e
+comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
+comptimeEvaluate (l, sc, ec) e = do
+  bound <- get
+  dependencies <- depends (l, sc, ec) e
+  modify $ \_ -> bound
   let sast = SAST (dependencies ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_eval") [] (typeOf e)) (ReturnStatement e))])
   sastptr <- liftIO $ callocBytes sizeOfSAST
   liftIO $ poke sastptr sast
   dtptr <- liftIO $ callocBytes sizeOfDT
   liftIO $ poke dtptr $ typeOf e
   cvptr <- liftIO $ c_comptime_eval sastptr dtptr
+  when (cvptr == nullPtr) $ throwError $ SemanticsError l sc ec CannotComptimeError
   cv <- liftIO $ peek cvptr
   liftIO $ c_destruct_comptime_value cvptr
   liftIO $ free cvptr
