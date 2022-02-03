@@ -13,3 +13,20 @@
 func f(): f64 {
      return comptime 0.0;
 }
+
+/*
+func g(): i64[4] {
+     return {1, 2, 3, 4};
+}
+
+struct s {
+     x: i64, y: f64[4]
+};
+
+func h(): s {
+     st: s = undefined;
+     st.x = 1;
+     st.y = {1.0, 2.0, 3.0, 4.0};
+     return st;
+}
+*/

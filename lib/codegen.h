@@ -13,6 +13,9 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include <llvm/ExecutionEngine/Orc/LLJIT.h>
+
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/Transforms/Utils/Evaluator.h>
 #include <llvm/Transforms/Scalar/GVN.h>
@@ -135,6 +138,8 @@ public:
     int codegen(sast *sast, std::string module_name);
 
     Module *get_module();
+
+    std::unique_ptr<LLVMContext> get_context();
 
     //comptime_value* extract_constant(Constant *ret_val, decorated_type *dt);
 };

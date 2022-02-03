@@ -738,19 +738,23 @@ comptimeEvaluate (l, sc, ec) e = do
                    ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_eval") [] (typeOf e))
                                  (ReturnStatement e))]
                    ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_entry") [DecoratedIdentifier [] (pack "mem") (DerefType $ typeOf e)] (PureType Void))
-                                 (StatementDecl
-                                  (ExpressionStatement
-                                   (Assign Equals
-                                    (Dereference
-                                     (LValueExpression
-                                      (Identifier
-                                       (pack "mem")
-                                       (DerefType $ typeOf e)))
-                                     (typeOf e))
-                                    (Call
-                                     (pack "@comptime_eval")
-                                     []
-                                     (typeOf e))))))])
+                                 (Block [
+                                   (StatementDecl
+                                    (ExpressionStatement
+                                     (Assign Equals
+                                      (Dereference
+                                       (LValueExpression
+                                        (Identifier
+                                         (pack "mem")
+                                         (DerefType $ typeOf e)))
+                                       (typeOf e))
+                                      (Call
+                                       (pack "@comptime_eval")
+                                       []
+                                       (typeOf e))))),
+                                   (StatementDecl
+                                    (ReturnStatement
+                                     Undefined))]))])
   sastptr <- liftIO $ callocBytes sizeOfSAST
   liftIO $ poke sastptr sast
   dtptr <- liftIO $ callocBytes sizeOfDT

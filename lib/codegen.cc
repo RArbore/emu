@@ -660,6 +660,10 @@ Module* Codegen::get_module() {
     return module;
 }
 
+std::unique_ptr<LLVMContext> Codegen::get_context() {
+    return std::move(context);
+}
+
 int write_module(Module* module, std::string out_file) {
     //module->print(errs(), nullptr);
     std::error_code ec;
@@ -841,14 +845,20 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
 
 comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     Codegen cg;
+    print_sast(sast);
     int ret_code = cg.codegen(sast, "comptime_eval");
     if (ret_code) return nullptr;
-    Constant *ret_val;
-    DataLayout dl(cg.get_module());
+    auto jit = orc::LLJITBuilder().create();
+    if (auto e = jit.takeError()) return nullptr;
+    DataLayout dl = (*jit)->getDataLayout();
     Type *ty = cg.emu_to_llvm_type(dt);
     void *memory = malloc(dl.getTypeStoreSize(ty));
-    SmallVector<Constant*> args = {};
+    if (auto e = (*jit)->addIRModule(orc::ThreadSafeModule(std::unique_ptr<Module>(cg.get_module()), cg.get_context()))) return nullptr;
+    auto entry_point_symbol = (*jit)->lookup("@comptime_entry");
+    if (!entry_point_symbol) return nullptr;
+    auto *entry_point = (void (*)(void *)) entry_point_symbol->getAddress();
+    entry_point(memory);
     destruct_decorated_type(dt);
     free(dt);
-    return cv;
+    return nullptr;
 }
