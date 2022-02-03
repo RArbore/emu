@@ -846,7 +846,6 @@ comptime_value* Codegen::extract_cv(u8 *memory, decorated_type *dt, const DataLa
 
 comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     Codegen cg;
-    print_sast(sast);
     int ret_code = cg.codegen(sast, "comptime_eval");
     if (ret_code) return nullptr;
     auto jit = orc::LLJITBuilder().create();

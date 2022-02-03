@@ -708,7 +708,10 @@ instance Depends LValue where
                                                                          Just v@(VarBinding (DecoratedIdentifier mods _ _) _) -> do
                                                                                         if A.Const `elem` mods then unions <$> sequence [(depends loc) $ VarDecl v, return [VarDecl v]]
                                                                                         else throwError $ SemanticsError l sc ec $ CannotComptimeError
-                                                                         Nothing -> return []), (depends loc) dt]
+                                                                         Nothing -> do
+                                                                           funcSig <- gets curFuncSignature
+                                                                           if funcSig == Nothing then throwError $ SemanticsError l sc ec $ CannotComptimeError
+                                                                           else return []), (depends loc) dt]
 
 instance Depends ComptimeValue where
     depends loc (ComptimePointer _ dt) = (depends loc) dt
@@ -732,6 +735,7 @@ instance Depends DecoratedType where
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate (l, sc, ec) e = do
   bound <- get
+  modify $ \env -> env {curFuncSignature = Nothing}
   dependencies <- depends (l, sc, ec) e
   modify $ \_ -> bound
   let sast = SAST (dependencies
