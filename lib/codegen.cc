@@ -832,11 +832,11 @@ comptime_value* Codegen::extract_cv(u8 *memory, decorated_type *dt, const DataLa
 	cv->size = at->getNumElements();
 	cv->array_type = deepcopy_decorated_type(dt);
 	cv->elements = (comptime_value*) malloc(cv->size * sizeof(comptime_value));
+	u64 alloc_size = dl.getTypeAllocSize(emu_to_llvm_type(dt->array_type));
 	for (u64 i = 0; i < cv->size; ++i) {
-	    Constant *c = ca->get(at, {ConstantInt::get(*context, APInt(64, i, false))});
-	    comptime_value *e = extract_constant(c, dt->array_type);
-	    cv->elements[i] = *e;
-	    free(e);
+	    comptime_value* elem = extract_cv(memory + alloc_size, dt->array_type, dl);
+	    cv->elements[i] = *elem;
+	    free(elem);
 	}
 	cv->type = CT_ARR;
 	break;
@@ -853,7 +853,7 @@ comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     if (auto e = jit.takeError()) return nullptr;
     DataLayout dl = (*jit)->getDataLayout();
     Type *ty = cg.emu_to_llvm_type(dt);
-    u8 *memory = (u8*) malloc(dl.getTypeStoreSize(ty));
+    u8 *memory = (u8*) malloc((u64) dl.getTypeStoreSize(ty));
     if (auto e = (*jit)->addIRModule(orc::ThreadSafeModule(std::unique_ptr<Module>(cg.get_module()), cg.get_context()))) return nullptr;
     auto entry_point_symbol = (*jit)->lookup("@comptime_entry");
     if (!entry_point_symbol) return nullptr;
