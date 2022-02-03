@@ -12,7 +12,8 @@
 
 module Semantics.Marshal
     (
-
+     sizeOfSAST,
+     sizeOfDT
     ) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -549,3 +550,10 @@ instance Storable SAST where
                          pokeArray dsptr ds
                          (#poke sast, decls) ptr dsptr
                          (#poke sast, num_decls) ptr (fromIntegral $ length ds :: Word64)
+
+
+sizeOfSAST :: Int
+sizeOfSAST = sizeOf (undefined :: SAST)
+              
+sizeOfDT :: Int
+sizeOfDT = sizeOf (undefined :: DecoratedType)

@@ -34,6 +34,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text, pack)
 import Data.Word
+import Debug.Trace
 
 import Foreign (Ptr, poke, peek)
 import Foreign.Marshal.Alloc
@@ -729,9 +730,9 @@ comptimeEvaluate :: Expression -> Semantics ComptimeValue
 comptimeEvaluate e = do
   dependencies <- depends e
   let sast = SAST (dependencies ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_eval") [] (typeOf e)) (ReturnStatement e))])
-  sastptr <- liftIO $ callocBytes (sizeOf sast)
+  sastptr <- liftIO $ callocBytes sizeOfSAST
   liftIO $ poke sastptr sast
-  dtptr <- liftIO $ callocBytes (sizeOf $ typeOf e)
+  dtptr <- liftIO $ callocBytes sizeOfDT
   liftIO $ poke dtptr $ typeOf e
   cvptr <- liftIO $ c_comptime_eval sastptr dtptr
   cv <- liftIO $ peek cvptr

@@ -628,7 +628,7 @@ int Codegen::codegen(sast *sast, std::string module_name) {
 	decl_codegen(sast->decls + i);
     }
 
-    //module->print(errs(), nullptr);
+    module->print(errs(), nullptr);
 
     LoopAnalysisManager lam;
     FunctionAnalysisManager fam;
@@ -732,7 +732,7 @@ void cxx_free() {
 }
 
 comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt) {
-    comptime_value *cv = new comptime_value;
+    comptime_value *cv = (comptime_value*) malloc(sizeof(comptime_value));
     switch (dt->decorated_type_e) {
     case PURE_TYPE: {
 	switch(dt->pure_type->type_e) {
@@ -743,46 +743,57 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
 	}
 	case BOOL: {
 	    cv->comptime_bool = static_cast<ConstantInt*>(ret_val)->getZExtValue() != 0;
+	    cv->type = CT_BOOL;
 	    break;
 	}
 	case U8: {
 	    cv->comptime_u8 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->type = CT_U8;
 	    break;
 	}
 	case U16: {
 	    cv->comptime_u16 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->type = CT_U16;
 	    break;
 	}
 	case U32: {
 	    cv->comptime_u32 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->type = CT_U32;
 	    break;
 	}
 	case U64: {
 	    cv->comptime_u64 = static_cast<ConstantInt*>(ret_val)->getZExtValue();
+	    cv->type = CT_U64;
 	    break;
 	}
 	case I8: {
 	    cv->comptime_i8 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->type = CT_I8;
 	    break;
 	}
 	case I16: {
 	    cv->comptime_i16 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->type = CT_I16;
 	    break;
 	}
 	case I32: {
 	    cv->comptime_i32 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->type = CT_I32;
 	    break;
 	}
 	case I64: {
 	    cv->comptime_i64 = static_cast<ConstantInt*>(ret_val)->getSExtValue();
+	    cv->type = CT_I64;
 	    break;
 	}
 	case F32: {
 	    cv->comptime_f32 = static_cast<ConstantFP*>(ret_val)->getValue().convertToFloat();
+	    cv->type = CT_F32;
 	    break;
 	}
 	case F64: {
 	    cv->comptime_f64 = static_cast<ConstantFP*>(ret_val)->getValue().convertToDouble();
+	    cv->type = CT_F64;
 	    break;
 	}
 	case STRUCT:
@@ -797,12 +808,15 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
 		cv->fields[i] = *m;
 		free(m);
 	    }
+	    cv->type = CT_STRUCT;
 	    break;
 	}
+	break;
     }
     case DEREF_TYPE: {
 	cv->comptime_ptr = static_cast<ConstantInt*>(ret_val)->getZExtValue();
 	cv->ptr_type = deepcopy_decorated_type(dt);
+	cv->type = CT_PTR;
 	break;
     }
     case ARRAY_TYPE:
@@ -817,6 +831,7 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
 	    cv->elements[i] = *e;
 	    free(e);
 	}
+	cv->type = CT_ARR;
 	break;
     }
     return cv;

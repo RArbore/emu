@@ -10,19 +10,11 @@
     You should have received a copy of the GNU General Public License
     along with emu. If not, see <https://www.gnu.org/licenses/>.  */
 
-const size: i64 = 4;
+#include <stdio.h>
 
-func g(): f64[size] {
-     x: f64[size] = {0.0, 1.0, 2.0, 3.0};
-     for (i: i64 = 0; i < size; ++i) x[i] *= 2.0;
-     return x;
-}
+extern double f();
 
-func f(): f64 {
-     x: f64[size] = g();
-     y: f64 = 0.0;
-     for (i: i64 = 0; i < size; ++i) {
-     	 y += x[i];
-     }
-     return y;
+int main(void) {
+    printf("%f", f());
+    return 0;
 }
