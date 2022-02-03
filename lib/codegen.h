@@ -136,7 +136,7 @@ public:
 
     Module *get_module();
 
-    comptime_value* extract_constant(Constant *ret_val, decorated_type *dt);
+    //comptime_value* extract_constant(Constant *ret_val, decorated_type *dt);
 };
 
 int write_module(Module* module, std::string out_file);

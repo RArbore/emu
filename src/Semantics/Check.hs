@@ -403,7 +403,7 @@ checkExpr ((l, sc, ec), e) = checked
                                           then return $ Unary Tilda sexpr (typeOf sexpr)
                                           else throwError $ SemanticsError l sc ec PointerTypeError
                                A.Star -> case typeOf sexpr of
-                                           DerefType t -> return $ LValueExpression $ Dereference sexpr $ t
+                                           DerefType t -> return $ LValueExpression $ Dereference sexpr t
                                            otherwise -> throwError $ SemanticsError l sc ec $ DerefNonPointerError $ typeOf sexpr
                                A.And -> case sexpr of
                                           LValueExpression lval -> return $ Address lval
@@ -734,7 +734,23 @@ comptimeEvaluate (l, sc, ec) e = do
   bound <- get
   dependencies <- depends (l, sc, ec) e
   modify $ \_ -> bound
-  let sast = SAST (dependencies ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_eval") [] (typeOf e)) (ReturnStatement e))])
+  let sast = SAST (dependencies
+                   ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_eval") [] (typeOf e))
+                                 (ReturnStatement e))]
+                   ++ [FuncDecl (Function (FunctionSignature [] (pack "@comptime_entry") [DecoratedIdentifier [] (pack "mem") (DerefType $ typeOf e)] (PureType Void))
+                                 (StatementDecl
+                                  (ExpressionStatement
+                                   (Assign Equals
+                                    (Dereference
+                                     (LValueExpression
+                                      (Identifier
+                                       (pack "mem")
+                                       (DerefType $ typeOf e)))
+                                     (typeOf e))
+                                    (Call
+                                     (pack "@comptime_eval")
+                                     []
+                                     (typeOf e))))))])
   sastptr <- liftIO $ callocBytes sizeOfSAST
   liftIO $ poke sastptr sast
   dtptr <- liftIO $ callocBytes sizeOfDT

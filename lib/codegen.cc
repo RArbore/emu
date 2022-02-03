@@ -731,6 +731,7 @@ void cxx_free() {
     for (auto p : codegensVec) delete p;
 }
 
+/*
 comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt) {
     comptime_value *cv = (comptime_value*) malloc(sizeof(comptime_value));
     switch (dt->decorated_type_e) {
@@ -836,18 +837,17 @@ comptime_value* Codegen::extract_constant(Constant *ret_val, decorated_type *dt)
     }
     return cv;
 }
+*/
 
 comptime_value* cxx_comptime_eval(sast *sast, decorated_type *dt) {
     Codegen cg;
     int ret_code = cg.codegen(sast, "comptime_eval");
     if (ret_code) return nullptr;
     Constant *ret_val;
-    SmallVector<Constant*> args = {};
     DataLayout dl(cg.get_module());
-    Evaluator eval(dl, nullptr);
-    bool could_eval = eval.EvaluateFunction(cg.get_module()->getFunction("@comptime_eval"), ret_val, args);
-    if (!could_eval) return nullptr;
-    comptime_value *cv = cg.extract_constant(ret_val, dt);
+    Type *ty = cg.emu_to_llvm_type(dt);
+    void *memory = malloc(dl.getTypeStoreSize(ty));
+    SmallVector<Constant*> args = {};
     destruct_decorated_type(dt);
     free(dt);
     return cv;
