@@ -158,9 +158,12 @@ pDeclaration = (try pStmtDecl)
             pRWord "func"
             iden <- pIdentifier
             pSymbol "("
-            parameters <- option [] (do first <- pDecoratedIdentifier
-                                        rest <- many $ pSymbol "," *> pDecoratedIdentifier
-                                        return (first:rest))
+            parameters <- option [] (do firstComptime <- option False $ pRWord "comptime" *> return True
+                                        first <- pDecoratedIdentifier
+                                        rest <- many $ (do isComptime <- option False $ pRWord "comptime" *> return True
+                                                           iden <- pSymbol "," *> pDecoratedIdentifier
+                                                           return (iden, isComptime))
+                                        return ((first, firstComptime):rest))
             pSymbol ")"
             (sl, sc) <- posEx
             typeP <- option ((sl, sc, sc), PureType Void) (pSymbol ":" *> pDecoratedType)
