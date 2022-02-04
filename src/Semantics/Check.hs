@@ -222,6 +222,7 @@ checkDecl ((l, sc, ec), d) = checked
                              when (isTypeVoid st) $ throwError $ SemanticsError l sc ec $ VoidVarDeclaration name
                              sinit <- checkExpr init
                              when (not ((typeOf sinit) == PureType Void) && (not $ checkImplicitCast (typeOf sinit) st)) $ throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sinit) st
+                             when ((typeOf sinit == PureType Void) && (not (sinit == Undefined))) $ throwError $ SemanticsError l sc ec $ TypeError st $ PureType Void
                              let varBind = VarBinding (DecoratedIdentifier mods name st) sinit
                              checkIfInFunction <- gets curFuncSignature
                              if isJust checkIfInFunction
@@ -734,6 +735,7 @@ instance Depends DecoratedType where
 
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate (l, sc, ec) e = do
+  when (typeOf e == PureType Void) $ throwError $ SemanticsError l sc ec CannotComptimeError
   bound <- get
   modify $ \env -> env {curFuncSignature = Nothing}
   dependencies <- depends (l, sc, ec) e
