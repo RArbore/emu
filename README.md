@@ -11,8 +11,7 @@ Emu has reached minimal viability. Not every feature is implemented yet, but Emu
 - [x] Haskell to C marshalling
 - [x] LLVM code generation
 - [x] Fleshed out command line interface
-- [ ] Comptime evaluator
-- [ ] Comptime arguments
+- [x] Comptime evaluator
 - [ ] Core language feature-set
 - [ ] High level optimizations
 - [ ] Additional language features
