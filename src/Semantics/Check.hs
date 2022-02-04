@@ -194,7 +194,7 @@ checkDecl ((l, sc, ec), d) = checked
                              let structLookup = M.lookup name boundStructs
                              when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
                              prevEnv <- get
-                             sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) $ map fst args
+                             sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) args
                              mapM (\decIden@(DecoratedIdentifier _ varName varT) -> if isTypeVoid varT
                                                                                     then throwError $ SemanticsError l sc ec $ VoidVarDeclaration varName
                                                                                     else modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
