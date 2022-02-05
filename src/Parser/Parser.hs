@@ -56,7 +56,6 @@ rWords = ["func",
           "const",
           "inline",
           "comptime",
-          "register",
           "restrict",
           "void",
           "bool",
@@ -400,5 +399,4 @@ pModifier :: Parser Modifier
 pModifier = Pure <$ pRWord "pure"
             <|> Const <$ pRWord "const"
             <|> Inline <$ pRWord "inline"
-            <|> Register <$ pRWord "register"
             <|> Restrict <$ pRWord "restrict"

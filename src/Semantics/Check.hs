@@ -167,7 +167,6 @@ checkDecl ((l, sc, ec), d) = checked
                              when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
                              when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
-                             when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
                              when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
                              boundVars <- gets vars
                              boundFuncs <- gets funcs
@@ -184,7 +183,6 @@ checkDecl ((l, sc, ec), d) = checked
                              checkIfInFunctionAlready <- gets curFuncSignature
                              when (isJust checkIfInFunctionAlready) $ throwError $ SemanticsError l sc ec NestedDeclarationError
                              when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Const
-                             when (A.Register `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Register
                              when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
                              boundVars <- gets vars
                              boundFuncs <- gets funcs

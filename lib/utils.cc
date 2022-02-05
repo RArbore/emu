@@ -50,7 +50,6 @@ void print_modifier(modifier mod) {
     case PURE: printf("Pure"); break;
     case CONST: printf("Const"); break;
     case INLINE: printf("Inline"); break;
-    case REGISTER: printf("Register"); break;
     case RESTRICT: printf("Restrict"); break;
     default: printf("(INVALID ENUM CODE (print_modifier))");
     }

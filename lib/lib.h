@@ -82,7 +82,6 @@ extern "C"
 	PURE = 0,
 	CONST,
 	INLINE,
-	REGISTER,
 	RESTRICT,
     } modifier;
 

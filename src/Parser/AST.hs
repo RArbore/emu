@@ -102,7 +102,6 @@ data DecoratedType' = PureType Type
 data Modifier = Pure
               | Const
               | Inline
-              | Register
               | Restrict deriving (Show, Generic, NFData, Eq, Ord, Enum)
                 
 data Type = Void
