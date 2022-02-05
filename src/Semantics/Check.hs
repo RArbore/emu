@@ -423,18 +423,18 @@ checkExpr ((l, sc, ec), e) = checked
                              sexpr1 <- checkExpr expr1
                              sexpr2 <- checkExpr expr2
                              case op of
-                               A.Equals -> if not $ isLValue sexpr1 then throwError $ SemanticsError l sc ec AssignError
-                                           else if not $ checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sexpr2) (typeOf sexpr1)
-                                                else return $ Assign Equals ((\(LValueExpression lval) -> lval) sexpr1) sexpr2
-                               A.PlusEquals -> arithEqualsOp sexpr1 sexpr2 PlusEquals True numeric numeric NumericError NumericError
-                               A.MinusEquals -> arithEqualsOp sexpr1 sexpr2 MinusEquals True numeric numeric NumericError NumericError
-                               A.StarEquals -> arithEqualsOp sexpr1 sexpr2 StarEquals False numeric numeric NumericError NumericError
-                               A.SlashEquals -> arithEqualsOp sexpr1 sexpr2 SlashEquals False numeric numeric NumericError NumericError
-                               A.PercentEquals -> arithEqualsOp sexpr1 sexpr2 PercentEquals False numeric isIntegralType NumericError NonIntegralError
-                               A.LShiftEquals -> arithEqualsOp sexpr1 sexpr2 LShiftEquals False numeric isIntegralType NumericError NonIntegralError
-                               A.HatEquals -> arithEqualsOp sexpr1 sexpr2 HatEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
-                               A.BarEquals -> arithEqualsOp sexpr1 sexpr2 BarEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
-                               A.AndEquals -> arithEqualsOp sexpr1 sexpr2 AndEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
+                               A.Equals -> assertNonConst sexpr1 >> if not $ isLValue sexpr1 then throwError $ SemanticsError l sc ec AssignError
+                                                                    else if not $ checkImplicitCast (typeOf sexpr2) (typeOf sexpr1) then throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sexpr2) (typeOf sexpr1)
+                                                                         else return $ Assign Equals ((\(LValueExpression lval) -> lval) sexpr1) sexpr2
+                               A.PlusEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 PlusEquals True numeric numeric NumericError NumericError
+                               A.MinusEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 MinusEquals True numeric numeric NumericError NumericError
+                               A.StarEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 StarEquals False numeric numeric NumericError NumericError
+                               A.SlashEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 SlashEquals False numeric numeric NumericError NumericError
+                               A.PercentEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 PercentEquals False numeric isIntegralType NumericError NonIntegralError
+                               A.LShiftEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 LShiftEquals False numeric isIntegralType NumericError NonIntegralError
+                               A.HatEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 HatEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
+                               A.BarEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 BarEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
+                               A.AndEquals -> assertNonConst sexpr1 >> arithEqualsOp sexpr1 sexpr2 AndEquals False singletonNonVoid singletonNonVoid BadTypeError BadTypeError
                                A.LogicOr -> createCheckedOperand boolean boolean LogicOr (typeReconciliation sexpr1 sexpr2) (TypeError (PureType Bool)) (TypeError (PureType Bool))
                                A.LogicXor -> createCheckedOperand boolean boolean LogicXor (typeReconciliation sexpr1 sexpr2) (TypeError (PureType Bool)) (TypeError (PureType Bool))
                                A.LogicAnd -> createCheckedOperand boolean boolean LogicAnd (typeReconciliation sexpr1 sexpr2) (TypeError (PureType Bool)) (TypeError (PureType Bool))
@@ -531,6 +531,16 @@ checkExpr ((l, sc, ec), e) = checked
                                                                                             Right casted -> return $ Assign op ((\(LValueExpression lval) -> lval) sexpr1) casted
                                                                                   else if f1 $ typeOf sexpr1 then throwError $ SemanticsError l sc ec $ err2 $ typeOf sexpr2
                                                                                        else throwError $ SemanticsError l sc ec $ err1 $ typeOf sexpr1
+          assertNonConst :: Expression -> Semantics () 
+          assertNonConst (LValueExpression (Identifier n _)) = do
+                             boundVars <- gets vars
+                             let lookup = M.lookup (n, Local) boundVars <|> M.lookup (n, Formal) boundVars <|> M.lookup (n, Global) boundVars
+                             case lookup of
+                               Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier n
+                               Just (VarBinding (DecoratedIdentifier mods _ _) _) -> when (A.Const `elem` mods) $ throwError $ SemanticsError l sc ec AssignConstError
+          assertNonConst (LValueExpression (Access lv _ _)) = assertNonConst $ LValueExpression lv
+          assertNonConst (LValueExpression (Index lv _ _ _)) = assertNonConst $ LValueExpression lv
+          assertNonConst _ = return ()
 
 checkDecoratedType :: A.DecoratedType -> Semantics DecoratedType
 checkDecoratedType ((l, sc, ec), A.PureType t) = return $ PureType t
