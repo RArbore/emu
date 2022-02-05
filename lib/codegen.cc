@@ -555,7 +555,16 @@ Function* Codegen::func_decl_codegen(func_decl *decl) {
     FunctionType *ft = FunctionType::get(emu_to_llvm_type(decl->ret_type), args_llvm, false);
     Function *f = Function::Create(ft, Function::ExternalLinkage, std::string(decl->name), *module);
     u64 i = 0;
-    for (auto &arg : f->args()) arg.setName(std::string((decl->params + i++)->name));
+    for (auto &arg : f->args()) {
+	arg.setName(std::string((decl->params + i)->name));
+	for (u64 m = 0; m < decl->params[i].num_mods; ++m) {
+	    if (decl->params[i].mods[m] == RESTRICT) {
+		f->addParamAttr(i, Attribute::get(*context, "noalias"));
+		break;
+	    }
+	}
+	++i;
+    }
 
     BasicBlock *bb = BasicBlock::Create(*context, "", f);
     builder->SetInsertPoint(bb);
@@ -632,7 +641,7 @@ int Codegen::codegen(sast *sast, std::string module_name) {
 	decl_codegen(sast->decls + i);
     }
 
-    //module->print(errs(), nullptr);
+    module->print(errs(), nullptr);
 
     LoopAnalysisManager lam;
     FunctionAnalysisManager fam;
