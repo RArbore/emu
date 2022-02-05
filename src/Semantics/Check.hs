@@ -193,9 +193,12 @@ checkDecl ((l, sc, ec), d) = checked
                              when (isJust varLookup || isJust funcLookup || isJust structLookup) $ throwError $ SemanticsError l sc ec $ DuplicateDeclaration name
                              prevEnv <- get
                              sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) args
-                             mapM (\decIden@(DecoratedIdentifier _ varName varT) -> if isTypeVoid varT
+                             mapM (\decIden@(DecoratedIdentifier mods varName varT) -> if isTypeVoid varT
                                                                                     then throwError $ SemanticsError l sc ec $ VoidVarDeclaration varName
-                                                                                    else modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
+                                                                                    else do
+                                                                                      when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
+                                                                                      when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
+                                                                                      modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
                              sretType <- checkDecoratedType retType
                              let sig = FunctionSignature mods name sargs sretType
                              modify $ \env -> env { curFuncSignature = Just sig }
@@ -208,6 +211,7 @@ checkDecl ((l, sc, ec), d) = checked
                       A.VarDecl (A.DecoratedIdentifier mods name t) init -> do
                              when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
                              when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
+                             when (A.Restrict `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
                              boundVars <- gets vars
                              boundFuncs <- gets funcs
                              boundStructs <- gets structs
