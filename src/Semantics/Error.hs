@@ -70,6 +70,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | StatementOutsideDeclarationError 
                         | FunctionNotReturning
                         | CannotComptimeError
+                        | CannotInlineError
                         | AssignConstError
                         | DeadCode
 
@@ -130,6 +131,7 @@ instance Show SemanticsErrorType where
     show StatementOutsideDeclarationError = "statements are illegal outside of declarations"
     show FunctionNotReturning = "function doesn't return the correct type in all control flow paths"
     show CannotComptimeError = "this expression cannot be evaluated at compile-time"
+    show CannotInlineError = "this function cannot be inlined (depends on a call to itself)"
     show AssignConstError = "cannot assign to const variable"
     show DeadCode = "code is never reached"
 

@@ -641,7 +641,7 @@ int Codegen::codegen(sast *sast, std::string module_name) {
 	decl_codegen(sast->decls + i);
     }
 
-    module->print(errs(), nullptr);
+    //module->print(errs(), nullptr);
 
     LoopAnalysisManager lam;
     FunctionAnalysisManager fam;

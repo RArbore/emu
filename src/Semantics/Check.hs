@@ -210,6 +210,7 @@ checkDecl ((l, sc, ec), d) = checked
                              unless (termination == Just sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
                              let func = Function sig (if isTypeVoid sretType && termination == Nothing then Block [StatementDecl sbody, StatementDecl $ ReturnStatement Undefined] else sbody)
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
+                             when (A.Inline `elem` mods) $ assertInlinable (l, sc, ec) func
                              return $ FuncDecl $ func
                       A.VarDecl (A.DecoratedIdentifier mods name t) init -> do
                              when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
@@ -747,6 +748,14 @@ instance Depends DecoratedType where
     depends loc (DerefType dt) = (depends loc) dt
     depends loc (ArrayType dt _) = (depends loc) dt
     depends _ _ = return []
+
+assertInlinable :: A.Location -> Function -> Semantics ()
+assertInlinable (l, sc, ec) f@(Function _ s) = do
+  bound <- get
+  modify $ \env -> env {curFuncSignature = Nothing}
+  dependencies <- depends (l, sc, ec) s
+  modify $ \_ -> bound
+  when (FuncDecl f `elem` dependencies) $ throwError $ SemanticsError l sc ec CannotInlineError
 
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate (l, sc, ec) e = do
