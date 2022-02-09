@@ -25,7 +25,7 @@ import Parser.AST (Modifier (Inline))
 import Semantics.SAST
 
 inlinePass :: SAST -> SAST
-inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> f) $ 
+inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl (Function (FunctionSignature _ n _ _) _)) -> n) $ 
                                             filter (\d -> case d of
                                                             FuncDecl (Function (FunctionSignature mods _ _ _) _) -> Inline `elem` mods
                                                             otherwise -> False)
@@ -33,7 +33,7 @@ inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> f) $
                           in undefined
 
 class InlineDepends d where
-    inlineDepends :: [Function] -> d -> [Function]
+    inlineDepends :: [Text] -> d -> [Function]
 
 instance InlineDepends Declaration where
     inlineDepends fs (FuncDecl (Function _ s)) = inlineDepends fs s
