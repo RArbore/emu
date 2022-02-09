@@ -13,4 +13,11 @@
 module Passes.Pure
     (
 
+     purePass
+
     ) where
+
+import Semantics.SAST
+
+purePass :: SAST -> SAST
+purePass = undefined

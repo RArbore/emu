@@ -13,4 +13,32 @@
 module Passes.Inline
     (
 
+     inlinePass
+
     ) where
+
+import Data.Text (Text)
+
+import Parser.AST (Modifier (Inline))
+    
+import Semantics.SAST
+
+inlinePass :: SAST -> SAST
+inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> f) $ 
+                                            filter (\d -> case d of
+                                                            FuncDecl (Function (FunctionSignature mods _ _ _) _) -> Inline `elem` mods
+                                                            otherwise -> False)
+                                            decls
+                          in undefined
+
+class InlineDepends d where
+    inlineDepends :: [Function] -> d -> [Function]
+
+instance InlineDepends Declaration where
+    inlineDepends fs (FuncDecl (Function _ s)) = inlineDepends fs s
+    inlineDepends fs (VarDecl (VarBinding _ e)) = inlineDepends fs e
+    inlineDepends fs (StatementDecl s) = inlineDepends fs s
+    inlineDepends _ _ = []
+
+fName :: Function -> Text
+fName (Function (FunctionSignature _ n _ _) _) = n
