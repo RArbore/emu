@@ -695,8 +695,30 @@ instance AssertPure Statement where
     assertPure loc EmptyStatement = return ()
 
 instance AssertPure Expression where
-    assertPure _ _ = undefined
+    assertPure loc (Binary _ e1 e2 _) = assertPure loc e1 >> assertPure loc e2
+    assertPure loc (Unary _ e _) = assertPure loc e
+    assertPure _ (Literal _) = return ()
+    assertPure loc (Array es) = mapM_ (assertPure loc) es
+    assertPure loc@(l, sc, ec) (Call name es _) = do
+                                 boundFuncs <- gets funcs
+                                 let lookup = M.lookup name boundFuncs
+                                 case lookup of
+                                   Just (Function (FunctionSignature mods _ _ _) _) -> unless (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec NonPureError
+                                   Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier name
+                                 mapM_ (assertPure loc) es
+    assertPure loc (Cast e _) = assertPure loc e
+    assertPure loc (LValueExpression (Dereference e _)) = assertPure loc e
+    assertPure _ (LValueExpression (Access _ _ _)) = return ()
+    assertPure loc (LValueExpression (Index _ e _ _)) = assertPure loc e
+    assertPure _ (LValueExpression (Identifier _ _)) = return ()
+    assertPure loc (Assign _ lv e) = assertPure loc lv >> assertPure loc e
+    assertPure (l, sc, ec) (Address _) = throwError $ SemanticsError l sc ec NonPureError
+    assertPure loc (Crement _ lv _) = assertPure loc lv
+    assertPure _ Undefined = return ()
 
+instance AssertPure LValue where
+    assertPure _ _ = undefined
+                             
 class Depends d where
     depends :: A.Location -> d -> Semantics [Declaration]
 

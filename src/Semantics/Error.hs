@@ -72,6 +72,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | CannotComptimeError
                         | CannotInlineError
                         | AssignConstError
+                        | NonPureError
                         | DeadCode
 
 data VarKind = Global | Local | Formal deriving (Show, Eq, Ord)
@@ -133,6 +134,7 @@ instance Show SemanticsErrorType where
     show CannotComptimeError = "this expression cannot be evaluated at compile-time"
     show CannotInlineError = "this function cannot be inlined (depends on a call to itself)"
     show AssignConstError = "cannot assign to const variable"
+    show NonPureError = "this function cannot be marked pure"
     show DeadCode = "code is never reached"
 
 show'' :: Type -> String
