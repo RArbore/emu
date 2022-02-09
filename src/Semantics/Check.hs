@@ -668,6 +668,24 @@ unions :: Eq a => [[a]] -> [a]
 unions [] = []
 unions (x:xs) = foldl' union x xs
 
+class AssertPure d where
+    assertPure :: A.Location -> d -> Semantics ()
+
+instance AssertPure Declaration where
+    assertPure _ (StructDecl _) = return ()
+    assertPure loc (FuncDecl (Function sig@(FunctionSignature _ n idens _) s)) = do
+                                  msig <- gets curFuncSignature
+                                  let recursive = case msig of
+                                                    Just (FunctionSignature _ in_n _ _) -> n == in_n
+                                                    Nothing -> False
+                                  if recursive then return ()
+                                  else do
+                                    pstate <- get
+                                    modify $ \env -> env { curFuncSignature = Just sig }
+                                    mapM (\decIden@(DecoratedIdentifier _ varName _) -> modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) idens
+                                    assertPure s
+                                    modify $ \_ -> pstate
+
 class Depends d where
     depends :: A.Location -> d -> Semantics [Declaration]
 
@@ -681,8 +699,10 @@ instance Depends Declaration where
                                if recursive then return []
                                else do
                                  modify $ \env -> env { curFuncSignature = Just sig }
-                                 appendSet f <$> (unions <$> sequence
-                                                             [unions <$> mapM (depends loc) idens, (depends loc) retType, (depends loc) s])
+                                 decls <- appendSet f <$> (unions <$> sequence
+                                                           [unions <$> mapM (depends loc) idens, (depends loc) retType, (depends loc) s])
+                                 modify $ \env -> env { curFuncSignature = msig }
+                                 return decls
     depends loc (VarDecl (VarBinding iden e)) = unions <$> sequence [(depends loc) iden, (depends loc) e]
     depends loc (StatementDecl s) = (depends loc) s
 
