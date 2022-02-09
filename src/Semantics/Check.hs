@@ -209,7 +209,7 @@ checkDecl ((l, sc, ec), d) = checked
                              termination <- stmtReturns (l, sc, ec) sbody
                              unless (termination == Just sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
                              let func = Function sig (if isTypeVoid sretType && termination == Nothing then Block [StatementDecl sbody, StatementDecl $ ReturnStatement Undefined] else sbody)
-                             assertPure (l, sc, ec) $ FuncDecl func
+                             when (A.Pure `elem` mods) $ assertPure (l, sc, ec) $ FuncDecl func
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              when (A.Inline `elem` mods) $ assertInlinable (l, sc, ec) func
                              return $ FuncDecl $ func
@@ -674,13 +674,7 @@ class AssertPure d where
 
 instance AssertPure Declaration where
     assertPure _ (StructDecl _) = return ()
-    assertPure loc (FuncDecl (Function sig@(FunctionSignature _ n idens _) s)) = do
-                                  msig <- gets curFuncSignature
-                                  let recursive = case msig of
-                                                    Just (FunctionSignature _ in_n _ _) -> n == in_n
-                                                    Nothing -> False
-                                  if recursive then return ()
-                                  else assertPure loc s
+    assertPure loc (FuncDecl (Function sig@(FunctionSignature _ n idens _) s)) = assertPure loc s
     assertPure loc (VarDecl vb@(VarBinding (DecoratedIdentifier _ varName _) e)) = do
                                   assertPure loc e
                                   modify $ \env -> env { vars = M.insert (varName, Local) vb (vars env) }
