@@ -12,5 +12,5 @@ Emu has reached minimal viability. Not every feature is implemented yet, but Emu
 - [x] LLVM code generation
 - [x] Fleshed out command line interface
 - [x] Comptime evaluator
+- [x] Full language semantic checking
 - [ ] Core language feature-set
-- [ ] High level optimizations
