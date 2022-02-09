@@ -706,7 +706,7 @@ instance AssertPure Expression where
     assertPure loc (LValueExpression (Index _ e _ _)) = assertPure loc e
     assertPure _ (LValueExpression (Identifier _ _)) = return ()
     assertPure loc (Assign _ lv e) = assertPureD loc False lv >> assertPure loc e
-    assertPure (l, sc, ec) (Address _) = throwError $ SemanticsError l sc ec NonPureError
+    assertPure loc (Address lv) = assertPureD loc False lv
     assertPure loc (Crement _ lv _) = assertPureD loc False lv
     assertPure _ Undefined = return ()
 

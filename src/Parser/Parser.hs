@@ -302,11 +302,6 @@ opTable =
           wTryPSymbol = pLexeme . try . pSymbol
           tryPSymbol sym = pLexeme $ try (pSymbol sym <* notFollowedBy opChar)
           opChar = oneOf ("!#$%&*+./<=>?@\\^|-~" :: String)
-          cast = do
-            pSymbol "("
-            typeP <- pDecoratedType
-            pSymbol ")"
-            return $ locWrapUn $ Unary $ Cast typeP
           index = do
             pSymbol "["
             first <- pExpression
@@ -321,13 +316,13 @@ opTable =
                    <|> ((locWrapUn $ Unary Tilda) <$ pSymbol "~")
                    <|> ((locWrapUn $ Unary Star) <$ wTryPSymbol "*")
                    <|> ((locWrapUn $ Unary And) <$ wTryPSymbol "&")
-                   <|> cast
+                   -- <|> try cast
           postfix = ((locWrapUn $ Unary PostPlusPlus) <$ wTryPSymbol "++")
                     <|> ((locWrapUn $ Unary PostMinusMinus) <$ wTryPSymbol "--")
                     <|> index
          
 pPrimary :: Parser Expression
-pPrimary = locWrap $ grouping
+pPrimary = locWrap $ try grouping
            <|> BooleanLiteral <$> (False <$ pRWord "false" <|> True <$ pRWord "true")
            <|> try (FloatingPointLiteral . F64Val <$> pFloat)
            <|> fixedPoint
@@ -336,6 +331,7 @@ pPrimary = locWrap $ grouping
            <|> try call
            <|> PrimaryIdentifier <$> pIdentifier
            <|> pArrayLiteral
+           <|> cast
            <|> Undefined <$ pRWord "undefined"
     where grouping = do
             pSymbol "("
@@ -355,6 +351,12 @@ pPrimary = locWrap $ grouping
             rest <- many $ pSymbol "," *> pExpression 
             pSymbol "}"
             return $ ArrayLiteral (first:rest)
+          cast = do
+            pSymbol "("
+            typeP <- pDecoratedType
+            pSymbol ")"
+            e <- pExpression
+            return $ Unary (Cast typeP) e
           call = do
             iden <- pIdentifier
             pSymbol "("

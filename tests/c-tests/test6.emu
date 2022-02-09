@@ -35,15 +35,19 @@ func f(): f64 {
      return sum(comptime g());
 }
 
-func a(): void {
+pure func a(): void {
 
 }
 
-func b(): i64 {
+pure func b(): i64 {
      a();
      return 1;
 }
 
-pure func c(): i64 {
+pure func c(y: *i64): i64 {
+     x: i64 = 0;
+     z: *i64 = &x;
+     y = (*i64) 0;
+     *(z) = 0;
      return b();
 }
