@@ -17,6 +17,7 @@ module Passes.Inline
 
     ) where
 
+import Data.List
 import Data.Text (Text)
 
 import Parser.AST (Modifier (Inline))
@@ -40,5 +41,16 @@ instance InlineDepends Declaration where
     inlineDepends fs (StatementDecl s) = inlineDepends fs s
     inlineDepends _ _ = []
 
+instance InlineDepends Statement where
+    inlineDepends fs (ExpressionStatement e) = inlineDepends fs e
+    inlineDepends fs (IfElseStatement e s1 s2 _ _) = inlineDepends fs e `union` inlineDepends fs s1 `union` inlineDepends fs s2
+    inlineDepends fs (DoWhileStatement e s _) = inlineDepends fs e `union` inlineDepends fs s
+    inlineDepends fs (ReturnStatement e) = inlineDepends fs e
+    inlineDepends fs (Block ds) = foldl (\x y -> x `union` inlineDepends fs y) [] ds
+    inlineDepends _ EmptyStatement = []
+                        
+instance InlineDepends Expression where
+    inlineDepends _ _ = undefined
+                                     
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n
