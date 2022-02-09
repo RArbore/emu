@@ -684,9 +684,15 @@ instance AssertPure Declaration where
     assertPure loc (VarDecl vb@(VarBinding (DecoratedIdentifier _ varName _) e)) = do
                                   assertPure loc e
                                   modify $ \env -> env { vars = M.insert (varName, Local) vb (vars env) }
+    assertPure loc (StatementDecl s) = assertPure loc s
 
 instance AssertPure Statement where
-    assertPure _ _ = undefined
+    assertPure loc (ExpressionStatement e) = assertPure loc e
+    assertPure loc (IfElseStatement e s1 s2 _ _) = assertPure loc e >> assertPure loc s1 >> assertPure loc s2
+    assertPure loc (DoWhileStatement e s _) = assertPure loc e >> assertPure loc s
+    assertPure loc (ReturnStatement e) = assertPure loc e
+    assertPure loc (Block ds) = mapM_ (assertPure loc) ds
+    assertPure loc EmptyStatement = return ()
 
 instance AssertPure Expression where
     assertPure _ _ = undefined
