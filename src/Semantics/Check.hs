@@ -209,6 +209,7 @@ checkDecl ((l, sc, ec), d) = checked
                              termination <- stmtReturns (l, sc, ec) sbody
                              unless (termination == Just sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
                              let func = Function sig (if isTypeVoid sretType && termination == Nothing then Block [StatementDecl sbody, StatementDecl $ ReturnStatement Undefined] else sbody)
+                             assertPure (l, sc, ec) $ FuncDecl func
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              when (A.Inline `elem` mods) $ assertInlinable (l, sc, ec) func
                              return $ FuncDecl $ func
@@ -679,12 +680,16 @@ instance AssertPure Declaration where
                                                     Just (FunctionSignature _ in_n _ _) -> n == in_n
                                                     Nothing -> False
                                   if recursive then return ()
-                                  else do
-                                    pstate <- get
-                                    modify $ \env -> env { curFuncSignature = Just sig }
-                                    mapM (\decIden@(DecoratedIdentifier _ varName _) -> modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) idens
-                                    assertPure s
-                                    modify $ \_ -> pstate
+                                  else assertPure loc s
+    assertPure loc (VarDecl vb@(VarBinding (DecoratedIdentifier _ varName _) e)) = do
+                                  assertPure loc e
+                                  modify $ \env -> env { vars = M.insert (varName, Local) vb (vars env) }
+
+instance AssertPure Statement where
+    assertPure _ _ = undefined
+
+instance AssertPure Expression where
+    assertPure _ _ = undefined
 
 class Depends d where
     depends :: A.Location -> d -> Semantics [Declaration]
