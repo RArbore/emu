@@ -711,13 +711,25 @@ instance AssertPure Expression where
     assertPure _ (LValueExpression (Access _ _ _)) = return ()
     assertPure loc (LValueExpression (Index _ e _ _)) = assertPure loc e
     assertPure _ (LValueExpression (Identifier _ _)) = return ()
-    assertPure loc (Assign _ lv e) = assertPure loc lv >> assertPure loc e
+    assertPure loc (Assign _ lv e) = assertPureD loc False lv >> assertPure loc e
     assertPure (l, sc, ec) (Address _) = throwError $ SemanticsError l sc ec NonPureError
-    assertPure loc (Crement _ lv _) = assertPure loc lv
+    assertPure loc (Crement _ lv _) = assertPureD loc False lv
     assertPure _ Undefined = return ()
 
-instance AssertPure LValue where
-    assertPure _ _ = undefined
+class AssertPureD d where
+    assertPureD :: A.Location -> Bool -> d -> Semantics ()
+
+instance AssertPureD LValue where
+    assertPureD loc _ (Dereference (LValueExpression lv) _) = assertPureD loc True lv
+    assertPureD (l, sc, ec) _ (Dereference _ _) = throwError $ SemanticsError l sc ec NonPureError
+    assertPureD loc d (Access lv _ _) = assertPureD loc d lv
+    assertPureD loc d (Index lv e _ _) = assertPureD loc d lv >> assertPure loc e
+    assertPureD (l, sc, ec) d (Identifier name _) = do
+                              boundVars <- gets vars
+                              let lookup = if d then M.lookup (name, Local) boundVars else M.lookup (name, Local) boundVars <|> M.lookup (name, Formal) boundVars
+                              case lookup of
+                                Just _ -> return ()
+                                Nothing -> throwError $ SemanticsError l sc ec NonPureError
                              
 class Depends d where
     depends :: A.Location -> d -> Semantics [Declaration]
