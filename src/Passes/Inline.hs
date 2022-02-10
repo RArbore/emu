@@ -24,13 +24,19 @@ import Parser.AST (Modifier (Inline))
     
 import Semantics.SAST
 
+data DependsTree = DependsTree Text [DependsTree]
+
 inlinePass :: SAST -> SAST
 inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> fName f) $ 
                                             filter (\d -> case d of
                                                             FuncDecl (Function (FunctionSignature mods _ _ _) _) -> Inline `elem` mods
                                                             otherwise -> False)
-                                            decls
-                              inlineDependencies = map (inlineDepends inlineFuncs) decls
+                                            decls 
+                              inlineDependencies = map (\x -> ((\d -> case d of
+                                                                        FuncDecl f -> fName f
+                                                                        VarDecl (VarBinding (DecoratedIdentifier _ n _) _) -> n
+                                                                        StructDecl (Structure _ n _) -> n) x, inlineDepends inlineFuncs x)) decls
+                              dependsTree = createDependsTree inlineDependencies
                           in undefined
 
 class InlineDepends d where
@@ -70,6 +76,9 @@ instance InlineDepends LValue where
     inlineDepends fs (Access lv _ _) = inlineDepends fs lv
     inlineDepends fs (Index lv e _ _) = inlineDepends fs lv `union` inlineDepends fs e
     inlineDepends _ (Identifier _ _) = []
-                                     
+
+createDependsTree :: [(Text, [Text])] -> DependsTree
+createDependsTree = undefined
+                                       
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n
