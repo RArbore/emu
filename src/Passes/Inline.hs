@@ -65,7 +65,10 @@ instance InlineDepends Expression where
     inlineDepends _ Undefined = []
 
 instance InlineDepends LValue where
-    inlineDepends _ _ = undefined
+    inlineDepends fs (Dereference e _) = inlineDepends fs e
+    inlineDepends fs (Access lv _ _) = inlineDepends fs lv
+    inlineDepends fs (Index lv e _ _) = inlineDepends fs lv `union` inlineDepends fs e
+    inlineDepends _ (Identifier _ _) = []
                                      
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n
