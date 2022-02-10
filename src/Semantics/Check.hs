@@ -26,6 +26,7 @@ module Semantics.Check
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Except
+import Control.Monad.Extra
 
 import qualified Data.ByteString as B
 import Data.Either
@@ -810,6 +811,20 @@ instance Depends DecoratedType where
 
 class CheckInline d where
     checkInline :: Text -> d -> Semantics Bool
+
+instance CheckInline Declaration where
+    checkInline _ (StructDecl _) = return True
+    checkInline n (FuncDecl (Function _ s)) = checkInline n s
+    checkInline n (VarDecl (VarBinding _ e)) = checkInline n e
+    checkInline n (StatementDecl s) = checkInline n s
+
+instance CheckInline Statement where
+    checkInline n (ExpressionStatement e) = checkInline n e
+    checkInline n (IfElseStatement e s1 s2 _ _) = andM [checkInline n e, checkInline n s1, checkInline n s2]
+    checkInline n (DoWhileStatement e s _) = andM [checkInline n e, checkInline n s]
+    checkInline n (ReturnStatement e) = checkInline n e
+    checkInline n (Block ds) = andM $ map (checkInline n) ds
+    checkInline _ EmptyStatement = return True
 
 assertInlinable :: A.Location -> Function -> Semantics ()
 assertInlinable (l, sc, ec) f@(Function (FunctionSignature _ n _ _) s) = do
