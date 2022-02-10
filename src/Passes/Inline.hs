@@ -20,11 +20,13 @@ module Passes.Inline
 import Data.List
 import Data.Text (Text)
 
+import Debug.Trace
+
 import Parser.AST (Modifier (Inline))
     
 import Semantics.SAST
 
-data DependsTree = DependsTree Text [DependsTree]
+data DependsTree = DependsTree Text [DependsTree] deriving (Show)
 
 inlinePass :: SAST -> SAST
 inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> fName f) $ 
@@ -36,8 +38,8 @@ inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> fName f) $
                                                                         FuncDecl f -> fName f
                                                                         VarDecl (VarBinding (DecoratedIdentifier _ n _) _) -> n
                                                                         StructDecl (Structure _ n _) -> n) x, inlineDepends inlineFuncs x)) decls
-                              dependsTree = createDependsTrees inlineDependencies
-                          in undefined
+                              dependsTree = filter (\(DependsTree _ ds) -> not $ null ds) $ createDependsTrees inlineDependencies
+                          in trace (show dependsTree) $ SAST decls
 
 class InlineDepends d where
     inlineDepends :: [Text] -> d -> [Text]

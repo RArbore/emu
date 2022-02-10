@@ -808,13 +808,13 @@ instance Depends DecoratedType where
     depends loc (ArrayType dt _) = (depends loc) dt
     depends _ _ = return []
 
+class CheckInline d where
+    checkInline :: Text -> d -> Semantics Bool
+
 assertInlinable :: A.Location -> Function -> Semantics ()
-assertInlinable (l, sc, ec) f@(Function _ s) = do
-  bound <- get
-  modify $ \env -> env {curFuncSignature = Nothing}
-  dependencies <- depends (l, sc, ec) s
-  modify $ \_ -> bound
-  when (FuncDecl f `elem` dependencies) $ throwError $ SemanticsError l sc ec CannotInlineError
+assertInlinable (l, sc, ec) f@(Function (FunctionSignature _ n _ _) s) = do
+  result <- checkInline n s
+  when result $ throwError $ SemanticsError l sc ec CannotInlineError
 
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate (l, sc, ec) e = do
