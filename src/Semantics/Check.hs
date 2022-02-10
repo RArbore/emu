@@ -847,6 +847,12 @@ instance CheckInline Expression where
     checkInline n (Crement _ lv _) = checkInline n lv
     checkInline _ Undefined = return True
 
+instance CheckInline LValue where
+    checkInline n (Dereference e _) = checkInline n e
+    checkInline n (Access lv _ _) = checkInline n lv
+    checkInline n (Index lv e _ _) = andM [checkInline n lv, checkInline n e]
+    checkInline _ (Identifier _ _) = return True
+
 assertInlinable :: A.Location -> Function -> Semantics ()
 assertInlinable (l, sc, ec) f@(Function (FunctionSignature _ n _ _) s) = do
   result <- checkInline n s
