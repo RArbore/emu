@@ -82,7 +82,7 @@ instance InlineDepends LValue where
 createDependsTrees :: [(Text, [Text])] -> [DependsTree]
 createDependsTrees [] = []
 createDependsTrees depends = let bases = map fst $ filter (\(_, x) -> null x) depends
-                             in map (\x -> DependsTree x $ createDependsTrees $ map (\(n, d) -> (n, delete x d)) $ filter (\(n, d) -> x `elem` d) depends) bases
+                             in map (\x -> DependsTree x $ createDependsTrees $ map (\(n, d) -> (n, delete x d)) $ filter (\(_, x) -> not $ null x) $ filter (\(n, _) -> x /= n) depends) bases
                                        
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n

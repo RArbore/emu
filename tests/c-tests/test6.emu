@@ -51,3 +51,5 @@ pure inline func c(y: *i64): i64 {
      *(z) = 0;
      return b();
 }
+
+d: i64 = b();
