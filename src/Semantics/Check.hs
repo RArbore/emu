@@ -832,15 +832,18 @@ instance CheckInline Expression where
     checkInline _ (Literal _) = return True
     checkInline n (Array es) = andM $ map (checkInline n) es
     checkInline n (Call cn es _) = do
-                                  boundFuncs <- gets funcs
-                                  case M.lookup cn boundFuncs of
-                                    Just (Function (FunctionSignature mods _ _) s) -> do
-                                                                args <- andM $ map (checkInline n) es
-                                                                f <- if A.Inline `elem` mods
-                                                                     then checkInline n s
-                                                                     else True
-                                                                return $ args && f
-                                    Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier cn
+                                  if n == cn then return False
+                                  else do
+                                    boundFuncs <- gets funcs
+                                    case M.lookup cn boundFuncs of
+                                      Just (Function (FunctionSignature mods _ _ _) s) -> do
+                                                                  args <- andM $ map (checkInline n) es
+                                                                  f <- if A.Inline `elem` mods
+                                                                       then checkInline n s
+                                                                       else return True
+                                                                  return $ args && f
+                                      Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier cn
+    checkInline n (Cast e _) = checkInline n e
     checkInline n (LValueExpression lv) = checkInline n lv
     checkInline n (Assign _ lv e) = andM [checkInline n lv, checkInline n e]
     checkInline n (Address lv) = checkInline n lv
@@ -856,7 +859,7 @@ instance CheckInline LValue where
 assertInlinable :: A.Location -> Function -> Semantics ()
 assertInlinable (l, sc, ec) f@(Function (FunctionSignature _ n _ _) s) = do
   result <- checkInline n s
-  when result $ throwError $ SemanticsError l sc ec CannotInlineError
+  when (not result) $ throwError $ SemanticsError l sc ec CannotInlineError
 
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate (l, sc, ec) e = do
