@@ -36,7 +36,7 @@ inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> fName f) $
                                                                         FuncDecl f -> fName f
                                                                         VarDecl (VarBinding (DecoratedIdentifier _ n _) _) -> n
                                                                         StructDecl (Structure _ n _) -> n) x, inlineDepends inlineFuncs x)) decls
-                              dependsTree = createDependsTree inlineDependencies
+                              dependsTree = createDependsTrees inlineDependencies
                           in undefined
 
 class InlineDepends d where
@@ -77,8 +77,10 @@ instance InlineDepends LValue where
     inlineDepends fs (Index lv e _ _) = inlineDepends fs lv `union` inlineDepends fs e
     inlineDepends _ (Identifier _ _) = []
 
-createDependsTree :: [(Text, [Text])] -> DependsTree
-createDependsTree = undefined
+createDependsTrees :: [(Text, [Text])] -> [DependsTree]
+createDependsTrees [] = []
+createDependsTrees depends = let bases = map fst $ filter (\(_, x) -> null x) depends
+                             in map (\x -> DependsTree x $ createDependsTrees $ map (\(n, d) -> (n, delete x d)) $ filter (\(n, d) -> x `elem` d) depends) bases
                                        
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n
