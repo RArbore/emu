@@ -826,6 +826,27 @@ instance CheckInline Statement where
     checkInline n (Block ds) = andM $ map (checkInline n) ds
     checkInline _ EmptyStatement = return True
 
+instance CheckInline Expression where
+    checkInline n (Binary _ e1 e2 _) = andM [checkInline n e1, checkInline n e2]
+    checkInline n (Unary _ e _) = checkInline n e
+    checkInline _ (Literal _) = return True
+    checkInline n (Array es) = andM $ map (checkInline n) es
+    checkInline n (Call cn es _) = do
+                                  boundFuncs <- gets funcs
+                                  case M.lookup cn boundFuncs of
+                                    Just (Function (FunctionSignature mods _ _) s) -> do
+                                                                args <- andM $ map (checkInline n) es
+                                                                f <- if A.Inline `elem` mods
+                                                                     then checkInline n s
+                                                                     else True
+                                                                return $ args && f
+                                    Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier cn
+    checkInline n (LValueExpression lv) = checkInline n lv
+    checkInline n (Assign _ lv e) = andM [checkInline n lv, checkInline n e]
+    checkInline n (Address lv) = checkInline n lv
+    checkInline n (Crement _ lv _) = checkInline n lv
+    checkInline _ Undefined = return True
+
 assertInlinable :: A.Location -> Function -> Semantics ()
 assertInlinable (l, sc, ec) f@(Function (FunctionSignature _ n _ _) s) = do
   result <- checkInline n s
