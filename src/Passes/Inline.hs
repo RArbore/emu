@@ -33,7 +33,7 @@ inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl (Function (FunctionS
                           in undefined
 
 class InlineDepends d where
-    inlineDepends :: [Text] -> d -> [Function]
+    inlineDepends :: [Text] -> d -> [Text]
 
 instance InlineDepends Declaration where
     inlineDepends fs (FuncDecl (Function _ s)) = inlineDepends fs s
@@ -50,6 +50,21 @@ instance InlineDepends Statement where
     inlineDepends _ EmptyStatement = []
                         
 instance InlineDepends Expression where
+    inlineDepends fs (Binary _ e1 e2 _) = inlineDepends fs e1 `union` inlineDepends fs e2
+    inlineDepends fs (Unary _ e _) = inlineDepends fs e
+    inlineDepends _ (Literal _) = []
+    inlineDepends fs (Array es) = foldl (\x y -> x `union` inlineDepends fs y) [] es
+    inlineDepends fs (Call n es _) = if n `elem` fs
+                                     then n:(foldl (\x y -> x `union` inlineDepends fs y) [] es)
+                                     else foldl (\x y -> x `union` inlineDepends fs y) [] es
+    inlineDepends fs (Cast e _) = inlineDepends fs e
+    inlineDepends fs (LValueExpression lv) = inlineDepends fs lv
+    inlineDepends fs (Assign _ lv e) = inlineDepends fs lv `union` inlineDepends fs e
+    inlineDepends fs (Address lv) = inlineDepends fs lv
+    inlineDepends fs (Crement _ lv _) = inlineDepends fs lv
+    inlineDepends _ Undefined = []
+
+instance InlineDepends LValue where
     inlineDepends _ _ = undefined
                                      
 fName :: Function -> Text
