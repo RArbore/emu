@@ -96,41 +96,8 @@ walkDependsTree ((DependsTree n sxs):xs) s@(SAST ds) = walkDependsTree xs (walkD
                                                                                                                                                       FuncDecl f -> fName f == n
                                                                                                                                                       otherwise -> False) ds) s))
 
-class Inlinable d where
-    inline :: Function -> d -> d
+inline :: Function -> SAST -> SAST
+inline = undefined
 
-instance Inlinable SAST where
-    inline f (SAST ds) = SAST $ map (inline f) ds
-
-instance Inlinable Declaration where
-    inline f (StructDecl s) = StructDecl s
-    inline f (FuncDecl (Function sig s)) = FuncDecl $ Function sig $ inline f s
-    inline (Function (FunctionSignature _ fn args ret) body) (VarDecl (VarBinding di e))
-        = let depends = inlineDepends [fn] e
-              replaceW fn e = evalState (replace fn e) 0
-          in StatementDecl
-                 (Block
-                  ((map (\((n, es), num) -> StatementDecl $
-                                            Block (map (VarDecl . uncurry VarBinding)
-                                                   (zip (map (\(DecoratedIdentifier m n t) -> DecoratedIdentifier m (T.concat [T.pack "@", T.pack $ show num, n]) t) args) es)
-                                                   ++ [])) $ zip depends [0..(length depends)])
-                   ++ [
-                    (VarDecl
-                     (VarBinding di $ foldl (flip replaceW) e (map fst depends))
-                    )
-                   ]))
-                                             
-instance Inlinable Statement where
-    inline = undefined
-                             
-class Replacable e where
-    replace :: fn -> e -> State Int e
-
-instance Replacable Expression where
-    replace = undefined
-                                           
-instance Replacable LValue where
-    replace = undefined
-                                           
 fName :: Function -> T.Text
 fName (Function (FunctionSignature _ n _ _) _) = n
