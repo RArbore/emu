@@ -82,7 +82,20 @@ instance InlineDepends LValue where
 createDependsTrees :: [(Text, [Text])] -> [DependsTree]
 createDependsTrees [] = []
 createDependsTrees depends = let bases = map fst $ filter (\(_, x) -> null x) depends
-                             in map (\x -> DependsTree x $ createDependsTrees $ map (\(n, d) -> (n, delete x d)) $ filter (\(_, x) -> not $ null x) $ filter (\(n, _) -> x /= n) depends) bases
-                                       
+                             in map (\x -> DependsTree x $
+                                           createDependsTrees $
+                                           map (\(n, d) -> (n, delete x d)) $
+                                           filter (\(_, x) -> not $ null x) $
+                                           filter (\(n, _) -> x /= n) depends) bases
+
+walkDependsTree :: [DependsTree] -> SAST -> SAST
+walkDependsTree [] s = s
+walkDependsTree ((DependsTree n sxs):xs) s@(SAST ds) = walkDependsTree xs (walkDependsTree sxs (inlineFunction ((\(FuncDecl f) -> f) $ head $ filter (\x -> case x of
+                                                                                                                                       FuncDecl f -> fName f == n
+                                                                                                                                       otherwise -> False) ds) s))
+    
+inlineFunction :: Function -> SAST -> SAST
+inlineFunction = undefined
+                             
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n
