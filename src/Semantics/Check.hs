@@ -231,13 +231,14 @@ checkDecl ((l, sc, ec), d) = checked
                              sinit <- checkExpr init
                              when (not ((typeOf sinit) == PureType Void) && (not $ checkImplicitCast (typeOf sinit) st)) $ throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sinit) st
                              when ((typeOf sinit == PureType Void) && (not (sinit == Undefined))) $ throwError $ SemanticsError l sc ec $ TypeError st $ PureType Void
-                             noInline <- checkNoInline sinit
-                             when (not noInline) $ throwError $ SemanticsError l sc ec CannotInlineInGlobalsError
                              let varBind = VarBinding (DecoratedIdentifier mods name st) sinit
                              checkIfInFunction <- gets curFuncSignature
                              if isJust checkIfInFunction
                              then modify $ \_ -> prevEnv { vars = M.insert (name, Local) varBind boundVars }
-                             else modify $ \_ -> prevEnv { vars = M.insert (name, Global) varBind boundVars }
+                             else do
+                               noInline <- checkNoInline sinit
+                               when (not noInline) $ throwError $ SemanticsError l sc ec CannotInlineInGlobalsError
+                               modify $ \_ -> prevEnv { vars = M.insert (name, Global) varBind boundVars }
                              return $ VarDecl $ varBind
                       A.StatementDecl stmt -> do
                              checkIfInFunctionAlready <- gets curFuncSignature
