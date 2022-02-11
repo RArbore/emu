@@ -73,6 +73,7 @@ data SemanticsErrorType = DuplicateDeclaration Text
                         | CannotInlineError
                         | AssignConstError
                         | NonPureError
+                        | CannotInlineInGlobalsError
                         | DeadCode
 
 data VarKind = Global | Local | Formal deriving (Show, Eq, Ord)
@@ -135,6 +136,7 @@ instance Show SemanticsErrorType where
     show CannotInlineError = "this function cannot be inlined (depends on a call to itself)"
     show AssignConstError = "cannot assign to const variable"
     show NonPureError = "this function cannot be marked pure"
+    show CannotInlineInGlobalsError = "cannot inline functions inside global variable initialization"
     show DeadCode = "code is never reached"
 
 show'' :: Type -> String

@@ -231,6 +231,8 @@ checkDecl ((l, sc, ec), d) = checked
                              sinit <- checkExpr init
                              when (not ((typeOf sinit) == PureType Void) && (not $ checkImplicitCast (typeOf sinit) st)) $ throwError $ SemanticsError l sc ec $ ImplicitCastError (typeOf sinit) st
                              when ((typeOf sinit == PureType Void) && (not (sinit == Undefined))) $ throwError $ SemanticsError l sc ec $ TypeError st $ PureType Void
+                             noInline <- checkNoInline sinit
+                             when (not noInline) $ throwError $ SemanticsError l sc ec CannotInlineInGlobalsError
                              let varBind = VarBinding (DecoratedIdentifier mods name st) sinit
                              checkIfInFunction <- gets curFuncSignature
                              if isJust checkIfInFunction
@@ -860,6 +862,34 @@ assertInlinable :: A.Location -> Function -> Semantics ()
 assertInlinable (l, sc, ec) f@(Function (FunctionSignature _ n _ _) s) = do
   result <- checkInline n s
   when (not result) $ throwError $ SemanticsError l sc ec CannotInlineError
+
+class CheckNoInline e where
+    checkNoInline :: e -> Semantics Bool
+
+instance CheckNoInline Expression where
+    checkNoInline (Binary _ e1 e2 _) = andM [checkNoInline e1, checkNoInline e2]
+    checkNoInline (Unary _ e _) = checkNoInline e
+    checkNoInline (Literal _) = return True
+    checkNoInline (Array es) = andM $ map checkNoInline es
+    checkNoInline (Call n es _) = do
+      boundFuncs <- gets funcs
+      case M.lookup n boundFuncs of
+        Just (Function (FunctionSignature mods _ _ _) _) -> do
+                                    args <- andM $ map checkNoInline es
+                                    return $ args && (not $ A.Inline `elem` mods)
+        Nothing -> throwError $ SemanticsError (-1) (-1) (-1) $ UndefinedIdentifier n
+    checkNoInline (Cast e _) = checkNoInline e
+    checkNoInline (LValueExpression lv) = checkNoInline lv
+    checkNoInline (Assign _ lv e) = andM [checkNoInline lv, checkNoInline e]
+    checkNoInline (Address lv) = checkNoInline lv
+    checkNoInline (Crement _ lv _) = checkNoInline lv
+    checkNoInline Undefined = return True
+
+instance CheckNoInline LValue where
+    checkNoInline (Dereference e _) = checkNoInline e
+    checkNoInline (Access lv _ _) = checkNoInline lv
+    checkNoInline (Index lv e _ _) = andM [checkNoInline lv, checkNoInline e]
+    checkNoInline (Identifier _ _) = return True
 
 comptimeEvaluate :: A.Location -> Expression -> Semantics ComptimeValue
 comptimeEvaluate (l, sc, ec) e = do
