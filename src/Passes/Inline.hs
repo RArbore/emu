@@ -17,6 +17,8 @@ module Passes.Inline
 
     ) where
 
+import Control.Monad.State
+
 import Data.List
 import Data.Text (Text)
 
@@ -37,12 +39,12 @@ inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> fName f) $
                               inlineDependencies = map (\x -> ((\d -> case d of
                                                                         FuncDecl f -> fName f
                                                                         VarDecl (VarBinding (DecoratedIdentifier _ n _) _) -> n
-                                                                        StructDecl (Structure _ n _) -> n) x, inlineDepends inlineFuncs x)) decls
+                                                                        StructDecl (Structure _ n _) -> n) x, map fst $ inlineDepends inlineFuncs x)) decls
                               dependsTree = filter (\(DependsTree _ ds) -> not $ null ds) $ createDependsTrees inlineDependencies
                           in trace (show dependsTree) $ SAST decls
 
 class InlineDepends d where
-    inlineDepends :: [Text] -> d -> [Text]
+    inlineDepends :: [Text] -> d -> [(Text, [Expression])]
 
 instance InlineDepends Declaration where
     inlineDepends fs (FuncDecl (Function _ s)) = inlineDepends fs s
@@ -64,7 +66,7 @@ instance InlineDepends Expression where
     inlineDepends _ (Literal _) = []
     inlineDepends fs (Array es) = foldl (\x y -> x `union` inlineDepends fs y) [] es
     inlineDepends fs (Call n es _) = if n `elem` fs
-                                     then n:(foldl (\x y -> x `union` inlineDepends fs y) [] es)
+                                     then (n, es):(foldl (\x y -> x `union` inlineDepends fs y) [] es)
                                      else foldl (\x y -> x `union` inlineDepends fs y) [] es
     inlineDepends fs (Cast e _) = inlineDepends fs e
     inlineDepends fs (LValueExpression lv) = inlineDepends fs lv
@@ -101,16 +103,31 @@ instance Inlinable SAST where
     inline f (SAST ds) = SAST $ map (inline f) ds
 
 instance Inlinable Declaration where
-    inline = undefined
-                             
+    inline f (StructDecl s) = StructDecl s
+    inline f (FuncDecl (Function sig s)) = FuncDecl $ Function sig $ inline f s
+    inline f (VarDecl (VarBinding di e)) = let depends = inlineDepends [fName f] e
+                                               replaceW fn e = evalState (replace fn e) 0
+                                           in StatementDecl
+                                                  (Block
+                                                   [
+                                                    VarDecl
+                                                    (
+                                                     VarBinding di $ foldl (flip replaceW) e (map fst depends)
+                                                    )
+                                                   ]
+                                                  )
+                                             
 instance Inlinable Statement where
     inline = undefined
                              
-instance Inlinable Expression where
-    inline = undefined
-                             
-instance Inlinable LValue where
-    inline = undefined
-                             
+class Replacable e where
+    replace :: fn -> e -> State Int e
+
+instance Replacable Expression where
+    replace = undefined
+                                           
+instance Replacable LValue where
+    replace = undefined
+                                           
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n
