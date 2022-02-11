@@ -90,12 +90,27 @@ createDependsTrees depends = let bases = map fst $ filter (\(_, x) -> null x) de
 
 walkDependsTree :: [DependsTree] -> SAST -> SAST
 walkDependsTree [] s = s
-walkDependsTree ((DependsTree n sxs):xs) s@(SAST ds) = walkDependsTree xs (walkDependsTree sxs (inlineFunction ((\(FuncDecl f) -> f) $ head $ filter (\x -> case x of
-                                                                                                                                       FuncDecl f -> fName f == n
-                                                                                                                                       otherwise -> False) ds) s))
-    
-inlineFunction :: Function -> SAST -> SAST
-inlineFunction = undefined
+walkDependsTree ((DependsTree n sxs):xs) s@(SAST ds) = walkDependsTree xs (walkDependsTree sxs (inline ((\(FuncDecl f) -> f) $ head $ filter (\x -> case x of
+                                                                                                                                                      FuncDecl f -> fName f == n
+                                                                                                                                                      otherwise -> False) ds) s))
+
+class Inlinable d where
+    inline :: Function -> d -> d
+
+instance Inlinable SAST where
+    inline f (SAST ds) = SAST $ map (inline f) ds
+
+instance Inlinable Declaration where
+    inline = undefined
+                             
+instance Inlinable Statement where
+    inline = undefined
+                             
+instance Inlinable Expression where
+    inline = undefined
+                             
+instance Inlinable LValue where
+    inline = undefined
                              
 fName :: Function -> Text
 fName (Function (FunctionSignature _ n _ _) _) = n
