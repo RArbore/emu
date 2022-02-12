@@ -143,7 +143,10 @@ instance Renamable Expression where
     rename _ _ Undefined = Undefined
 
 instance Renamable LValue where
-    rename = undefined
+    rename gs num (Dereference e dt) = Dereference (rename gs num e) dt
+    rename gs num (Access lv w dt) = Access (rename gs num lv) w dt
+    rename gs num (Index lv e dt w) = Index (rename gs num lv) (rename gs num e) dt w
+    rename gs num (Identifier n dt) = Identifier (rename gs num n) dt
 
 instance Renamable DecoratedIdentifier where
     rename gs num (DecoratedIdentifier m n d) = (DecoratedIdentifier m (rename gs num n) d)
