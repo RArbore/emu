@@ -224,7 +224,12 @@ instance ReplaceCall Declaration where
     replaceCall _ _ x = return x
 
 instance ReplaceCall Statement where
-    replaceCall n t _ = undefined
+    replaceCall n t (ExpressionStatement e) = ExpressionStatement <$> replaceCall n t e
+    replaceCall n t (IfElseStatement e s1 s2 b1 b2) = IfElseStatement <$> replaceCall n t e <*> replaceCall n t s1 <*> replaceCall n t s2 <*> return b1 <*> return b2
+    replaceCall n t (DoWhileStatement e s b) = DoWhileStatement <$> replaceCall n t e <*> replaceCall n t s <*> return b
+    replaceCall n t (ReturnStatement e) = ReturnStatement <$> replaceCall n t e
+    replaceCall n t (Block ds) = Block <$> mapM (replaceCall n t) ds
+    replaceCall _ _ EmptyStatement = return EmptyStatement
     
 instance ReplaceCall Expression where
     replaceCall n t _ = undefined
