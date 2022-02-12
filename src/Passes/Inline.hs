@@ -41,7 +41,7 @@ inlinePass (SAST decls) = let inlineFuncs = map (\(FuncDecl f) -> fName f) $
                                                                         VarDecl (VarBinding (DecoratedIdentifier _ n _) _) -> n
                                                                         StructDecl (Structure _ n _) -> n) x, map fst $ inlineDepends inlineFuncs x)) decls
                               dependsTree = filter (\(DependsTree _ ds) -> not $ null ds) $ createDependsTrees inlineDependencies
-                          in trace (show dependsTree) $ SAST decls
+                          in walkDependsTree dependsTree $ SAST decls
 
 class InlineDepends d where
     inlineDepends :: [T.Text] -> d -> [(T.Text, [Expression])]
@@ -106,7 +106,11 @@ inline f (SAST ds) = SAST $ inlineHelperD f [] ds
                                     VarDecl var -> d:(inlineHelperD f (var:gs) ds)
                                     otherwise -> d:(inlineHelperD f gs ds)
       inlineHelperF :: Function -> [VarBinding] -> Function -> Function
-      inlineHelperF ifunc gs func = undefined
+      inlineHelperF ifunc gs (Function sig (Block ds)) = Function sig $ Block (inlineInsideFunc ifunc gs ds)
+      inlineHelperF ifunc gs (Function sig s) = inlineHelperF ifunc gs (Function sig (Block [StatementDecl s]))
+
+inlineInsideFunc :: Function -> [VarBinding] -> [Declaration] -> [Declaration]
+inlineInsideFunc = undefined
 
 renameVarsInFunc :: Function -> Int -> [VarBinding] -> Function
 renameVarsInFunc (Function sig s) n gs = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
@@ -114,6 +118,9 @@ renameVarsInFunc (Function sig s) n gs = let globalNames = map (\(VarBinding (De
 
 class Renamable d where
     rename :: [T.Text] -> Int -> d -> d
+
+instance Renamable Function where
+    rename gs num f = (\(FuncDecl x) -> x) $ rename gs num (FuncDecl f)
 
 instance Renamable Declaration where
     rename gs num (VarDecl (VarBinding di e)) = (VarDecl (VarBinding (rename gs num di) (rename gs num e)))
