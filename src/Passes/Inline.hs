@@ -120,9 +120,22 @@ instance Renamable Declaration where
         = (VarDecl (VarBinding (rename gs num di) (rename gs num e)))
     rename gs num (FuncDecl (Function (FunctionSignature m n dis dt) s))
         = (FuncDecl (Function (FunctionSignature m n (map (rename gs num) dis) dt) $ rename gs num s))
+    rename gs num (StatementDecl s)
+        = StatementDecl $ rename gs num s
+    rename _ _ x = x
 
 instance Renamable Statement where
-    rename = undefined
+    rename gs num (ExpressionStatement e)
+        = ExpressionStatement $ rename gs num e
+    rename gs num (IfElseStatement e s1 s2 b1 b2)
+        = IfElseStatement (rename gs num e) (rename gs num s1) (rename gs num s2) b1 b2
+    rename gs num (DoWhileStatement e s b)
+        = DoWhileStatement (rename gs num e) (rename gs num s) b
+    rename gs num (ReturnStatement e)
+        = ReturnStatement $ rename gs num e
+    rename gs num (Block ds)
+        = Block $ map (rename gs num) ds
+    rename _ _ (EmptyStatement) = EmptyStatement
 
 instance Renamable Expression where
     rename = undefined
