@@ -137,13 +137,27 @@ inlineInsideFunc ifunc gs (d:ds) = case d of
                                                   after <- inlineInsideFunc ifunc gs ds
                                                   return $ curr ++ after
                                            EmptyStatement -> inlineInsideFunc ifunc gs ds
-
-inlineExpr :: Function -> [VarBinding] -> Expression -> State Int (Expression, [Declaration])
-inlineExpr = undefined
+                                     VarDecl (VarBinding di e) -> do
+                                            (newE, inlined) <- inlineExpr ifunc gs e
+                                            after <- inlineInsideFunc ifunc gs ds
+                                            return (inlined ++ [VarDecl (VarBinding di newE)] ++ after)
 
 ensureInBlock :: Statement -> [Declaration]
 ensureInBlock (Block ds) = ds
 ensureInBlock s = [StatementDecl s]
+
+inlineExpr :: Function -> [VarBinding] -> Expression -> State Int (Expression, [Declaration])
+inlineExpr ifunc gs e = do
+  let dependencies = inlineDepends [fName ifunc] e
+  case dependencies of
+    [] -> return (e, [])
+    (d:ds) -> do
+      (newE, inline) <- inlineInstance ifunc gs e
+      (restE, restInline) <- inlineExpr ifunc gs newE
+      return (restE, inline ++ restInline)
+
+inlineInstance :: Function -> [VarBinding] -> Expression -> State Int (Expression, [Declaration])
+inlineInstance = undefined
 
 renameVarsInFunc :: Function -> Int -> [VarBinding] -> Function
 renameVarsInFunc (Function sig s) n gs = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
