@@ -97,7 +97,35 @@ walkDependsTree ((DependsTree n sxs):xs) s@(SAST ds) = walkDependsTree xs (walkD
                                                                                                                                                       otherwise -> False) ds) s))
 
 inline :: Function -> SAST -> SAST
-inline = undefined
+inline f (SAST ds) = SAST $ inlineHelperD f [] ds
+    where
+      inlineHelperD :: Function -> [VarBinding] -> [Declaration] -> [Declaration]
+      inlineHelperD _ _ [] = []
+      inlineHelperD f gs (d:ds) = case d of
+                                    FuncDecl func -> (FuncDecl $ inlineHelperF f gs func):(inlineHelperD f gs ds)
+                                    VarDecl var -> d:(inlineHelperD f (var:gs) ds)
+                                    otherwise -> d:(inlineHelperD f gs ds)
+      inlineHelperF :: Function -> [VarBinding] -> Function -> Function
+      inlineHelperF ifunc gs func = undefined
+
+renameVarsInFunc :: Function -> Int -> [VarBinding] -> Function
+renameVarsInFunc (Function sig s) n gs = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
+                                         in Function sig $ rename globalNames s 
+
+class Renamable d where
+    rename :: [T.Text] -> d -> d
+
+instance Renamable Declaration where
+    rename = undefined
+
+instance Renamable Statement where
+    rename = undefined
+
+instance Renamable Expression where
+    rename = undefined
+
+instance Renamable LValue where
+    rename = undefined
 
 fName :: Function -> T.Text
 fName (Function (FunctionSignature _ n _ _) _) = n
