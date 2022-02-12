@@ -116,39 +116,42 @@ class Renamable d where
     rename :: [T.Text] -> Int -> d -> d
 
 instance Renamable Declaration where
-    rename gs num (VarDecl (VarBinding di e))
-        = (VarDecl (VarBinding (rename gs num di) (rename gs num e)))
-    rename gs num (FuncDecl (Function (FunctionSignature m n dis dt) s))
-        = (FuncDecl (Function (FunctionSignature m n (map (rename gs num) dis) dt) $ rename gs num s))
-    rename gs num (StatementDecl s)
-        = StatementDecl $ rename gs num s
+    rename gs num (VarDecl (VarBinding di e)) = (VarDecl (VarBinding (rename gs num di) (rename gs num e)))
+    rename gs num (FuncDecl (Function (FunctionSignature m n dis dt) s)) = (FuncDecl (Function (FunctionSignature m n (map (rename gs num) dis) dt) $ rename gs num s))
+    rename gs num (StatementDecl s) = StatementDecl $ rename gs num s
     rename _ _ x = x
 
 instance Renamable Statement where
-    rename gs num (ExpressionStatement e)
-        = ExpressionStatement $ rename gs num e
-    rename gs num (IfElseStatement e s1 s2 b1 b2)
-        = IfElseStatement (rename gs num e) (rename gs num s1) (rename gs num s2) b1 b2
-    rename gs num (DoWhileStatement e s b)
-        = DoWhileStatement (rename gs num e) (rename gs num s) b
-    rename gs num (ReturnStatement e)
-        = ReturnStatement $ rename gs num e
-    rename gs num (Block ds)
-        = Block $ map (rename gs num) ds
-    rename _ _ (EmptyStatement) = EmptyStatement
+    rename gs num (ExpressionStatement e) = ExpressionStatement $ rename gs num e
+    rename gs num (IfElseStatement e s1 s2 b1 b2) = IfElseStatement (rename gs num e) (rename gs num s1) (rename gs num s2) b1 b2
+    rename gs num (DoWhileStatement e s b) = DoWhileStatement (rename gs num e) (rename gs num s) b
+    rename gs num (ReturnStatement e) = ReturnStatement $ rename gs num e
+    rename gs num (Block ds) = Block $ map (rename gs num) ds
+    rename _ _ EmptyStatement = EmptyStatement
 
 instance Renamable Expression where
-    rename = undefined
+    rename gs num (Binary bop e1 e2 dt) = Binary bop (rename gs num e1) (rename gs num e2) dt
+    rename gs num (Unary uop e dt) = Unary uop (rename gs num e) dt
+    rename gs num (Literal cv) = Literal cv
+    rename gs num (Array es) = Array $ map (rename gs num) es
+    rename gs num (Call fn es dt) = Call fn (map (rename gs num) es) dt
+    rename gs num (Cast e dt) = Cast (rename gs num e) dt
+    rename gs num (LValueExpression lv) = LValueExpression $ rename gs num lv
+    rename gs num (Assign aop lv e) = Assign aop (rename gs num lv) (rename gs num e)
+    rename gs num (Address lv) = Address $ rename gs num lv
+    rename gs num (Crement cop lv dt) = Crement cop (rename gs num lv) dt
+    rename _ _ Undefined = Undefined
 
 instance Renamable LValue where
     rename = undefined
 
 instance Renamable DecoratedIdentifier where
-    rename gs num (DecoratedIdentifier m n d)
-        = (DecoratedIdentifier m
-           (T.pack "@" `T.append`
-            (T.pack $ show num) `T.append`
-            n) d)
+    rename gs num (DecoratedIdentifier m n d) = (DecoratedIdentifier m (rename gs num n) d)
+
+instance Renamable T.Text where
+    rename gs num t = if t `elem` gs
+                      then t
+                      else (T.pack "@") `T.append` (T.pack $ show num) `T.append` t
 
 fName :: Function -> T.Text
 fName (Function (FunctionSignature _ n _ _) _) = n
