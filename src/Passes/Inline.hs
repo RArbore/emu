@@ -106,11 +106,24 @@ inline f (SAST ds) = SAST $ inlineHelperD f [] ds
                                     VarDecl var -> d:(inlineHelperD f (var:gs) ds)
                                     otherwise -> d:(inlineHelperD f gs ds)
       inlineHelperF :: Function -> [VarBinding] -> Function -> Function
-      inlineHelperF ifunc gs (Function sig (Block ds)) = Function sig $ Block (inlineInsideFunc ifunc gs ds)
-      inlineHelperF ifunc gs (Function sig s) = inlineHelperF ifunc gs (Function sig (Block [StatementDecl s]))
+      inlineHelperF ifunc gs (Function sig s) = Function sig $ Block (evalState (inlineInsideFunc ifunc gs $ ensureInBlock s) 0)
 
-inlineInsideFunc :: Function -> [VarBinding] -> [Declaration] -> [Declaration]
-inlineInsideFunc = undefined
+inlineInsideFunc :: Function -> [VarBinding] -> [Declaration] -> State Int [Declaration]
+inlineInsideFunc _ _ [] = return []
+inlineInsideFunc ifunc gs (d:ds) = case d of
+                                     StatementDecl s ->
+                                         case s of
+                                           ExpressionStatement e -> do
+                                                  (newE, inlined) <- inlineExpr ifunc gs e
+                                                  after <- inlineInsideFunc ifunc gs ds
+                                                  return (inlined ++ ensureInBlock (ExpressionStatement newE) ++ after)
+
+inlineExpr :: Function -> [VarBinding] -> Expression -> State Int (Expression, [Declaration])
+inlineExpr = undefined
+
+ensureInBlock :: Statement -> [Declaration]
+ensureInBlock (Block ds) = ds
+ensureInBlock s = [StatementDecl s]
 
 renameVarsInFunc :: Function -> Int -> [VarBinding] -> Function
 renameVarsInFunc (Function sig s) n gs = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
