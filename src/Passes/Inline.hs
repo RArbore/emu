@@ -110,13 +110,16 @@ inline f (SAST ds) = SAST $ inlineHelperD f [] ds
 
 renameVarsInFunc :: Function -> Int -> [VarBinding] -> Function
 renameVarsInFunc (Function sig s) n gs = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
-                                         in Function sig $ rename globalNames s 
+                                         in Function sig $ rename globalNames n s 
 
 class Renamable d where
-    rename :: [T.Text] -> d -> d
+    rename :: [T.Text] -> Int -> d -> d
 
 instance Renamable Declaration where
-    rename = undefined
+    rename gs num (VarDecl (VarBinding di e))
+        = (VarDecl (VarBinding (rename gs num di) (rename gs num e)))
+    rename gs num (FuncDecl (Function (FunctionSignature m n dis dt) s))
+        = (FuncDecl (Function (FunctionSignature m n (map (rename gs num) dis) dt) $ rename gs num s))
 
 instance Renamable Statement where
     rename = undefined
@@ -126,6 +129,13 @@ instance Renamable Expression where
 
 instance Renamable LValue where
     rename = undefined
+
+instance Renamable DecoratedIdentifier where
+    rename gs num (DecoratedIdentifier m n d)
+        = (DecoratedIdentifier m
+           (T.pack "@" `T.append`
+            (T.pack $ show num) `T.append`
+            n) d)
 
 fName :: Function -> T.Text
 fName (Function (FunctionSignature _ n _ _) _) = n
