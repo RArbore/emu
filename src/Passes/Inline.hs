@@ -215,6 +215,23 @@ instance Renamable T.Text where
                       then t
                       else (T.pack "@") `T.append` (T.pack $ show num) `T.append` t
 
+class ReplaceCall d where
+    replaceCall :: T.Text -> DecoratedType -> d -> State Bool d
+
+instance ReplaceCall Declaration where
+    replaceCall n t (VarDecl (VarBinding di e)) = (\x -> VarDecl $ VarBinding di x) <$> replaceCall n t e
+    replaceCall n t (StatementDecl s) = StatementDecl <$> replaceCall n t s
+    replaceCall _ _ x = return x
+
+instance ReplaceCall Statement where
+    replaceCall n t _ = undefined
+    
+instance ReplaceCall Expression where
+    replaceCall n t _ = undefined
+                           
+instance ReplaceCall LValue where
+    replaceCall n t _ = undefined
+                           
 fName :: Function -> T.Text
 fName (Function (FunctionSignature _ n _ _) _) = n
 
