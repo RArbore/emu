@@ -162,7 +162,8 @@ inlineInstance ifunc gs e = do
   let retValName = T.concat [T.pack "@", fName ifunc, T.pack "RETURN", T.pack $ show num]
       retVal = VarDecl $ VarBinding (DecoratedIdentifier [] retValName $ fRetType ifunc) Undefined
       rfunc = renameVarsInFunc ifunc num gs retValName $ fRetType ifunc
-  undefined
+      newE = evalState (replaceCall (fName ifunc) retValName (fRetType ifunc) e) True
+  return (newE, ensureInBlock $ fBody rfunc)
 
 renameVarsInFunc :: Function -> Int -> [VarBinding] -> T.Text -> DecoratedType -> Function
 renameVarsInFunc (Function sig s) n gs rvn rvt = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
@@ -216,41 +217,44 @@ instance Renamable T.Text where
                       else (T.pack "@") `T.append` (T.pack $ show num) `T.append` t
 
 class ReplaceCall d where
-    replaceCall :: T.Text -> DecoratedType -> d -> State Bool d
+    replaceCall :: T.Text -> T.Text -> DecoratedType -> d -> State Bool d
 
 instance ReplaceCall Declaration where
-    replaceCall n t (VarDecl (VarBinding di e)) = (\x -> VarDecl $ VarBinding di x) <$> replaceCall n t e
-    replaceCall n t (StatementDecl s) = StatementDecl <$> replaceCall n t s
-    replaceCall _ _ x = return x
+    replaceCall n rn t (VarDecl (VarBinding di e)) = (\x -> VarDecl $ VarBinding di x) <$> replaceCall n rn t e
+    replaceCall n rn t (StatementDecl s) = StatementDecl <$> replaceCall n rn t s
+    replaceCall _ _ _ x = return x
 
 instance ReplaceCall Statement where
-    replaceCall n t (ExpressionStatement e) = ExpressionStatement <$> replaceCall n t e
-    replaceCall n t (IfElseStatement e s1 s2 b1 b2) = IfElseStatement <$> replaceCall n t e <*> replaceCall n t s1 <*> replaceCall n t s2 <*> return b1 <*> return b2
-    replaceCall n t (DoWhileStatement e s b) = DoWhileStatement <$> replaceCall n t e <*> replaceCall n t s <*> return b
-    replaceCall n t (ReturnStatement e) = ReturnStatement <$> replaceCall n t e
-    replaceCall n t (Block ds) = Block <$> mapM (replaceCall n t) ds
-    replaceCall _ _ EmptyStatement = return EmptyStatement
+    replaceCall n rn t (ExpressionStatement e) = ExpressionStatement <$> replaceCall n rn t e
+    replaceCall n rn t (IfElseStatement e s1 s2 b1 b2) = IfElseStatement <$> replaceCall n rn t e <*> replaceCall n rn t s1 <*> replaceCall n rn t s2 <*> return b1 <*> return b2
+    replaceCall n rn t (DoWhileStatement e s b) = DoWhileStatement <$> replaceCall n rn t e <*> replaceCall n rn t s <*> return b
+    replaceCall n rn t (ReturnStatement e) = ReturnStatement <$> replaceCall n rn t e
+    replaceCall n rn t (Block ds) = Block <$> mapM (replaceCall n rn t) ds
+    replaceCall _ _ _ EmptyStatement = return EmptyStatement
     
 instance ReplaceCall Expression where
-    replaceCall n t (Binary bop e1 e2 dt) = Binary <$> return bop <*> replaceCall n t e1 <*> replaceCall n t e2 <*> return dt 
-    replaceCall n t (Unary uop e dt) = Unary <$> return uop <*> replaceCall n t e <*> return dt
-    replaceCall _ _ (Literal cv) = return $ Literal cv
-    replaceCall n t (Call fn es dt) = get >>= (\x -> if x then (do put False
-                                                                   return $ LValueExpression $ Identifier n t) else Call <$> return fn <*> mapM (replaceCall n t) es <*> return dt)
-    replaceCall n t (LValueExpression lv) = LValueExpression <$> replaceCall n t lv
-    replaceCall n t (Assign aop lv e) = Assign <$> return aop <*> replaceCall n t lv <*> replaceCall n t e
-    replaceCall n t (Address lv) = Address <$> replaceCall n t lv
-    replaceCall n t (Crement cop lv dt) = Crement <$> return cop <*> replaceCall n t lv <*> return dt
-    replaceCall _ _ Undefined = return Undefined
+    replaceCall n rn t (Binary bop e1 e2 dt) = Binary <$> return bop <*> replaceCall n rn t e1 <*> replaceCall n rn t e2 <*> return dt 
+    replaceCall n rn t (Unary uop e dt) = Unary <$> return uop <*> replaceCall n rn t e <*> return dt
+    replaceCall _ _ _ (Literal cv) = return $ Literal cv
+    replaceCall n rn t (Call fn es dt) = get >>= (\x -> if x && n == fn then (do put False
+                                                                                 return $ LValueExpression $ Identifier rn t) else Call <$> return fn <*> mapM (replaceCall n rn t) es <*> return dt)
+    replaceCall n rn t (LValueExpression lv) = LValueExpression <$> replaceCall n rn t lv
+    replaceCall n rn t (Assign aop lv e) = Assign <$> return aop <*> replaceCall n rn t lv <*> replaceCall n rn t e
+    replaceCall n rn t (Address lv) = Address <$> replaceCall n rn t lv
+    replaceCall n rn t (Crement cop lv dt) = Crement <$> return cop <*> replaceCall n rn t lv <*> return dt
+    replaceCall _ _ _ Undefined = return Undefined
                            
 instance ReplaceCall LValue where
-    replaceCall n t (Dereference e dt) = Dereference <$> replaceCall n t e <*> return dt
-    replaceCall n t (Access lv w dt) = Access <$> replaceCall n t lv <*> return w <*> return dt
-    replaceCall n t (Index lv e dt w) = Index <$> replaceCall n t lv <*> replaceCall n t e <*> return dt <*> return w
-    replaceCall _ _ (Identifier n t) = return $ Identifier n t
+    replaceCall n rn t (Dereference e dt) = Dereference <$> replaceCall n rn t e <*> return dt
+    replaceCall n rn t (Access lv w dt) = Access <$> replaceCall n rn t lv <*> return w <*> return dt
+    replaceCall n rn t (Index lv e dt w) = Index <$> replaceCall n rn t lv <*> replaceCall n rn t e <*> return dt <*> return w
+    replaceCall _ _ _ (Identifier n t) = return $ Identifier n t
                            
 fName :: Function -> T.Text
 fName (Function (FunctionSignature _ n _ _) _) = n
 
 fRetType :: Function -> DecoratedType
 fRetType (Function (FunctionSignature _ _ _ r) _) = r
+
+fBody :: Function -> Statement
+fBody (Function _ s) = s
