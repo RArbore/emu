@@ -244,7 +244,10 @@ instance ReplaceCall Expression where
     replaceCall _ _ Undefined = return Undefined
                            
 instance ReplaceCall LValue where
-    replaceCall n t _ = undefined
+    replaceCall n t (Dereference e dt) = Dereference <$> replaceCall n t e <*> return dt
+    replaceCall n t (Access lv w dt) = Access <$> replaceCall n t lv <*> return w <*> return dt
+    replaceCall n t (Index lv e dt w) = Index <$> replaceCall n t lv <*> replaceCall n t e <*> return dt <*> return w
+    replaceCall _ _ (Identifier n t) = return $ Identifier n t
                            
 fName :: Function -> T.Text
 fName (Function (FunctionSignature _ n _ _) _) = n
