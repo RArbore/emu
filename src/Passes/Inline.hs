@@ -117,6 +117,26 @@ inlineInsideFunc ifunc gs (d:ds) = case d of
                                                   (newE, inlined) <- inlineExpr ifunc gs e
                                                   after <- inlineInsideFunc ifunc gs ds
                                                   return (inlined ++ ensureInBlock (ExpressionStatement newE) ++ after)
+                                           IfElseStatement e s1 s2 b1 b2 -> do
+                                                  (newE, inlined) <- inlineExpr ifunc gs e
+                                                  pos <- inlineInsideFunc ifunc gs $ ensureInBlock s1
+                                                  neg <- inlineInsideFunc ifunc gs $ ensureInBlock s2
+                                                  after <- inlineInsideFunc ifunc gs ds
+                                                  return (inlined ++ ensureInBlock (IfElseStatement newE (Block pos) (Block neg) b1 b2) ++ after)
+                                           DoWhileStatement e s b -> do
+                                                  (newE, inlined) <- inlineExpr ifunc gs e
+                                                  body <- inlineInsideFunc ifunc gs $ ensureInBlock s
+                                                  after <- inlineInsideFunc ifunc gs ds
+                                                  return (inlined ++ ensureInBlock (DoWhileStatement newE (Block body) b) ++ after)
+                                           ReturnStatement e -> do
+                                                  (newE, inlined) <- inlineExpr ifunc gs e
+                                                  after <- inlineInsideFunc ifunc gs ds
+                                                  return (inlined ++ ensureInBlock (ReturnStatement newE) ++ after)
+                                           Block bs -> do
+                                                  curr <- inlineInsideFunc ifunc gs bs
+                                                  after <- inlineInsideFunc ifunc gs ds
+                                                  return $ curr ++ after
+                                           EmptyStatement -> inlineInsideFunc ifunc gs ds
 
 inlineExpr :: Function -> [VarBinding] -> Expression -> State Int (Expression, [Declaration])
 inlineExpr = undefined
