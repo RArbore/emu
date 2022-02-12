@@ -232,7 +232,16 @@ instance ReplaceCall Statement where
     replaceCall _ _ EmptyStatement = return EmptyStatement
     
 instance ReplaceCall Expression where
-    replaceCall n t _ = undefined
+    replaceCall n t (Binary bop e1 e2 dt) = Binary <$> return bop <*> replaceCall n t e1 <*> replaceCall n t e2 <*> return dt 
+    replaceCall n t (Unary uop e dt) = Unary <$> return uop <*> replaceCall n t e <*> return dt
+    replaceCall _ _ (Literal cv) = return $ Literal cv
+    replaceCall n t (Call fn es dt) = get >>= (\x -> if x then (do put False
+                                                                   return $ LValueExpression $ Identifier n t) else Call <$> return fn <*> mapM (replaceCall n t) es <*> return dt)
+    replaceCall n t (LValueExpression lv) = LValueExpression <$> replaceCall n t lv
+    replaceCall n t (Assign aop lv e) = Assign <$> return aop <*> replaceCall n t lv <*> replaceCall n t e
+    replaceCall n t (Address lv) = Address <$> replaceCall n t lv
+    replaceCall n t (Crement cop lv dt) = Crement <$> return cop <*> replaceCall n t lv <*> return dt
+    replaceCall _ _ Undefined = return Undefined
                            
 instance ReplaceCall LValue where
     replaceCall n t _ = undefined
