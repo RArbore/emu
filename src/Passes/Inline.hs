@@ -24,7 +24,7 @@ import qualified Data.Text as T
 
 import Debug.Trace
 
-import Parser.AST (Modifier (Inline))
+import Parser.AST (Modifier (Inline), Type (Void))
     
 import Semantics.SAST
 
@@ -163,7 +163,8 @@ inlineInstance ifunc gs e = do
       retVal = VarDecl $ VarBinding (DecoratedIdentifier [] retValName $ fRetType ifunc) Undefined
       rfunc = renameVarsInFunc ifunc num gs retValName $ fRetType ifunc
       newE = evalState (replaceCall (fName ifunc) retValName (fRetType ifunc) e) True
-  return (newE, ensureInBlock $ fBody rfunc)
+  put $ num + 1
+  return (newE, if fRetType ifunc == PureType Void then ensureInBlock $ fBody rfunc else retVal:(ensureInBlock $ fBody rfunc))
 
 renameVarsInFunc :: Function -> Int -> [VarBinding] -> T.Text -> DecoratedType -> Function
 renameVarsInFunc (Function sig s) n gs rvn rvt = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
@@ -185,7 +186,8 @@ instance Renamable Statement where
     rename gs num rvn rvt (ExpressionStatement e) = ExpressionStatement $ rename gs num rvn rvt e
     rename gs num rvn rvt (IfElseStatement e s1 s2 b1 b2) = IfElseStatement (rename gs num rvn rvt e) (rename gs num rvn rvt s1) (rename gs num rvn rvt s2) b1 b2
     rename gs num rvn rvt (DoWhileStatement e s b) = DoWhileStatement (rename gs num rvn rvt e) (rename gs num rvn rvt s) b
-    rename gs num rvn rvt (ReturnStatement e) = ExpressionStatement $ Assign Equals (Identifier rvn rvt) $ rename gs num rvn rvt e
+    rename gs num rvn rvt (ReturnStatement e) = let assignTo = rename gs num rvn rvt e
+                                                in if assignTo == Undefined then EmptyStatement else ExpressionStatement $ Assign Equals (Identifier rvn rvt) assignTo
     rename gs num rvn rvt (Block ds) = Block $ map (rename gs num rvn rvt) ds
     rename _ _ _ _ EmptyStatement = EmptyStatement
 

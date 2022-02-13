@@ -195,14 +195,14 @@ checkDecl ((l, sc, ec), d) = checked
                              prevEnv <- get
                              sargs <- checkDecoratedIdentifiersAndNames (l, sc, ec) args
                              mapM (\decIden@(DecoratedIdentifier mods varName varT) -> if isTypeVoid varT
-                                                                                    then throwError $ SemanticsError l sc ec $ VoidVarDeclaration varName
-                                                                                    else do
-                                                                                      when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
-                                                                                      when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
-                                                                                      when (A.Restrict `elem` mods && (\t -> case t of
-                                                                                                                               DerefType _ -> False
-                                                                                                                               _ -> True) varT) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
-                                                                                      modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
+                                                                                       then throwError $ SemanticsError l sc ec $ VoidVarDeclaration varName
+                                                                                       else do
+                                                                                         when (A.Pure `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Pure
+                                                                                         when (A.Inline `elem` mods) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Inline
+                                                                                         when (A.Restrict `elem` mods && (\t -> case t of
+                                                                                                                                  DerefType _ -> False
+                                                                                                                                  _ -> True) varT) $ throwError $ SemanticsError l sc ec $ InvalidModifier A.Restrict
+                                                                                         modify $ \env -> env { vars = M.insert (varName, Formal) (VarBinding decIden Undefined) (vars env) }) sargs
                              sretType <- checkDecoratedType retType
                              let sig = FunctionSignature mods name sargs sretType
                              modify $ \env -> env { curFuncSignature = Just sig }
