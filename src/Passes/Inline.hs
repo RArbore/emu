@@ -22,8 +22,6 @@ import Control.Monad.State
 import Data.List
 import qualified Data.Text as T
 
-import Debug.Trace
-
 import Parser.AST (Modifier (Inline), Type (Void))
     
 import Semantics.SAST

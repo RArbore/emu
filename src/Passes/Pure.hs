@@ -17,7 +17,25 @@ module Passes.Pure
 
     ) where
 
+import Control.Monad.State
+
+import Data.Maybe
+import qualified Data.Text as T
+
 import Semantics.SAST
+
+data PureCall = PureCall T.Text [Expression] T.Text
+
+type Purity = State [PureCall]
 
 purePass :: SAST -> SAST
 purePass = undefined
+
+getPureFunctions :: [Declaration] -> [T.Text]
+getPureFunctions = mapMaybe (\x -> case x of
+                                     FuncDecl (Function (FunctionSignature _ n _ _) _) -> Just n
+                                     otherwise -> Nothing)
+
+aliasesPureCall :: Expression -> PureCall -> Bool
+aliasesPureCall (Call fn1 es1 _) (PureCall fn2 es2 _) = fn1 == fn2 && es1 == es2
+aliasesPureCall _ _ = False
