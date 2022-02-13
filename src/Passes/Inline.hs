@@ -164,7 +164,9 @@ inlineInstance ifunc gs e = do
       rfunc = renameVarsInFunc ifunc num gs retValName $ fRetType ifunc
       newE = evalState (replaceCall (fName ifunc) retValName (fRetType ifunc) e) True
   put $ num + 1
-  return (newE, if fRetType ifunc == PureType Void then ensureInBlock $ fBody rfunc else retVal:(ensureInBlock $ fBody rfunc))
+  return $ if fRetType ifunc == PureType Void
+           then (Undefined, ensureInBlock $ fBody rfunc)
+           else (newE, retVal:(ensureInBlock $ fBody rfunc))
 
 renameVarsInFunc :: Function -> Int -> [VarBinding] -> T.Text -> DecoratedType -> Function
 renameVarsInFunc (Function sig s) n gs rvn rvt = let globalNames = map (\(VarBinding (DecoratedIdentifier _ n _) _) -> n) gs
