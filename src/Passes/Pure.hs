@@ -24,18 +24,28 @@ import qualified Data.Text as T
 
 import Semantics.SAST
 
-data PureCall = PureCall T.Text [Expression] T.Text
+data PureCall = PureCall T.Text [Expression] DecoratedType T.Text
 
-type Purity = State [PureCall]
+type Purity = State ([PureCall], [T.Text])
 
 purePass :: SAST -> SAST
-purePass = undefined
+purePass (SAST decls) = SAST $ pureHelperD decls
+    where
+      pureFuncs = getPureFunctions decls
+      pureHelperD [] = []
+      pureHelperD (d:ds) = case d of
+                             FuncDecl func -> (FuncDecl $ pureHelperF func):(pureHelperD ds)
+                             otherwise -> d:(pureHelperD ds)
+      pureHelperF (Function sig s) = Function sig $ Block (evalState (purifyInsideFunc $ ensureInBlock s) ([], pureFuncs))
 
 getPureFunctions :: [Declaration] -> [T.Text]
 getPureFunctions = mapMaybe (\x -> case x of
                                      FuncDecl (Function (FunctionSignature _ n _ _) _) -> Just n
                                      otherwise -> Nothing)
 
-aliasesPureCall :: Expression -> PureCall -> Bool
-aliasesPureCall (Call fn1 es1 _) (PureCall fn2 es2 _) = fn1 == fn2 && es1 == es2
-aliasesPureCall _ _ = False
+ensureInBlock :: Statement -> [Declaration]
+ensureInBlock (Block ds) = ds
+ensureInBlock s = [StatementDecl s]
+
+purifyInsideFunc :: [Declaration] -> Purity [Declaration]
+purifyInsideFunc = undefined
