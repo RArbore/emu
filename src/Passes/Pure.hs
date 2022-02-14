@@ -48,4 +48,13 @@ ensureInBlock (Block ds) = ds
 ensureInBlock s = [StatementDecl s]
 
 purifyInsideFunc :: [Declaration] -> Purity [Declaration]
-purifyInsideFunc = undefined
+purifyInsideFunc (d:ds) = case d of
+                            StatementDecl s -> do
+                                   case s of
+                                     ExpressionStatement e -> do
+                                                 (newE, header) <- purifyExpr e
+                                                 after <- purifyInsideFunc ds
+                                                 return (header ++ ensureInBlock (ExpressionStatement newE) ++ after)
+
+purifyExpr :: Expression -> Purity (Expression, [Declaration])
+purifyExpr = undefined
