@@ -19,12 +19,13 @@ module Passes.Pure
 
 import Control.Monad.State
 
+import Data.List
 import Data.Maybe
 import qualified Data.Text as T
 
 import Semantics.SAST
 
-data PureCall = PureCall T.Text [Expression] DecoratedType T.Text
+data PureCall = PureCall T.Text [Expression] DecoratedType T.Text deriving (Eq)
 
 type Purity = State ([PureCall], [T.Text])
 
@@ -48,13 +49,28 @@ ensureInBlock (Block ds) = ds
 ensureInBlock s = [StatementDecl s]
 
 purifyInsideFunc :: [Declaration] -> Purity [Declaration]
-purifyInsideFunc (d:ds) = case d of
-                            StatementDecl s -> do
-                                   case s of
-                                     ExpressionStatement e -> do
-                                                 (newE, header) <- purifyExpr e
-                                                 after <- purifyInsideFunc ds
-                                                 return (header ++ ensureInBlock (ExpressionStatement newE) ++ after)
+purifyInsideFunc (d:ds) =
+    case d of
+      StatementDecl s ->
+          do
+            case s of
+              ExpressionStatement e ->
+                  do
+                    (newE, header) <- purifyExpr e
+                    after <- purifyInsideFunc ds
+                    return (header ++ ensureInBlock (ExpressionStatement newE) ++ after)
+              IfElseStatement e s1 s2 b1 b2 ->
+                  do
+                    (newE, header) <- purifyExpr e
+                    prevState <- get
+                    pos <- purifyInsideFunc $ ensureInBlock s1
+                    posState <- get
+                    put prevState
+                    neg <- purifyInsideFunc $ ensureInBlock s2
+                    negState <- get
+                    put (fst posState `intersect` fst negState, snd prevState)
+                    after <- purifyInsideFunc ds
+                    return (header ++ ensureInBlock (IfElseStatement newE (Block pos) (Block neg) b1 b2) ++ after)
 
 purifyExpr :: Expression -> Purity (Expression, [Declaration])
 purifyExpr = undefined
