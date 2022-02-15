@@ -23,21 +23,24 @@ import Data.List
 import Data.Maybe
 import qualified Data.Text as T
 
+import Parser.AST (Modifier (..))
+    
 import Semantics.SAST
 
 data PureCall = PureCall T.Text [Expression] DecoratedType T.Text deriving (Eq)
 
-type Purity = State ([PureCall], [T.Text])
+type Purity = State ([PureCall], [T.Text], [T.Text]) -- Pure calls already made, defined pure functions, defined const vars
 
 purePass :: SAST -> SAST
-purePass (SAST decls) = SAST $ pureHelperD decls
+purePass (SAST decls) = SAST $ pureHelperD [] decls
     where
       pureFuncs = getPureFunctions decls
-      pureHelperD [] = []
-      pureHelperD (d:ds) = case d of
-                             FuncDecl func -> (FuncDecl $ pureHelperF func):(pureHelperD ds)
-                             otherwise -> d:(pureHelperD ds)
-      pureHelperF (Function sig s) = Function sig $ Block (evalState (purifyInsideFunc $ ensureInBlock s) ([], pureFuncs))
+      pureHelperD _ [] = []
+      pureHelperD cgs (d:ds) = case d of
+                                 FuncDecl func -> (FuncDecl $ pureHelperF cgs func):(pureHelperD cgs ds)
+                                 VarDecl (VarBinding (DecoratedIdentifier mods n _) _) -> if Const `elem` mods then d:(pureHelperD (n:cgs) ds) else d:(pureHelperD cgs ds)
+                                 otherwise -> d:(pureHelperD cgs ds)
+      pureHelperF cgs (Function sig s) = Function sig $ Block (evalState (purifyInsideFunc $ ensureInBlock s) ([], pureFuncs, cgs))
 
 getPureFunctions :: [Declaration] -> [T.Text]
 getPureFunctions = mapMaybe (\x -> case x of
@@ -68,9 +71,18 @@ purifyInsideFunc (d:ds) =
                     put prevState
                     neg <- purifyInsideFunc $ ensureInBlock s2
                     negState <- get
-                    put (fst posState `intersect` fst negState, snd prevState)
+                    put (tup1 posState `intersect` tup1 negState, tup2 prevState, tup2 prevState)
                     after <- purifyInsideFunc ds
                     return (header ++ ensureInBlock (IfElseStatement newE (Block pos) (Block neg) b1 b2) ++ after)
 
 purifyExpr :: Expression -> Purity (Expression, [Declaration])
 purifyExpr = undefined
+
+tup1 :: (a, b, c) -> a
+tup1 (a, _, _) = a
+
+tup2 :: (a, b, c) -> b
+tup2 (_, b, _) = b
+
+tup3 :: (a, b, c) -> c
+tup3 (_, _, c) = c
