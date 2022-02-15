@@ -51,7 +51,7 @@ ensureInBlock :: Statement -> [Declaration]
 ensureInBlock (Block ds) = ds
 ensureInBlock s = [StatementDecl s]
 
-purifyInsideFunc :: [Declaration] -> Purity [Declaration]
+purifyInsideFunc :: [Declaration] -> Purity ([Declaration], [Declaration])
 purifyInsideFunc (d:ds) =
     case d of
       StatementDecl s ->
@@ -61,7 +61,7 @@ purifyInsideFunc (d:ds) =
                   do
                     (newE, header) <- purifyExpr e
                     after <- purifyInsideFunc ds
-                    return (header ++ ensureInBlock (ExpressionStatement newE) ++ after)
+                    return (header, ensureInBlock (ExpressionStatement newE) ++ after)
               IfElseStatement e s1 s2 b1 b2 ->
                   do
                     (newE, header) <- purifyExpr e
@@ -73,16 +73,13 @@ purifyInsideFunc (d:ds) =
                     negState <- get
                     put (tup1 posState `intersect` tup1 negState, tup2 prevState, tup2 prevState)
                     after <- purifyInsideFunc ds
-                    return (header ++ ensureInBlock (IfElseStatement newE (Block pos) (Block neg) b1 b2) ++ after)
+                    return (header, ensureInBlock (IfElseStatement newE (Block pos) (Block neg) b1 b2) ++ after)
               DoWhileStatement e s b ->
                   do
                     (newE, header) <- purifyExpr e
-                    (hoisted, body) <- (purifyInsideFunc $ ensureInBlock s) >>= hoist
+                    (hoisted, body) <- (purifyInsideFunc $ ensureInBlock s) >>= purifyInsideFunc
                     after <- purifyInsideFunc ds
-                    return (header ++ hoisted ++ ensureInBlock (DoWhileStatement newE (Block body) b) ++ after)
-
-hoist :: [Declaration] -> Purity ([Declaration], [Declaration])
-hoist = undefined
+                    return (header ++ hoisted, ensureInBlock (DoWhileStatement newE (Block body) b) ++ after)
 
 purifyExpr :: Expression -> Purity (Expression, [Declaration])
 purifyExpr = undefined
