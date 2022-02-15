@@ -40,7 +40,8 @@ purePass (SAST decls) = SAST $ pureHelperD [] decls
                                  FuncDecl func -> (FuncDecl $ pureHelperF cgs func):(pureHelperD cgs ds)
                                  VarDecl (VarBinding (DecoratedIdentifier mods n _) _) -> if Const `elem` mods then d:(pureHelperD (n:cgs) ds) else d:(pureHelperD cgs ds)
                                  otherwise -> d:(pureHelperD cgs ds)
-      pureHelperF cgs (Function sig s) = Function sig $ Block (evalState (purifyInsideFunc $ ensureInBlock s) ([], pureFuncs, cgs))
+      pureHelperF cgs (Function sig s) = Function sig $ Block $ header ++ body
+          where (header, body) = evalState (purifyInsideFunc $ ensureInBlock s) ([], pureFuncs, cgs)
 
 getPureFunctions :: [Declaration] -> [T.Text]
 getPureFunctions = mapMaybe (\x -> case x of
@@ -60,26 +61,26 @@ purifyInsideFunc (d:ds) =
               ExpressionStatement e ->
                   do
                     (newE, header) <- purifyExpr e
-                    after <- purifyInsideFunc ds
-                    return (header, ensureInBlock (ExpressionStatement newE) ++ after)
+                    (afterH, after) <- purifyInsideFunc ds
+                    return (header, ensureInBlock (ExpressionStatement newE) ++ afterH ++ after)
               IfElseStatement e s1 s2 b1 b2 ->
                   do
                     (newE, header) <- purifyExpr e
                     prevState <- get
-                    pos <- purifyInsideFunc $ ensureInBlock s1
+                    (posH, pos) <- purifyInsideFunc $ ensureInBlock s1
                     posState <- get
                     put prevState
-                    neg <- purifyInsideFunc $ ensureInBlock s2
+                    (negH, neg) <- purifyInsideFunc $ ensureInBlock s2
                     negState <- get
                     put (tup1 posState `intersect` tup1 negState, tup2 prevState, tup2 prevState)
-                    after <- purifyInsideFunc ds
-                    return (header, ensureInBlock (IfElseStatement newE (Block pos) (Block neg) b1 b2) ++ after)
+                    (afterH, after) <- purifyInsideFunc ds
+                    return (header, ensureInBlock (IfElseStatement newE (Block $ posH ++ pos) (Block $ negH ++ neg) b1 b2) ++ afterH ++ after)
               DoWhileStatement e s b ->
                   do
                     (newE, header) <- purifyExpr e
-                    (hoisted, body) <- (purifyInsideFunc $ ensureInBlock s) >>= purifyInsideFunc
-                    after <- purifyInsideFunc ds
-                    return (header ++ hoisted, ensureInBlock (DoWhileStatement newE (Block body) b) ++ after)
+                    (hoisted, body) <- (purifyInsideFunc $ ensureInBlock s)
+                    (afterH, after) <- purifyInsideFunc ds
+                    return (header ++ hoisted, ensureInBlock (DoWhileStatement newE (Block body) b) ++ afterH ++ after)
 
 purifyExpr :: Expression -> Purity (Expression, [Declaration])
 purifyExpr = undefined
