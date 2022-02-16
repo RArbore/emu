@@ -81,6 +81,17 @@ purifyInsideFunc (d:ds) =
                     (hoisted, body) <- (purifyInsideFunc $ ensureInBlock s)
                     (afterH, after) <- purifyInsideFunc ds
                     return (header ++ hoisted, ensureInBlock (DoWhileStatement newE (Block body) b) ++ afterH ++ after)
+              ReturnStatement e ->
+                  do
+                    (newE, header) <- purifyExpr e
+                    (afterH, after) <- purifyInsideFunc ds
+                    return (header, ensureInBlock (ReturnStatement newE) ++ afterH ++ after)
+              Block body ->
+                  do
+                    (newBodyH, newBody) <- purifyInsideFunc ds
+                    (afterH, after) <- purifyInsideFunc ds
+                    return (newBodyH, newBody ++ afterH ++ after)
+              EmptyStatement -> purifyInsideFunc ds
 
 purifyExpr :: Expression -> Purity (Expression, [Declaration])
 purifyExpr = undefined
