@@ -678,7 +678,7 @@ class AssertPure d where
 
 instance AssertPure Declaration where
     assertPure _ (StructDecl _) = return ()
-    assertPure loc (FuncDecl (Function sig@(FunctionSignature _ n idens _) s)) = assertPure loc s
+    assertPure loc@(l, sc, ec) (FuncDecl (Function sig@(FunctionSignature _ n idens dt) s)) = (when (dt == PureType Void) $ throwError $ SemanticsError l sc ec NonPureError) >> assertPure loc s
     assertPure loc (VarDecl vb@(VarBinding (DecoratedIdentifier _ varName _) e)) = do
                                   assertPure loc e
                                   modify $ \env -> env { vars = M.insert (varName, Local) vb (vars env) }
