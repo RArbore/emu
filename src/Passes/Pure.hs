@@ -92,6 +92,11 @@ purifyInsideFunc (d:ds) =
                     (afterH, after) <- purifyInsideFunc ds
                     return (newBodyH, newBody ++ afterH ++ after)
               EmptyStatement -> purifyInsideFunc ds
+      VarDecl (VarBinding di e) ->
+          do
+            (newE, header) <- purifyExpr e
+            (afterH, after) <- purifyInsideFunc ds
+            return (header, [VarDecl (VarBinding di newE)] ++ afterH ++ after)
 
 purifyExpr :: Expression -> Purity (Expression, [Declaration])
 purifyExpr = undefined
