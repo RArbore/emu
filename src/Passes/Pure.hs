@@ -107,6 +107,7 @@ purifyInsideFunc (d:ds) =
 
 class UnitPurifiable e where
     purifyUnit :: e -> Purity (e, [Declaration])
+    purifyConst :: e -> Purity Bool
 
 instance UnitPurifiable Expression where
     purifyUnit (Binary bop e1 e2 dt) =
@@ -124,7 +125,21 @@ instance UnitPurifiable Expression where
           newes <- mapM purifyUnit es
           return (Array $ map fst newes, foldl (++) [] $ map snd newes)
     purifyUnit (Call fn es dt) =
-        do undefined
+        do
+          state <- get
+          newes <- mapM purifyUnit es
+          isPure <- (&&) <$> return (fn `elem` tup2 state) <*> (all id <$> (mapM purifyConst $ map fst newes))
+          if isPure then
+              do
+                let search = find (\(PureCall pfn pes pdt _) -> pfn == fn && pes == es && pdt == dt) $ tup1 state
+                case search of
+                  Just (PureCall pfn pes pdf pin) -> return (LValueExpression $ Identifier pin dt, [])
+                  Nothing ->
+                      do
+                        let idenName = fn `T.append` (T.pack $ show $ length $ tup1 state)
+                        put ((PureCall fn (map fst newes) dt idenName):(tup1 state), tup2 state, tup3 state, tup4 state)
+                        return (LValueExpression $ Identifier idenName dt, (foldl (++) [] $ map snd newes) ++ [VarDecl (VarBinding (DecoratedIdentifier [] idenName dt) (Call fn (map fst newes) dt))])
+          else return (Call fn (map fst newes) dt, foldl (++) [] $ map snd newes)
     purifyUnit (Cast e dt) =
         do
           (newe, header) <- purifyUnit e
