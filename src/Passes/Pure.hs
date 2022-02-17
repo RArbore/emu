@@ -138,7 +138,8 @@ instance UnitPurifiable Expression where
                       do
                         let idenName = fn `T.append` (T.pack $ show $ length $ tup1 state)
                         put ((PureCall fn (map fst newes) dt idenName):(tup1 state), tup2 state, tup3 state, tup4 state)
-                        return (LValueExpression $ Identifier idenName dt, (foldl (++) [] $ map snd newes) ++ [VarDecl (VarBinding (DecoratedIdentifier [] idenName dt) (Call fn (map fst newes) dt))])
+                        modify $ \(pcs, pfs, gcs, loop) -> (pcs, pfs, idenName:gcs, loop)
+                        return (LValueExpression $ Identifier idenName dt, (foldl (++) [] $ map snd newes) ++ [VarDecl (VarBinding (DecoratedIdentifier [Const] idenName dt) (Call fn (map fst newes) dt))])
           else return (Call fn (map fst newes) dt, foldl (++) [] $ map snd newes)
     purifyUnit (Cast e dt) =
         do
@@ -162,6 +163,21 @@ instance UnitPurifiable Expression where
           (newlv, header) <- purifyUnit lv
           return (Crement cop newlv dt, header)
     purifyUnit Undefined = return (Undefined, [])
+    purifyConst (Binary _ e1 e2 _) = (&&) <$> purifyConst e1 <*> purifyConst e2
+    purifyConst (Unary _ e _) = purifyConst e
+    purifyConst (Literal _) = return True
+    purifyConst (Array es) = all id <$> mapM purifyConst es
+    purifyConst (Call fn es dt) = do
+      (_, pfns, _, _) <- get
+      if fn `elem` pfns
+      then all id <$> mapM purifyConst es
+      else return False
+    purifyConst (Cast e _) = purifyConst e
+    purifyConst (LValueExpression lv) = purifyConst lv
+    purifyConst (Assign _ lv e) = (&&) <$> purifyConst lv <*> purifyConst e
+    purifyConst (Address lv) = purifyConst lv
+    purifyConst (Crement _ lv _) = purifyConst lv
+    purifyConst Undefined = return True
 
 instance UnitPurifiable LValue where
     purifyUnit (Dereference e dt) =
@@ -178,6 +194,10 @@ instance UnitPurifiable LValue where
           (newe, headere) <- purifyUnit e
           return (Index newlv newe dt w, headerlv ++ headere)
     purifyUnit (Identifier n dt) = return (Identifier n dt, [])
+    purifyConst (Dereference e _) = purifyConst e
+    purifyConst (Access lv _ _) = purifyConst lv
+    purifyConst (Index lv e _ _) = (&&) <$> purifyConst lv <*> purifyConst e
+    purifyConst (Identifier iden _) = elem iden <$> (tup3 <$> get)
 
 tup1 :: (a, b, c, d) -> a
 tup1 (a, _, _, _) = a
