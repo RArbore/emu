@@ -60,12 +60,12 @@ purifyInsideFunc (d:ds) =
             case s of
               ExpressionStatement e ->
                   do
-                    (newE, header) <- purifyExpr e
+                    (newE, header) <- purifyUnit e
                     (afterH, after) <- purifyInsideFunc ds
                     return (header, ensureInBlock (ExpressionStatement newE) ++ afterH ++ after)
               IfElseStatement e s1 s2 b1 b2 ->
                   do
-                    (newE, header) <- purifyExpr e
+                    (newE, header) <- purifyUnit e
                     prevState <- get
                     (posH, pos) <- purifyInsideFunc $ ensureInBlock s1
                     posState <- get
@@ -77,13 +77,13 @@ purifyInsideFunc (d:ds) =
                     return (header, ensureInBlock (IfElseStatement newE (Block $ posH ++ pos) (Block $ negH ++ neg) b1 b2) ++ afterH ++ after)
               DoWhileStatement e s b ->
                   do
-                    (newE, header) <- purifyExpr e
+                    (newE, header) <- purifyUnit e
                     (hoisted, body) <- (purifyInsideFunc $ ensureInBlock s)
                     (afterH, after) <- purifyInsideFunc ds
                     return (header ++ hoisted, ensureInBlock (DoWhileStatement newE (Block body) b) ++ afterH ++ after)
               ReturnStatement e ->
                   do
-                    (newE, header) <- purifyExpr e
+                    (newE, header) <- purifyUnit e
                     (afterH, after) <- purifyInsideFunc ds
                     return (header, ensureInBlock (ReturnStatement newE) ++ afterH ++ after)
               Block body ->
@@ -94,12 +94,52 @@ purifyInsideFunc (d:ds) =
               EmptyStatement -> purifyInsideFunc ds
       VarDecl (VarBinding di e) ->
           do
-            (newE, header) <- purifyExpr e
+            (newE, header) <- purifyUnit e
             (afterH, after) <- purifyInsideFunc ds
             return (header, [VarDecl (VarBinding di newE)] ++ afterH ++ after)
 
-purifyExpr :: Expression -> Purity (Expression, [Declaration])
-purifyExpr = undefined
+class UnitPurifiable e where
+    purifyUnit :: e -> Purity (e, [Declaration])
+
+instance UnitPurifiable Expression where
+    purifyUnit (Binary bop e1 e2 dt) =
+        do
+          (newe1, header1) <- purifyUnit e1
+          (newe2, header2) <- purifyUnit e2
+          return (Binary bop newe1 newe2 dt, header1 ++ header2)
+    purifyUnit (Unary uop e dt) =
+        do
+          (newe, header) <- purifyUnit e
+          return (Unary uop newe dt, header)
+    purifyUnit (Literal cv) = return (Literal cv, [])
+    purifyUnit (Array es) =
+        do
+          newes <- mapM purifyUnit es
+          return (Array $ map fst newes, foldl (++) [] $ map snd newes)
+    purifyUnit (Call fn es dt) =
+        do undefined
+    purifyUnit (Cast e dt) =
+        do
+          (newe, header) <- purifyUnit e
+          return (Cast newe dt, header)
+    purifyUnit (LValueExpression lv) =
+        do
+          (newlv, header) <- purifyUnit lv
+          return (LValueExpression newlv, header)
+    purifyUnit (Assign aop lv e) =
+        do
+          (newlv, headerlv) <- purifyUnit lv
+          (newe, headere) <- purifyUnit e
+          return (Assign aop newlv newe, headerlv ++ headere)
+    purifyUnit (Address lv) = 
+        do
+          (newlv, header) <- purifyUnit lv
+          return (Address newlv, header)
+    purifyUnit (Crement cop lv dt) = 
+        do
+          (newlv, header) <- purifyUnit lv
+          return (Crement cop newlv dt, header)
+    purifyUnit Undefined = return (Undefined, [])
 
 tup1 :: (a, b, c) -> a
 tup1 (a, _, _) = a
