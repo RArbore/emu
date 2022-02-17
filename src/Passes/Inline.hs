@@ -157,7 +157,7 @@ inlineExpr ifunc gs e = do
 inlineInstance :: Function -> [VarBinding] -> Expression -> State Int (Expression, [Declaration])
 inlineInstance ifunc gs e = do
   num <- get
-  let retValName = T.concat [T.pack "@", fName ifunc, T.pack "RETURN", T.pack $ show num]
+  let retValName = T.concat [T.pack "@INLINE", fName ifunc, T.pack "RETURN", T.pack $ show num]
       retVal = VarDecl $ VarBinding (DecoratedIdentifier [] retValName $ fRetType ifunc) Undefined
       rfunc = renameVarsInFunc ifunc num gs retValName $ fRetType ifunc
       newE = evalState (replaceCall (fName ifunc) retValName (fRetType ifunc) e) True
@@ -216,7 +216,7 @@ instance Renamable DecoratedIdentifier where
 instance Renamable T.Text where
     rename gs num _ _ t = if t `elem` gs
                       then t
-                      else (T.pack "@") `T.append` (T.pack $ show num) `T.append` t
+                      else (T.pack "@INLINE") `T.append` (T.pack $ show num) `T.append` t
 
 class ReplaceCall d where
     replaceCall :: T.Text -> T.Text -> DecoratedType -> d -> State Bool d

@@ -45,7 +45,7 @@ purePass (SAST decls) = SAST $ pureHelperD [] decls
 
 getPureFunctions :: [Declaration] -> [T.Text]
 getPureFunctions = mapMaybe (\x -> case x of
-                                     FuncDecl (Function (FunctionSignature _ n _ _) _) -> Just n
+                                     FuncDecl (Function (FunctionSignature mods n _ _) _) -> if Pure `elem` mods then Just n else Nothing
                                      otherwise -> Nothing)
 
 ensureInBlock :: Statement -> [Declaration]
@@ -94,10 +94,10 @@ purifyInsideFunc (d:ds) =
               Block body ->
                   do
                     prevState <- get
-                    (newBodyH, newBody) <- purifyInsideFunc ds
+                    (newBodyH, newBody) <- purifyInsideFunc body
                     put prevState
                     (afterH, after) <- purifyInsideFunc ds
-                    return (newBodyH, newBody ++ afterH ++ after)
+                    return (newBodyH, [StatementDecl $ Block newBody] ++ afterH ++ after)
               EmptyStatement -> purifyInsideFunc ds
       VarDecl (VarBinding di@(DecoratedIdentifier mods n _) e) ->
           do
@@ -137,7 +137,7 @@ instance UnitPurifiable Expression where
                   Just (PureCall pfn pes pdf pin) -> return (LValueExpression $ Identifier pin dt, [])
                   Nothing ->
                       do
-                        let idenName = fn `T.append` (T.pack $ show $ length $ tup1 state)
+                        let idenName = T.pack "@PURE" `T.append` fn `T.append` (T.pack $ show $ length $ tup1 state)
                         put ((PureCall fn (map fst newes) dt idenName):(tup1 state), tup2 state, tup3 state, tup4 state)
                         modify $ \(pcs, pfs, gcs, loop) -> (pcs, pfs, idenName:gcs, loop)
                         return (LValueExpression $ Identifier idenName dt, (foldl (++) [] $ map snd newes) ++ [VarDecl (VarBinding (DecoratedIdentifier [Const] idenName dt) (Call fn (map fst newes) dt))])
