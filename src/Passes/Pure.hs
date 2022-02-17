@@ -141,6 +141,22 @@ instance UnitPurifiable Expression where
           return (Crement cop newlv dt, header)
     purifyUnit Undefined = return (Undefined, [])
 
+instance UnitPurifiable LValue where
+    purifyUnit (Dereference e dt) =
+        do
+          (newe, header) <- purifyUnit e
+          return (Dereference newe dt, header)
+    purifyUnit (Access e w dt) =
+        do
+          (newe, header) <- purifyUnit e
+          return (Access newe w dt, header)
+    purifyUnit (Index lv e dt w) =
+        do
+          (newlv, headerlv) <- purifyUnit lv
+          (newe, headere) <- purifyUnit e
+          return (Index newlv newe dt w, headerlv ++ headere)
+    purifyUnit (Identifier n dt) = return (Identifier n dt, [])
+
 tup1 :: (a, b, c) -> a
 tup1 (a, _, _) = a
 
