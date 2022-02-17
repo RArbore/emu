@@ -38,6 +38,7 @@ import qualified Parser.Parser as P
 import qualified Parser.AST as PA
 
 import Passes.Inline
+import Passes.Pure
 
 import qualified Semantics.Check as SC
 import qualified Semantics.Error as SE
@@ -66,7 +67,8 @@ main = do
         checked <- sequence $ map ((\x -> runStateT x (SC.Environment M.empty M.empty M.empty Nothing)) . runExceptT . SC.check . fromRight undefined) parsed
         if not $ null $ lefts $ map fst checked then mapM_ putStrLn $ zipWith ($) (map uncurry $ map SE.showSError $ lefts $ map fst checked) $ map snd $ filter fst $ zip (map isLeft $ map fst checked) $ zip emuFiles filesContents
         else do
-          let sasts = map (inlinePass . fromRight undefined . fst) checked
+          let passes = inlinePass . purePass
+          let sasts = map (passes . fromRight undefined . fst) checked
               codegen sast moduleName = do
                 ptr <- callocBytes (sizeOf sast)
                 poke ptr sast

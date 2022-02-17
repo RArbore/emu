@@ -53,6 +53,7 @@ ensureInBlock (Block ds) = ds
 ensureInBlock s = [StatementDecl s]
 
 purifyInsideFunc :: [Declaration] -> Purity ([Declaration], [Declaration])
+purifyInsideFunc [] = return ([], [])
 purifyInsideFunc (d:ds) =
     case d of
       StatementDecl s ->
