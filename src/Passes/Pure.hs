@@ -29,7 +29,7 @@ import Semantics.SAST
 
 data PureCall = PureCall T.Text [Expression] DecoratedType T.Text deriving (Eq)
 
-type Purity = State ([PureCall], [T.Text], [T.Text]) -- Pure calls already made, defined pure functions, defined const vars
+type Purity = State ([PureCall], [T.Text], [T.Text], Bool) -- Pure calls already made, defined pure functions, defined const vars, currently inside a loop we may hoist code out of
 
 purePass :: SAST -> SAST
 purePass (SAST decls) = SAST $ pureHelperD [] decls
@@ -41,7 +41,7 @@ purePass (SAST decls) = SAST $ pureHelperD [] decls
                                  VarDecl (VarBinding (DecoratedIdentifier mods n _) _) -> if Const `elem` mods then d:(pureHelperD (n:cgs) ds) else d:(pureHelperD cgs ds)
                                  otherwise -> d:(pureHelperD cgs ds)
       pureHelperF cgs (Function sig s) = Function sig $ Block $ header ++ body
-          where (header, body) = evalState (purifyInsideFunc $ ensureInBlock s) ([], pureFuncs, cgs)
+          where (header, body) = evalState (purifyInsideFunc $ ensureInBlock s) ([], pureFuncs, cgs, False)
 
 getPureFunctions :: [Declaration] -> [T.Text]
 getPureFunctions = mapMaybe (\x -> case x of
@@ -72,13 +72,17 @@ purifyInsideFunc (d:ds) =
                     put prevState
                     (negH, neg) <- purifyInsideFunc $ ensureInBlock s2
                     negState <- get
-                    put (tup1 posState `intersect` tup1 negState, tup2 prevState, tup2 prevState)
+                    put (tup1 posState `intersect` tup1 negState, tup2 prevState, tup3 prevState, tup4 prevState)
                     (afterH, after) <- purifyInsideFunc ds
                     return (header, ensureInBlock (IfElseStatement newE (Block $ posH ++ pos) (Block $ negH ++ neg) b1 b2) ++ afterH ++ after)
               DoWhileStatement e s b ->
                   do
                     (newE, header) <- purifyUnit e
+                    prevState <- get
+                    put (tup1 prevState, tup2 prevState, tup3 prevState, True)
                     (hoisted, body) <- (purifyInsideFunc $ ensureInBlock s)
+                    afterState <- get
+                    put (tup1 afterState, tup2 prevState, tup3 prevState, tup4 prevState)
                     (afterH, after) <- purifyInsideFunc ds
                     return (header ++ hoisted, ensureInBlock (DoWhileStatement newE (Block body) b) ++ afterH ++ after)
               ReturnStatement e ->
@@ -88,13 +92,16 @@ purifyInsideFunc (d:ds) =
                     return (header, ensureInBlock (ReturnStatement newE) ++ afterH ++ after)
               Block body ->
                   do
+                    prevState <- get
                     (newBodyH, newBody) <- purifyInsideFunc ds
+                    put prevState
                     (afterH, after) <- purifyInsideFunc ds
                     return (newBodyH, newBody ++ afterH ++ after)
               EmptyStatement -> purifyInsideFunc ds
-      VarDecl (VarBinding di e) ->
+      VarDecl (VarBinding di@(DecoratedIdentifier mods n _) e) ->
           do
             (newE, header) <- purifyUnit e
+            when (Const `elem` mods) $ modify $ \(pcs, pfs, gcs, loop) -> (pcs, pfs, n:gcs, loop)
             (afterH, after) <- purifyInsideFunc ds
             return (header, [VarDecl (VarBinding di newE)] ++ afterH ++ after)
 
@@ -157,11 +164,14 @@ instance UnitPurifiable LValue where
           return (Index newlv newe dt w, headerlv ++ headere)
     purifyUnit (Identifier n dt) = return (Identifier n dt, [])
 
-tup1 :: (a, b, c) -> a
-tup1 (a, _, _) = a
+tup1 :: (a, b, c, d) -> a
+tup1 (a, _, _, _) = a
 
-tup2 :: (a, b, c) -> b
-tup2 (_, b, _) = b
+tup2 :: (a, b, c, d) -> b
+tup2 (_, b, _, _) = b
 
-tup3 :: (a, b, c) -> c
-tup3 (_, _, c) = c
+tup3 :: (a, b, c, d) -> c
+tup3 (_, _, c, _) = c
+
+tup4 :: (a, b, c, d) -> d
+tup4 (_, _, _, d) = d
