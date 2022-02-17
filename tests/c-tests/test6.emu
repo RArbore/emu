@@ -35,12 +35,7 @@ func f(): f64 {
      return sum(comptime g());
 }
 
-pure inline func a(): void {
-
-}
-
 pure inline func b(): i64 {
-     a();
      return 1;
 }
 

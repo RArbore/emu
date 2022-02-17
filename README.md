@@ -1,9 +1,7 @@
 # Emu
-An emu can run pretty fast!
-## What is Emu?
-Emu is a programming language for writing performant code. Emu is a systems language ala C & Zig.
+Emu is a simple systems language ala C. Emu is built from Haskell, C++, and LLVM.
 ## How far along is Emu?
-Emu has reached minimal viability. Not every feature is implemented yet, but Emu is already a decently capable language. The emu compiler uses Haskell, C++, and LLVM.
+Emu is "complete" in the sense that I've implemented all the features I set out to implement when I started the project. If I feel like adding more (a good module system, comptime arguments, etc.), I will, but no promises.
 
 - [x] Basic CLI interface
 - [x] Parser & AST
@@ -13,4 +11,5 @@ Emu has reached minimal viability. Not every feature is implemented yet, but Emu
 - [x] Fleshed out command line interface
 - [x] Comptime evaluator
 - [x] Full language semantic checking
-- [ ] Core language feature-set
+- [x] Core language feature-set
+- [ ] Good documentation
