@@ -24,7 +24,7 @@
   (require 'rx))
 
 (defconst emu--font-lock-defaults
-  (let ((keywords '("func" "struct" "undefined" "if" "else" "while" "for" "switch" "case" "return" "break" "continue" "pure" "const" "inline" "comptime" "restrict"))
+  (let ((keywords '("func" "struct" "if" "else" "while" "for" "switch" "case" "return" "break" "continue" "pure" "const" "inline" "comptime" "restrict"))
         (types '("void" "bool" "u8" "u16" "u32" "u64" "i8" "i16" "i32" "i64" "f32" "f64" )))
     `(((,(rx-to-string `(: (or ,@keywords))) 0 font-lock-keyword-face)
        ("\\([[:word:]]+\\)\s*(" 1 font-lock-function-name-face)
@@ -42,7 +42,10 @@
     (modify-syntax-entry ?\" "\"" st)
     (modify-syntax-entry ?' "'" st)
 
-    ;; '==' as punctuation
+    (modify-syntax-entry ?/ ". 124b" st)
+    (modify-syntax-entry ?* ". 23b" st)
+    (modify-syntax-entry ?\n ">" st)
+
     (modify-syntax-entry ?= ".")
     st))
 
@@ -73,7 +76,6 @@
 ;;;###autoload
 (define-derived-mode emu-mode prog-mode "emu"
   "Major mode for emu source files."
-  :abbrev-table emu-mode-abbrev-table
   (setq font-lock-defaults emu--font-lock-defaults)
   (setq-local comment-start "//")
   (setq-local comment-start-skip "//+[\t ]*")
