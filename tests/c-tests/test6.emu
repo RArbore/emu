@@ -18,7 +18,7 @@ func g(): f64[four] {
 
 struct s {
      x: i64, y: f64[four]
-};
+}
 
 func h(): s {
      st: s = undefined;
@@ -43,6 +43,6 @@ pure inline func c(y: *i64): i64 {
      x: i64 = b();
      z: *i64 = &x;
      y = (*i64) 0;
-     *(z) = 0;
+     //*(z) = 0;
      return b();
 }

@@ -13,7 +13,7 @@
 struct my_type {
      x: f64,
      y: i64
-};
+}
 
 z: f64 = 0.0;
 

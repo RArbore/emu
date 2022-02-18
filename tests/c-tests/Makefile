@@ -16,12 +16,13 @@
 EMU=../../emu
 CC=gcc
 
-all: test1.out test2.out test3.out test4.out test5.out
+all: test1.out test2.out test3.out test4.out test5.out test6.out
 	./test1.out
 	./test2.out
 	./test3.out
 	./test4.out
 	./test5.out
+	./test6.out
 test1.out: test1.c test1.emu
 	$(EMU) test1.emu -o test1.o
 	$(CC) test1.c test1.o -o test1.out

@@ -35,7 +35,6 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Text (Text, pack)
 import Data.Word
-import Debug.Trace
 
 import Foreign (Ptr, poke, peek)
 import Foreign.Ptr
@@ -210,6 +209,7 @@ checkDecl ((l, sc, ec), d) = checked
                              termination <- stmtReturns (l, sc, ec) sbody
                              unless (termination == Just sretType || isTypeVoid sretType) $ throwError $ SemanticsError l sc ec FunctionNotReturning
                              let func = Function sig (if isTypeVoid sretType && termination == Nothing then Block [StatementDecl sbody, StatementDecl $ ReturnStatement Undefined] else sbody)
+                             modify $ \env -> env { funcs = M.insert name func boundFuncs }
                              when (A.Pure `elem` mods) $ assertPure (l, sc, ec) $ FuncDecl func
                              modify $ \_ -> prevEnv { funcs = M.insert name func boundFuncs }
                              when (A.Inline `elem` mods) $ assertInlinable (l, sc, ec) func

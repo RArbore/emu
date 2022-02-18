@@ -150,7 +150,6 @@ pDeclaration = (try pStmtDecl)
             first <- pDecoratedIdentifier
             rest <- many $ pSymbol "," *> pDecoratedIdentifier
             pSymbol "}"
-            pSymbol ";"
             return $ StructDecl mods iden (first:rest)
           pFuncDecl = do
             mods <- many pModifier

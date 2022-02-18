@@ -16,17 +16,3 @@ pure inline func fact(n: u32): u32 {
      if (n >= 2) n *= fact(n - (u32) 1);
      return n;
 }
-
-/*
-pure func matmul(const r: u32, const m: u32, const c: u32, const a: f32[r][m], const b: f32[m][c]): f32[r][c] {
-    out: f32[r][c] = comptime 0.0;
-    for (i: u32 = 0; i < r; i++) {
-        for (j: u32 = 0; j < c; j++) {
-            for (k: u32 = 0; k < m; k++) {
-                out[i][j] += a[i][k] * b[k][j];
-            }
-        }
-    }
-    return out;
-}
-*/

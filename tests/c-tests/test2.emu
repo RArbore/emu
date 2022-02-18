@@ -14,7 +14,7 @@ func g(x: *f32): void {
      *x = (f32) 1;
 }
 
-pure inline func f(): f32 {
+inline func f(): f32 {
      x: f32 = (f32) 0;
      g(&x);
      return x;
