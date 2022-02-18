@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               emu
-version:            0.1.0.0
+version:            1.0.1
 build-type:         Simple
 synopsis:           Reference compiler for the emu programming language.
 bug-reports:        https://github.com/RArbore/emu/issues
