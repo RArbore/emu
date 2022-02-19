@@ -44,4 +44,5 @@ test6.out: test6.c test6.emu
 clean:
 	rm *.o *.out
 
+.DEFAULT: all
 .PHONY: clean
