@@ -13,7 +13,7 @@ Emu is "complete" in the sense that I've implemented all the features I set out 
 - [x] Comptime evaluator
 - [x] Full language semantic checking
 - [x] Core language feature-set
-- [ ] Good documentation
+- [x] Documentation
 
 ## Installation
 To build emu, you will need GHC, Cabal, g++, and LLVM installed. You should install g++ and LLVM through your system's package manager. To install GHC & Cabal, I recommend you use [GHCup](https://www.haskell.org/ghcup/). To build the project, just run 
@@ -30,3 +30,6 @@ There is an Emacs major mode in the ```emacs``` directory. To use it, add
 (autoload 'emu-mode "emu-mode" nil t)
 ```
 to your ```init.el``` file.
+
+## Documentation
+There is a tutorial for writing Emu code at ```docs/tutorial.md```.
