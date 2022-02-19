@@ -313,8 +313,6 @@ checkStmt ((l, sc, ec), s) = checked
                                                        ])
                                                 <$> ((\x -> mkIfElse scond x EmptyStatement) =<< mkDoWhile scond (Block [StatementDecl sb, StatementDecl $ ExpressionStatement siter]))
                                _ -> throwError $ SemanticsError l sc ec $ TypeError (PureType Bool) $ typeOf scond
-                      A.SwitchStatement _ _ -> undefined
-                      A.CaseStatement _ _ -> undefined
                       A.ReturnStatement expr -> do
                              sexpr <- checkExpr expr
                              msig <- gets curFuncSignature
@@ -323,8 +321,6 @@ checkStmt ((l, sc, ec), s) = checked
                                                                             Right conv -> return $ ReturnStatement conv
                                                                             Left _ -> throwError $ SemanticsError l sc ec $ TypeError retType $ typeOf sexpr
                                Nothing -> throwError $ SemanticsError l sc ec ReturnNotInFunctionError
-                      A.BreakStatement -> undefined
-                      A.ContinueStatement -> undefined
                       A.Block decls -> do
                              boundVars <- gets vars
                              sdecls <- mapM checkDecl decls

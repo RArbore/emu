@@ -24,7 +24,7 @@
   (require 'rx))
 
 (defconst emu--font-lock-defaults
-  (let ((keywords '("func" "struct" "if" "else" "while" "for" "switch" "case" "return" "break" "continue" "pure" "const" "inline" "comptime" "restrict"))
+  (let ((keywords '("func" "struct" "if" "else" "while" "for" "return" "pure" "const" "inline" "comptime" "restrict"))
         (types '("void" "bool" "u8" "u16" "u32" "u64" "i8" "i16" "i32" "i64" "f32" "f64" )))
     `(((,(rx-to-string `(: (or ,@keywords))) 0 font-lock-keyword-face)
        ("\\([[:word:]]+\\)\s*(" 1 font-lock-function-name-face)

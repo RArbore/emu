@@ -58,11 +58,7 @@ data Statement' = ExpressionStatement Expression
                 | IfElseStatement Expression Statement Statement
                 | WhileStatement Expression Statement
                 | ForStatement Declaration Expression Expression Statement
-                | SwitchStatement Expression Statement
-                | CaseStatement Expression Statement
                 | ReturnStatement Expression
-                | BreakStatement
-                | ContinueStatement
                 | Block [Declaration]
                 | EmptyStatement deriving (Show, Generic, NFData)
 

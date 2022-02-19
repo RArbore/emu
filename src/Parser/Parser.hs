@@ -47,11 +47,7 @@ rWords = ["func",
           "else",
           "while",
           "for",
-          "switch",
-          "case",
           "return",
-          "break",
-          "continue",
           "pure",
           "const",
           "inline",
@@ -180,11 +176,7 @@ pStatement :: Parser Statement
 pStatement = locWrap $ pIfElse
              <|> pWhile
              <|> pFor
-             <|> pSwitch
-             <|> pCase
              <|> pReturn
-             <|> pBreak
-             <|> pContinue
              <|> (try pBlock)
              <|> pExprStmt
              <|> pEmpty
@@ -214,26 +206,7 @@ pStatement = locWrap $ pIfElse
             pSymbol ")"
             stmt <- pStatement
             return $ ForStatement decl expr1 expr2 stmt
-          pSwitch = do
-            pRWord "switch"
-            pSymbol "("
-            expr <- pExpression
-            pSymbol ")"
-            stmt <- pStatement
-            return $ SwitchStatement expr stmt
-          pCase = do
-            pRWord "case"
-            expr <- pExpression
-            pSymbol ":"
-            stmt <- pStatement
-            return $ CaseStatement expr stmt
           pReturn = ReturnStatement <$> (pRWord "return" *> option (impossible Undefined) pExpression <* pSymbol ";")
-          pBreak = BreakStatement <$ (do
-                                       pRWord "break"
-                                       pSymbol ";")
-          pContinue = ContinueStatement <$ (do
-                                             pRWord "continue"
-                                             pSymbol ";")
           pBlock = Block <$> (pSymbol "{" *> (many pDeclaration) <* pSymbol "}")
           pEmpty = EmptyStatement <$ pSymbol ";"
          
